@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-gold: #D4A84B;
+  --brand-gold-light: #E5C77A;
+  --brand-gold-dark: #C9A227;
+  --brand-black: #1A1A1A;
+  --brand-charcoal: #2D2D2D;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Custom scrollbar for desktop */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--brand-charcoal);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--brand-gold-dark);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--brand-gold);
+  }
+}
+
+/* PWA styles */
+@media (display-mode: standalone) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}

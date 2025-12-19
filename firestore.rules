@@ -1,0 +1,155 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'owner';
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'admin'];
+    }
+
+    function isInternalUser() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'admin', 'sales_rep', 'contractor', 'pm'];
+    }
+
+    function isActiveUser() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
+    }
+
+    function isOwnDocument(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Anyone can create their own user document (signup)
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+
+      // Users can read their own profile, admins can read all
+      allow read: if isOwnDocument(userId) || isAdmin();
+
+      // Only admins can update user status/role, users can update own profile fields
+      allow update: if isAdmin() ||
+        (isOwnDocument(userId) &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status', 'approvedAt', 'approvedBy']));
+
+      // Only owner can delete users
+      allow delete: if isOwner();
+    }
+
+    // Contractors collection
+    match /contractors/{contractorId} {
+      // Admins can read all, contractors can read their own
+      allow read: if isAdmin() ||
+        (isActiveUser() && resource.data.userId == request.auth.uid);
+
+      // Admins can create/update, contractors can update their own (limited fields)
+      allow create: if isAdmin();
+      allow update: if isAdmin() ||
+        (isActiveUser() && resource.data.userId == request.auth.uid &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['rating', 'status']));
+
+      allow delete: if isOwner();
+    }
+
+    // Jobs collection
+    match /jobs/{jobId} {
+      // Admins see all, PMs see assigned, Sales reps see their sales
+      allow read: if isAdmin() ||
+        (isActiveUser() && (
+          resource.data.pmId == request.auth.uid ||
+          resource.data.salesRepId == request.auth.uid ||
+          request.auth.uid in resource.data.crewIds
+        ));
+
+      allow create: if isAdmin();
+
+      // Status updates based on role
+      allow update: if isAdmin() ||
+        (isActiveUser() && (
+          // PM can update most fields
+          resource.data.pmId == request.auth.uid ||
+          // Sales rep can only update lead -> sold
+          (resource.data.salesRepId == request.auth.uid &&
+            resource.data.status == 'lead' &&
+            request.resource.data.status == 'sold')
+        ));
+
+      allow delete: if isOwner();
+
+      // Job communications subcollection
+      match /communications/{commId} {
+        allow read: if isAdmin() ||
+          (isActiveUser() && (
+            get(/databases/$(database)/documents/jobs/$(jobId)).data.pmId == request.auth.uid ||
+            get(/databases/$(database)/documents/jobs/$(jobId)).data.salesRepId == request.auth.uid ||
+            request.auth.uid in get(/databases/$(database)/documents/jobs/$(jobId)).data.crewIds
+          ));
+
+        allow create: if isActiveUser();
+        allow update, delete: if isAdmin() || resource.data.userId == request.auth.uid;
+      }
+    }
+
+    // Service Tickets collection
+    match /serviceTickets/{ticketId} {
+      allow read: if isAdmin() ||
+        (isActiveUser() && resource.data.assignedTechId == request.auth.uid);
+
+      allow create: if isAdmin();
+      allow update: if isAdmin() ||
+        (isActiveUser() && resource.data.assignedTechId == request.auth.uid);
+      allow delete: if isOwner();
+    }
+
+    // Leads collection
+    match /leads/{leadId} {
+      // Admins see all, sales reps see assigned, subscribers see assigned
+      allow read: if isAdmin() ||
+        (isActiveUser() && resource.data.assignedTo == request.auth.uid);
+
+      allow create: if isAdmin();
+      allow update: if isAdmin() ||
+        (isActiveUser() && resource.data.assignedTo == request.auth.uid);
+      allow delete: if isOwner();
+    }
+
+    // Campaigns collection (admin only)
+    match /campaigns/{campaignId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Subscriptions collection
+    match /subscriptions/{subscriptionId} {
+      allow read: if isAdmin() ||
+        (isActiveUser() && resource.data.userId == request.auth.uid);
+
+      allow create, update: if isAdmin();
+      allow delete: if isOwner();
+    }
+
+    // Invoices collection
+    match /invoices/{invoiceId} {
+      // Admins see all, users see invoices to/from them
+      allow read: if isAdmin() ||
+        (isActiveUser() && (
+          resource.data.to.email == request.auth.token.email ||
+          resource.data.from.email == request.auth.token.email
+        ));
+
+      allow create, update: if isAdmin();
+      allow delete: if isOwner();
+    }
+  }
+}

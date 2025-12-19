@@ -1,0 +1,63 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isValidFileType(contentType) {
+      return contentType.matches('image/.*') ||
+             contentType.matches('application/pdf') ||
+             contentType.matches('application/msword') ||
+             contentType.matches('application/vnd.openxmlformats-officedocument.*');
+    }
+
+    function isUnderSizeLimit(size) {
+      return size < 10 * 1024 * 1024; // 10MB limit
+    }
+
+    // Contractor documents (W-9, insurance, etc.)
+    match /contractors/{userId}/documents/{document} {
+      // Admins can read all, contractors can read their own
+      allow read: if isAuthenticated();
+
+      // Contractors can upload their own documents
+      allow write: if isAuthenticated() &&
+        request.auth.uid == userId &&
+        isValidFileType(request.resource.contentType) &&
+        isUnderSizeLimit(request.resource.size);
+    }
+
+    // Job photos
+    match /jobs/{jobId}/photos/{photo} {
+      // Anyone authenticated can view job photos
+      allow read: if isAuthenticated();
+
+      // Authenticated users can upload photos
+      allow write: if isAuthenticated() &&
+        request.resource.contentType.matches('image/.*') &&
+        isUnderSizeLimit(request.resource.size);
+    }
+
+    // Service ticket photos
+    match /serviceTickets/{ticketId}/photos/{photo} {
+      allow read: if isAuthenticated();
+
+      allow write: if isAuthenticated() &&
+        request.resource.contentType.matches('image/.*') &&
+        isUnderSizeLimit(request.resource.size);
+    }
+
+    // User profile photos
+    match /users/{userId}/profile/{photo} {
+      allow read: if isAuthenticated();
+
+      allow write: if isAuthenticated() &&
+        request.auth.uid == userId &&
+        request.resource.contentType.matches('image/.*') &&
+        request.resource.size < 5 * 1024 * 1024; // 5MB for profile pics
+    }
+  }
+}
