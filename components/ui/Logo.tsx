@@ -1,12 +1,14 @@
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showText?: boolean;
   variant?: 'full' | 'icon';
+  className?: string;
 }
 
-export function Logo({ size = 'md', showText = false, variant = 'full' }: LogoProps) {
+export function Logo({ size = 'md', showText = false, variant = 'full', className }: LogoProps) {
   const sizes = {
     sm: { width: 100, height: 40 },
     md: { width: 140, height: 56 },
@@ -42,7 +44,7 @@ export function Logo({ size = 'md', showText = false, variant = 'full' }: LogoPr
       width={sizes[size].width}
       height={sizes[size].height}
       priority
-      className="object-contain"
+      className={cn('object-contain', className)}
     />
   );
 }

@@ -17,13 +17,13 @@ import {
 import { Logo } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
-import { canManageUsers, canViewFinancials, canManageCampaigns } from '@/types/user';
+import { canManageUsers, canViewFinancials, canManageCampaigns, UserRole } from '@/types/user';
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  permission?: (role: string) => boolean;
+  permission?: (role: UserRole) => boolean;
 }
 
 const navItems: NavItem[] = [
