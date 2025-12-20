@@ -3,3 +3,8 @@ export { ContractorFilters } from './ContractorFilters';
 export { ContractorList } from './ContractorList';
 export { RatingDisplay } from './RatingDisplay';
 export { StatusBadge } from './StatusBadge';
+export { ContractorHeader } from './ContractorHeader';
+export { ContractorInfo } from './ContractorInfo';
+export { ContractorDocuments } from './ContractorDocuments';
+export { ContractorPerformance } from './ContractorPerformance';
+export { ContractorJobs } from './ContractorJobs';

@@ -8,3 +8,6 @@ export { Select } from './Select';
 export type { SelectOption, SelectProps } from './Select';
 export { Badge } from './Badge';
 export type { BadgeVariant, BadgeProps } from './Badge';
+export { Avatar } from './Avatar';
+export type { AvatarProps } from './Avatar';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './Tabs';
