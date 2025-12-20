@@ -7,3 +7,8 @@ export { useJobs } from './useJobs';
 export { useJob } from './useJob';
 export { useCommunications } from './useCommunications';
 export { useServiceTickets } from './useServiceTickets';
+export { useLeads } from './useLeads';
+export { useLead } from './useLead';
+export { useCampaigns } from './useCampaigns';
+export { useCampaign } from './useCampaign';
+export { useSubscriptions } from './useSubscriptions';

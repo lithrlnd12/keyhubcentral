@@ -15,9 +15,10 @@ export type AssignedType = 'internal' | 'subscriber';
 
 export interface LeadCustomer {
   name: string;
-  phone: string;
-  email: string;
+  phone: string | null;
+  email: string | null;
   address: Address;
+  notes: string | null;
 }
 
 export interface Lead {
