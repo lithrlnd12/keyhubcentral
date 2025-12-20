@@ -10,6 +10,7 @@ import {
   JobTimeline,
   JobCosts,
   JobCrew,
+  CommunicationFeed,
 } from '@/components/jobs';
 import { useJob } from '@/lib/hooks/useJob';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -84,6 +85,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="costs">Costs</TabsTrigger>
           <TabsTrigger value="crew">Crew</TabsTrigger>
+          <TabsTrigger value="comms">Notes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="info">
@@ -100,6 +102,14 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
 
         <TabsContent value="crew">
           <JobCrew job={job} canEdit={canEdit} onUpdate={update} />
+        </TabsContent>
+
+        <TabsContent value="comms">
+          <CommunicationFeed
+            jobId={job.id}
+            userId={user?.uid || ''}
+            canEdit={canEdit}
+          />
         </TabsContent>
       </Tabs>
     </div>

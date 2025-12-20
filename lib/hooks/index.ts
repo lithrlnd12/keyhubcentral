@@ -5,3 +5,4 @@ export { useFileUpload } from './useFileUpload';
 export { useAvailability } from './useAvailability';
 export { useJobs } from './useJobs';
 export { useJob } from './useJob';
+export { useCommunications } from './useCommunications';
