@@ -24,7 +24,7 @@ export function TerritoryMap({
 }: TerritoryMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const circleRef = useRef<google.maps.Circle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,10 +34,11 @@ export function TerritoryMap({
 
     const defaultCenter = center || { lat: 39.8283, lng: -98.5795 }; // Center of US
 
-    // Create map
+    // Create map - using DEMO_MAP_ID for AdvancedMarkerElement
     const map = new window.google.maps.Map(mapRef.current, {
       center: defaultCenter,
       zoom: center ? 10 : 4,
+      mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
       styles: [
         { elementType: 'geometry', stylers: [{ color: '#1a1a1a' }] },
         { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a1a' }] },
@@ -84,18 +85,25 @@ export function TerritoryMap({
 
     // Create marker if we have a center
     if (center) {
-      const marker = new window.google.maps.Marker({
+      // Create custom marker element
+      const markerContent = document.createElement('div');
+      markerContent.innerHTML = `
+        <div style="
+          width: 24px;
+          height: 24px;
+          background: #D4A84B;
+          border: 3px solid #ffffff;
+          border-radius: 50%;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          cursor: ${interactive ? 'grab' : 'default'};
+        "></div>
+      `;
+
+      const marker = new window.google.maps.marker.AdvancedMarkerElement({
         position: center,
         map,
-        draggable: interactive,
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: '#D4A84B',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2,
-        },
+        gmpDraggable: interactive,
+        content: markerContent,
       });
 
       markerRef.current = marker;
@@ -117,9 +125,12 @@ export function TerritoryMap({
       // Handle marker drag
       if (interactive && onCenterChange) {
         marker.addListener('dragend', () => {
-          const position = marker.getPosition();
+          const position = marker.position;
           if (position) {
-            const newCenter = { lat: position.lat(), lng: position.lng() };
+            const newCenter = {
+              lat: typeof position.lat === 'function' ? position.lat() : position.lat,
+              lng: typeof position.lng === 'function' ? position.lng() : position.lng
+            };
             onCenterChange(newCenter);
             circle.setCenter(newCenter);
           }
@@ -149,7 +160,7 @@ export function TerritoryMap({
     }
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker`;
     script.async = true;
     script.defer = true;
     script.onload = initializeMap;
@@ -178,7 +189,7 @@ export function TerritoryMap({
   // Update marker and circle position when center changes
   useEffect(() => {
     if (center && markerRef.current && circleRef.current) {
-      markerRef.current.setPosition(center);
+      markerRef.current.position = center;
       circleRef.current.setCenter(center);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.panTo(center);
