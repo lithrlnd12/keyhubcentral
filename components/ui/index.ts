@@ -4,3 +4,7 @@ export { Input } from './Input';
 export { ErrorBoundary } from './ErrorBoundary';
 export { Spinner } from './Spinner';
 export { Card, CardHeader, CardTitle, CardDescription, CardContent } from './Card';
+export { Select } from './Select';
+export type { SelectOption, SelectProps } from './Select';
+export { Badge } from './Badge';
+export type { BadgeVariant, BadgeProps } from './Badge';
