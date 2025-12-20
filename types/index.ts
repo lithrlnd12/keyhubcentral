@@ -4,3 +4,4 @@ export * from './contractor';
 export * from './job';
 export * from './lead';
 export * from './invoice';
+export * from './availability';

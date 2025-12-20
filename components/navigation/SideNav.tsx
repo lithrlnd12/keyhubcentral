@@ -13,11 +13,18 @@ import {
   Building2,
   Wrench,
   Target,
+  UserCircle,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 import { canManageUsers, canViewFinancials, canManageCampaigns, UserRole } from '@/types/user';
+
+// Contractor can access portal
+const isContractor = (role: UserRole): boolean => role === 'contractor';
+
+// Non-contractors (internal staff)
+const isInternalStaff = (role: UserRole): boolean => role !== 'contractor';
 
 interface NavItem {
   label: string;
@@ -27,9 +34,10 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Overview', href: '/overview', icon: LayoutDashboard },
-  { label: 'KTS', href: '/kts', icon: Wrench },
-  { label: 'Key Renovations', href: '/kr', icon: Building2 },
+  { label: 'Overview', href: '/overview', icon: LayoutDashboard, permission: isInternalStaff },
+  { label: 'Portal', href: '/portal', icon: UserCircle, permission: isContractor },
+  { label: 'KTS', href: '/kts', icon: Wrench, permission: isInternalStaff },
+  { label: 'Key Renovations', href: '/kr', icon: Building2, permission: isInternalStaff },
   { label: 'Keynote Digital', href: '/kd', icon: Target, permission: canManageCampaigns },
   { label: 'Financials', href: '/financials', icon: FileText, permission: canViewFinancials },
   { label: 'Admin', href: '/admin', icon: Settings, permission: canManageUsers },

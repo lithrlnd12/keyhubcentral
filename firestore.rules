@@ -61,6 +61,20 @@ service cloud.firestore {
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['rating', 'status']));
 
       allow delete: if isOwner();
+
+      // Availability subcollection
+      match /availability/{dateId} {
+        // Admins can read all, contractors can read their own
+        allow read: if isAdmin() ||
+          (isActiveUser() && get(/databases/$(database)/documents/contractors/$(contractorId)).data.userId == request.auth.uid);
+
+        // Admins and the contractor themselves can manage availability
+        allow create, update: if isAdmin() ||
+          (isActiveUser() && get(/databases/$(database)/documents/contractors/$(contractorId)).data.userId == request.auth.uid);
+
+        allow delete: if isAdmin() ||
+          (isActiveUser() && get(/databases/$(database)/documents/contractors/$(contractorId)).data.userId == request.auth.uid);
+      }
     }
 
     // Jobs collection

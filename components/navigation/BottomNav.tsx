@@ -8,6 +8,7 @@ import {
   Building2,
   Target,
   User,
+  UserCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks';
@@ -18,7 +19,8 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const navItems: NavItem[] = [
+// Internal staff nav items
+const internalNavItems: NavItem[] = [
   { label: 'Home', href: '/overview', icon: LayoutDashboard },
   { label: 'KTS', href: '/kts', icon: Wrench },
   { label: 'KR', href: '/kr', icon: Building2 },
@@ -26,20 +28,29 @@ const navItems: NavItem[] = [
   { label: 'Profile', href: '/profile', icon: User },
 ];
 
+// Contractor nav items
+const contractorNavItems: NavItem[] = [
+  { label: 'Portal', href: '/portal', icon: UserCircle },
+  { label: 'Jobs', href: '/portal/jobs', icon: Wrench },
+  { label: 'Calendar', href: '/portal/availability', icon: LayoutDashboard },
+  { label: 'Profile', href: '/profile', icon: User },
+];
+
 export function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
 
+  const isContractor = user?.role === 'contractor';
+
+  // Get appropriate nav items based on role
+  const baseItems = isContractor ? contractorNavItems : internalNavItems;
+
   // Filter items based on user role for mobile
-  const filteredItems = navItems.filter((item) => {
+  const filteredItems = baseItems.filter((item) => {
     // Show profile for everyone
     if (item.href === '/profile') return true;
-    // Show overview for everyone
-    if (item.href === '/overview') return true;
-    // KTS visible to internal roles
-    if (item.href === '/kts') return true;
-    // KR visible to internal roles
-    if (item.href === '/kr') return true;
+    // For contractors, show all contractor items
+    if (isContractor) return true;
     // KD only for admin roles
     if (item.href === '/kd') {
       return user?.role && ['owner', 'admin'].includes(user.role);
