@@ -2,3 +2,8 @@ export { JobStatusBadge } from './JobStatusBadge';
 export { JobCard } from './JobCard';
 export { JobFilters } from './JobFilters';
 export { JobList } from './JobList';
+export { JobHeader } from './JobHeader';
+export { JobInfo } from './JobInfo';
+export { JobTimeline } from './JobTimeline';
+export { JobCosts } from './JobCosts';
+export { JobCrew } from './JobCrew';
