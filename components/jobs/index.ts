@@ -7,3 +7,4 @@ export { JobInfo } from './JobInfo';
 export { JobTimeline } from './JobTimeline';
 export { JobCosts } from './JobCosts';
 export { JobCrew } from './JobCrew';
+export { JobForm } from './JobForm';
