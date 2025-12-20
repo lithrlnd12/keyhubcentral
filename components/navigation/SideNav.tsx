@@ -23,8 +23,11 @@ import { canManageUsers, canViewFinancials, canManageCampaigns, UserRole } from 
 // Contractor can access portal
 const isContractor = (role: UserRole): boolean => role === 'contractor';
 
-// Non-contractors (internal staff)
-const isInternalStaff = (role: UserRole): boolean => role !== 'contractor';
+// Subscriber can access subscriber portal
+const isSubscriber = (role: UserRole): boolean => role === 'subscriber';
+
+// Non-contractors and non-subscribers (internal staff)
+const isInternalStaff = (role: UserRole): boolean => !['contractor', 'subscriber'].includes(role);
 
 interface NavItem {
   label: string;
@@ -36,6 +39,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Overview', href: '/overview', icon: LayoutDashboard, permission: isInternalStaff },
   { label: 'Portal', href: '/portal', icon: UserCircle, permission: isContractor },
+  { label: 'My Leads', href: '/subscriber', icon: Users, permission: isSubscriber },
   { label: 'KTS', href: '/kts', icon: Wrench, permission: isInternalStaff },
   { label: 'Key Renovations', href: '/kr', icon: Building2, permission: isInternalStaff },
   { label: 'Keynote Digital', href: '/kd', icon: Target, permission: canManageCampaigns },

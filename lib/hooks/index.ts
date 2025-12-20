@@ -12,3 +12,4 @@ export { useLead } from './useLead';
 export { useCampaigns } from './useCampaigns';
 export { useCampaign } from './useCampaign';
 export { useSubscriptions } from './useSubscriptions';
+export { useSubscription } from './useSubscription';
