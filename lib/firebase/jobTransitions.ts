@@ -7,8 +7,8 @@ export interface TransitionResult {
   error?: string;
 }
 
-// Role-based transition permissions
-const TRANSITION_PERMISSIONS: Record<JobStatus, Record<JobStatus, string[]>> = {
+// Role-based transition permissions (partial record - not all statuses can transition to all others)
+const TRANSITION_PERMISSIONS: Partial<Record<JobStatus, Partial<Record<JobStatus, string[]>>>> = {
   lead: {
     sold: ['owner', 'admin', 'pm', 'sales_rep'],
   },
