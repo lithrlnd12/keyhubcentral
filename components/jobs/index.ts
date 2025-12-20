@@ -8,3 +8,5 @@ export { JobTimeline } from './JobTimeline';
 export { JobCosts } from './JobCosts';
 export { JobCrew } from './JobCrew';
 export { JobForm } from './JobForm';
+export { StatusTransition } from './StatusTransition';
+export { JobPipeline } from './JobPipeline';
