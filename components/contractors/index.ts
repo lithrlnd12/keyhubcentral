@@ -8,3 +8,6 @@ export { ContractorInfo } from './ContractorInfo';
 export { ContractorDocuments } from './ContractorDocuments';
 export { ContractorPerformance } from './ContractorPerformance';
 export { ContractorJobs } from './ContractorJobs';
+export { RatingCard } from './RatingCard';
+export { RatingEditor } from './RatingEditor';
+export { ContractorEditForm } from './ContractorEditForm';
