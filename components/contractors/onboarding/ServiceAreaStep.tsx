@@ -1,12 +1,16 @@
 'use client';
 
-import { MapPin, Navigation } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Slider } from '@/components/ui/Slider';
+import { TerritoryMap } from '@/components/maps';
 
 export interface ServiceAreaData {
   serviceRadius: number;
   homeAddress: string;
+  lat?: number;
+  lng?: number;
 }
 
 interface ServiceAreaStepProps {
@@ -16,6 +20,22 @@ interface ServiceAreaStepProps {
 }
 
 export function ServiceAreaStep({ data, onChange, errors }: ServiceAreaStepProps) {
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(
+    data.lat && data.lng ? { lat: data.lat, lng: data.lng } : null
+  );
+
+  // Update map center when lat/lng changes
+  useEffect(() => {
+    if (data.lat && data.lng) {
+      setMapCenter({ lat: data.lat, lng: data.lng });
+    }
+  }, [data.lat, data.lng]);
+
+  const handleCenterChange = (center: { lat: number; lng: number }) => {
+    setMapCenter(center);
+    onChange({ ...data, lat: center.lat, lng: center.lng });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -36,6 +56,11 @@ export function ServiceAreaStep({ data, onChange, errors }: ServiceAreaStepProps
               <p className="text-sm text-gray-400 mt-0.5">
                 {data.homeAddress || 'Address from Step 1 will be used'}
               </p>
+              {mapCenter && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Coordinates: {mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)}
+                </p>
+              )}
             </div>
           </div>
 
@@ -49,26 +74,21 @@ export function ServiceAreaStep({ data, onChange, errors }: ServiceAreaStepProps
             formatValue={(v) => `${v} miles`}
           />
 
-          {/* Map placeholder - will be replaced with Google Maps */}
-          <div className="mt-6 bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-            <div className="aspect-video flex flex-col items-center justify-center p-6 text-center">
-              <Navigation className="w-12 h-12 text-gray-600 mb-3" />
-              <h4 className="text-white font-medium mb-1">Territory Map</h4>
-              <p className="text-sm text-gray-500 max-w-sm">
-                Interactive Google Maps integration will display the service area
-                based on the radius setting above.
-              </p>
-              <div className="mt-4 px-4 py-2 bg-brand-gold/10 rounded-lg">
-                <span className="text-brand-gold text-sm font-medium">
-                  {data.serviceRadius} mile radius from home base
-                </span>
-              </div>
-            </div>
+          {/* Google Maps Territory View */}
+          <div className="mt-6">
+            <TerritoryMap
+              center={mapCenter}
+              radius={data.serviceRadius}
+              onCenterChange={handleCenterChange}
+              className="h-[350px] border border-gray-700"
+              interactive={true}
+            />
           </div>
 
           <p className="mt-4 text-xs text-gray-500">
-            The service radius determines which jobs and leads can be assigned to
-            this contractor based on distance from their home address.
+            {mapCenter
+              ? 'Drag the marker to adjust the home base location. The gold circle shows the service area.'
+              : 'Enter an address in Step 1 to see the service area on the map.'}
           </p>
         </CardContent>
       </Card>
