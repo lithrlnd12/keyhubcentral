@@ -6,8 +6,7 @@ import { Contractor } from '@/types/contractor';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { getContractor } from '@/lib/firebase/contractors';
-import { formatRatingStars } from '@/lib/utils/formatters';
-import { Users, UserPlus, X, User, MapPin, Star, Phone, Loader2 } from 'lucide-react';
+import { Users, UserPlus, X, User, MapPin, Star, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import Link from 'next/link';
 
