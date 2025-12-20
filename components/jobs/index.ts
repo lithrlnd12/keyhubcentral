@@ -11,3 +11,5 @@ export { JobForm } from './JobForm';
 export { StatusTransition } from './StatusTransition';
 export { JobPipeline } from './JobPipeline';
 export { CommunicationFeed } from './CommunicationFeed';
+export { ServiceTicketCard } from './ServiceTicketCard';
+export { ServiceTicketList } from './ServiceTicketList';
