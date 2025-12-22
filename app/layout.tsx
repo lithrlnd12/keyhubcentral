@@ -44,7 +44,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Additional PWA meta tags */}
+        {/* PWA meta tags */}
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={inter.className}>
         <AuthProvider>{children}</AuthProvider>
