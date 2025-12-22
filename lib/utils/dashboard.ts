@@ -92,6 +92,14 @@ function getEndOfWeek(): Date {
   return new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
 }
 
+// Helper to safely get Date from Timestamp (local to this section)
+function safeDateConvert(timestamp: any): Date | null {
+  if (!timestamp) return null;
+  if (timestamp instanceof Date) return timestamp;
+  if (typeof timestamp.toDate === 'function') return timestamp.toDate();
+  return null;
+}
+
 // Calculate dashboard stats
 export function calculateDashboardStats(
   jobs: Job[],
@@ -101,80 +109,86 @@ export function calculateDashboardStats(
 ): DashboardStats {
   const startOfMonth = getStartOfMonth();
   const startOfLastMonth = getStartOfLastMonth();
-  const startOfWeek = getStartOfWeek();
-  const endOfWeek = getEndOfWeek();
+  const weekStart = getStartOfWeek();
+  const weekEnd = getEndOfWeek();
   const now = new Date();
 
+  // Safe arrays
+  const safeJobs = Array.isArray(jobs) ? jobs.filter(Boolean) : [];
+  const safeLeads = Array.isArray(leads) ? leads.filter(Boolean) : [];
+  const safeContractors = Array.isArray(contractors) ? contractors.filter(Boolean) : [];
+  const safeInvoices = Array.isArray(invoices) ? invoices.filter(Boolean) : [];
+
   // Revenue from paid invoices this month
-  const thisMonthInvoices = invoices.filter(
-    (inv) =>
-      inv.status === 'paid' &&
-      inv.paidAt &&
-      inv.paidAt.toDate() >= startOfMonth
-  );
-  const totalRevenue = thisMonthInvoices.reduce((sum, inv) => sum + inv.total, 0);
+  const thisMonthInvoices = safeInvoices.filter((inv) => {
+    if (inv?.status !== 'paid' || !inv?.paidAt) return false;
+    const paidDate = safeDateConvert(inv.paidAt);
+    return paidDate && paidDate >= startOfMonth;
+  });
+  const totalRevenue = thisMonthInvoices.reduce((sum, inv) => sum + (inv?.total || 0), 0);
 
   // Revenue from last month for comparison
-  const lastMonthInvoices = invoices.filter(
-    (inv) =>
-      inv.status === 'paid' &&
-      inv.paidAt &&
-      inv.paidAt.toDate() >= startOfLastMonth &&
-      inv.paidAt.toDate() < startOfMonth
-  );
-  const lastMonthRevenue = lastMonthInvoices.reduce((sum, inv) => sum + inv.total, 0);
+  const lastMonthInvoices = safeInvoices.filter((inv) => {
+    if (inv?.status !== 'paid' || !inv?.paidAt) return false;
+    const paidDate = safeDateConvert(inv.paidAt);
+    return paidDate && paidDate >= startOfLastMonth && paidDate < startOfMonth;
+  });
+  const lastMonthRevenue = lastMonthInvoices.reduce((sum, inv) => sum + (inv?.total || 0), 0);
   const revenueChange = lastMonthRevenue > 0
     ? ((totalRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
     : 0;
 
   // Active jobs (not complete or paid in full)
-  const activeJobs = jobs.filter(
-    (job) => !['complete', 'paid_in_full'].includes(job.status)
+  const activeJobs = safeJobs.filter(
+    (job) => job && !['complete', 'paid_in_full'].includes(job.status)
   ).length;
 
   // Jobs starting this week
-  const jobsStartingThisWeek = jobs.filter((job) => {
-    if (!job.dates.scheduledStart) return false;
-    const startDate = job.dates.scheduledStart.toDate();
-    return startDate >= startOfWeek && startDate <= endOfWeek;
+  const jobsStartingThisWeek = safeJobs.filter((job) => {
+    if (!job?.dates?.scheduledStart) return false;
+    const startDate = safeDateConvert(job.dates.scheduledStart);
+    return startDate && startDate >= weekStart && startDate <= weekEnd;
   }).length;
 
   // Completed jobs MTD
-  const completedJobsMTD = jobs.filter((job) => {
-    if (!['complete', 'paid_in_full'].includes(job.status)) return false;
-    const completedDate = job.dates.actualCompletion?.toDate();
+  const completedJobsMTD = safeJobs.filter((job) => {
+    if (!job || !['complete', 'paid_in_full'].includes(job.status)) return false;
+    const completedDate = safeDateConvert(job.dates?.actualCompletion);
     return completedDate && completedDate >= startOfMonth;
   }).length;
 
   // Contractors
-  const activeContractors = contractors.filter((c) => c.status === 'active').length;
-  const pendingContractors = contractors.filter((c) => c.status === 'pending').length;
+  const activeContractors = safeContractors.filter((c) => c?.status === 'active').length;
+  const pendingContractors = safeContractors.filter((c) => c?.status === 'pending').length;
 
   // Leads MTD
-  const leadsMTD = leads.filter((lead) => {
-    const createdAt = lead.createdAt.toDate();
-    return createdAt >= startOfMonth;
+  const leadsMTD = safeLeads.filter((lead) => {
+    if (!lead?.createdAt) return false;
+    const createdAt = safeDateConvert(lead.createdAt);
+    return createdAt && createdAt >= startOfMonth;
   }).length;
 
   // Leads last month for comparison
-  const leadsLastMonth = leads.filter((lead) => {
-    const createdAt = lead.createdAt.toDate();
-    return createdAt >= startOfLastMonth && createdAt < startOfMonth;
+  const leadsLastMonth = safeLeads.filter((lead) => {
+    if (!lead?.createdAt) return false;
+    const createdAt = safeDateConvert(lead.createdAt);
+    return createdAt && createdAt >= startOfLastMonth && createdAt < startOfMonth;
   }).length;
   const leadsChange = leadsLastMonth > 0
     ? ((leadsMTD - leadsLastMonth) / leadsLastMonth) * 100
     : 0;
 
   // Overdue invoices
-  const overdueInvoices = invoices.filter((inv) => {
-    if (inv.status === 'paid') return false;
-    return inv.dueDate.toDate() < now;
+  const overdueInvoices = safeInvoices.filter((inv) => {
+    if (!inv || inv.status === 'paid' || !inv.dueDate) return false;
+    const dueDate = safeDateConvert(inv.dueDate);
+    return dueDate && dueDate < now;
   }).length;
 
   // Outstanding amount
-  const outstandingAmount = invoices
-    .filter((inv) => inv.status !== 'paid')
-    .reduce((sum, inv) => sum + inv.total, 0);
+  const outstandingAmount = safeInvoices
+    .filter((inv) => inv && inv.status !== 'paid')
+    .reduce((sum, inv) => sum + (inv?.total || 0), 0);
 
   return {
     totalRevenue,
@@ -201,55 +215,60 @@ export function calculateEntityStats(
 ): EntityStats {
   const startOfMonth = getStartOfMonth();
 
+  // Safe arrays
+  const safeJobs = Array.isArray(jobs) ? jobs.filter(Boolean) : [];
+  const safeLeads = Array.isArray(leads) ? leads.filter(Boolean) : [];
+  const safeContractors = Array.isArray(contractors) ? contractors.filter(Boolean) : [];
+  const safeInvoices = Array.isArray(invoices) ? invoices.filter(Boolean) : [];
+
   // KTS stats
-  const ktsActiveContractors = contractors.filter((c) => c.status === 'active').length;
-  const ktsJobsThisMonth = jobs.filter((job) => {
-    const createdAt = job.createdAt.toDate();
-    return createdAt >= startOfMonth;
+  const ktsActiveContractors = safeContractors.filter((c) => c?.status === 'active').length;
+  const ktsJobsThisMonth = safeJobs.filter((job) => {
+    if (!job?.createdAt) return false;
+    const createdAt = safeDateConvert(job.createdAt);
+    return createdAt && createdAt >= startOfMonth;
   }).length;
-  const ktsRevenue = invoices
-    .filter(
-      (inv) =>
-        inv.from.entity === 'kts' &&
-        inv.status === 'paid' &&
-        inv.paidAt &&
-        inv.paidAt.toDate() >= startOfMonth
-    )
-    .reduce((sum, inv) => sum + inv.total, 0);
+  const ktsRevenue = safeInvoices
+    .filter((inv) => {
+      if (!inv?.from?.entity || inv.from.entity !== 'kts') return false;
+      if (inv.status !== 'paid' || !inv.paidAt) return false;
+      const paidDate = safeDateConvert(inv.paidAt);
+      return paidDate && paidDate >= startOfMonth;
+    })
+    .reduce((sum, inv) => sum + (inv?.total || 0), 0);
 
   // KR stats
-  const krActiveJobs = jobs.filter(
-    (job) => !['complete', 'paid_in_full'].includes(job.status)
+  const krActiveJobs = safeJobs.filter(
+    (job) => job && !['complete', 'paid_in_full'].includes(job.status)
   ).length;
-  const krCompletedMTD = jobs.filter((job) => {
-    if (!['complete', 'paid_in_full'].includes(job.status)) return false;
-    const completedDate = job.dates.actualCompletion?.toDate();
+  const krCompletedMTD = safeJobs.filter((job) => {
+    if (!job || !['complete', 'paid_in_full'].includes(job.status)) return false;
+    const completedDate = safeDateConvert(job.dates?.actualCompletion);
     return completedDate && completedDate >= startOfMonth;
   }).length;
-  const krRevenue = invoices
-    .filter(
-      (inv) =>
-        inv.from.entity === 'kr' &&
-        inv.status === 'paid' &&
-        inv.paidAt &&
-        inv.paidAt.toDate() >= startOfMonth
-    )
-    .reduce((sum, inv) => sum + inv.total, 0);
+  const krRevenue = safeInvoices
+    .filter((inv) => {
+      if (!inv?.from?.entity || inv.from.entity !== 'kr') return false;
+      if (inv.status !== 'paid' || !inv.paidAt) return false;
+      const paidDate = safeDateConvert(inv.paidAt);
+      return paidDate && paidDate >= startOfMonth;
+    })
+    .reduce((sum, inv) => sum + (inv?.total || 0), 0);
 
   // KD stats
-  const kdLeadsGenerated = leads.filter((lead) => {
-    const createdAt = lead.createdAt.toDate();
-    return createdAt >= startOfMonth;
+  const kdLeadsGenerated = safeLeads.filter((lead) => {
+    if (!lead?.createdAt) return false;
+    const createdAt = safeDateConvert(lead.createdAt);
+    return createdAt && createdAt >= startOfMonth;
   }).length;
-  const kdRevenue = invoices
-    .filter(
-      (inv) =>
-        inv.from.entity === 'kd' &&
-        inv.status === 'paid' &&
-        inv.paidAt &&
-        inv.paidAt.toDate() >= startOfMonth
-    )
-    .reduce((sum, inv) => sum + inv.total, 0);
+  const kdRevenue = safeInvoices
+    .filter((inv) => {
+      if (!inv?.from?.entity || inv.from.entity !== 'kd') return false;
+      if (inv.status !== 'paid' || !inv.paidAt) return false;
+      const paidDate = safeDateConvert(inv.paidAt);
+      return paidDate && paidDate >= startOfMonth;
+    })
+    .reduce((sum, inv) => sum + (inv?.total || 0), 0);
 
   return {
     kts: {
@@ -270,31 +289,36 @@ export function calculateEntityStats(
   };
 }
 
-// Generate mock revenue trend data (replace with real data later)
+// Generate revenue trend data
 export function generateRevenueTrend(invoices: Invoice[]): RevenueDataPoint[] {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const currentMonth = new Date().getMonth();
   const data: RevenueDataPoint[] = [];
 
+  // Safe invoices array
+  const safeInvoices = Array.isArray(invoices) ? invoices.filter(Boolean) : [];
+
   // Get last 6 months
   for (let i = 5; i >= 0; i--) {
     const monthIndex = (currentMonth - i + 12) % 12;
     const year = new Date().getFullYear() - (currentMonth - i < 0 ? 1 : 0);
-    const startOfMonth = new Date(year, monthIndex, 1);
-    const endOfMonth = new Date(year, monthIndex + 1, 0);
+    const monthStart = new Date(year, monthIndex, 1);
+    const monthEnd = new Date(year, monthIndex + 1, 0);
 
     let kdRevenue = 0;
     let ktsRevenue = 0;
     let krRevenue = 0;
 
-    invoices.forEach((inv) => {
-      if (inv.status !== 'paid' || !inv.paidAt) return;
-      const paidDate = inv.paidAt.toDate();
-      if (paidDate < startOfMonth || paidDate > endOfMonth) return;
+    safeInvoices.forEach((inv) => {
+      if (!inv || inv.status !== 'paid' || !inv.paidAt) return;
+      const paidDate = safeDateConvert(inv.paidAt);
+      if (!paidDate || paidDate < monthStart || paidDate > monthEnd) return;
 
-      if (inv.from.entity === 'kd') kdRevenue += inv.total;
-      else if (inv.from.entity === 'kts') ktsRevenue += inv.total;
-      else if (inv.from.entity === 'kr') krRevenue += inv.total;
+      const entity = inv.from?.entity;
+      const total = inv.total || 0;
+      if (entity === 'kd') kdRevenue += total;
+      else if (entity === 'kts') ktsRevenue += total;
+      else if (entity === 'kr') krRevenue += total;
     });
 
     data.push({
@@ -309,10 +333,24 @@ export function generateRevenueTrend(invoices: Invoice[]): RevenueDataPoint[] {
   return data;
 }
 
+// Helper to safely get Date from Timestamp
+function safeToDate(timestamp: any): Date | null {
+  if (!timestamp) return null;
+  if (timestamp instanceof Date) return timestamp;
+  if (typeof timestamp.toDate === 'function') return timestamp.toDate();
+  return null;
+}
+
 // Get lead source distribution
 export function getLeadSourceDistribution(leads: Lead[]): LeadSourceData[] {
+  if (!leads || !Array.isArray(leads)) return [];
+
   const startOfMonth = getStartOfMonth();
-  const mtdLeads = leads.filter((lead) => lead.createdAt.toDate() >= startOfMonth);
+  const mtdLeads = leads.filter((lead) => {
+    if (!lead || !lead.createdAt) return false;
+    const createdDate = safeToDate(lead.createdAt);
+    return createdDate && createdDate >= startOfMonth;
+  });
 
   const sourceCount: Record<string, number> = {};
   mtdLeads.forEach((lead) => {
@@ -373,36 +411,44 @@ export function calculateBusinessFlowStats(
 ): BusinessFlowStats {
   const startOfMonth = getStartOfMonth();
 
+  // Safe arrays
+  const safeLeads = Array.isArray(leads) ? leads : [];
+  const safeJobs = Array.isArray(jobs) ? jobs : [];
+  const safeContractors = Array.isArray(contractors) ? contractors : [];
+  const safeInvoices = Array.isArray(invoices) ? invoices : [];
+
   // KD stats
-  const leadsGenerated = leads.filter((lead) => lead.createdAt.toDate() >= startOfMonth).length;
-  const convertedLeads = leads.filter((lead) => lead.status === 'converted').length;
-  const conversionRate = leads.length > 0 ? (convertedLeads / leads.length) * 100 : 0;
+  const leadsGenerated = safeLeads.filter((lead) => {
+    if (!lead?.createdAt) return false;
+    const createdDate = safeToDate(lead.createdAt);
+    return createdDate && createdDate >= startOfMonth;
+  }).length;
+  const convertedLeads = safeLeads.filter((lead) => lead?.status === 'converted').length;
+  const conversionRate = safeLeads.length > 0 ? (convertedLeads / safeLeads.length) * 100 : 0;
 
   // KTS stats
-  const activeContractors = contractors.filter((c) => c.status === 'active').length;
-  const completedJobs = jobs.filter((job) => ['complete', 'paid_in_full'].includes(job.status)).length;
-  const avgRating = contractors.length > 0
-    ? contractors.reduce((sum, c) => sum + (c.rating?.overall || 0), 0) / contractors.length
+  const activeContractors = safeContractors.filter((c) => c?.status === 'active').length;
+  const completedJobs = safeJobs.filter((job) => job && ['complete', 'paid_in_full'].includes(job.status)).length;
+  const avgRating = safeContractors.length > 0
+    ? safeContractors.reduce((sum, c) => sum + (c?.rating?.overall || 0), 0) / safeContractors.length
     : 0;
 
   // KR stats
-  const activeJobs = jobs.filter((job) => !['complete', 'paid_in_full'].includes(job.status)).length;
-  const krRevenue = invoices
-    .filter(
-      (inv) =>
-        inv.from.entity === 'kr' &&
-        inv.status === 'paid' &&
-        inv.paidAt &&
-        inv.paidAt.toDate() >= startOfMonth
-    )
-    .reduce((sum, inv) => sum + inv.total, 0);
-  const completedJobsWithValue = jobs.filter(
-    (job) => ['complete', 'paid_in_full'].includes(job.status)
+  const activeJobs = safeJobs.filter((job) => job && !['complete', 'paid_in_full'].includes(job.status)).length;
+  const krRevenue = safeInvoices
+    .filter((inv) => {
+      if (!inv?.from?.entity || !inv?.paidAt) return false;
+      const paidDate = safeToDate(inv.paidAt);
+      return inv.from.entity === 'kr' && inv.status === 'paid' && paidDate && paidDate >= startOfMonth;
+    })
+    .reduce((sum, inv) => sum + (inv?.total || 0), 0);
+  const completedJobsWithValue = safeJobs.filter(
+    (job) => job && ['complete', 'paid_in_full'].includes(job.status)
   );
   // Calculate avg job value from projected material + labor costs
   const avgJobValue = completedJobsWithValue.length > 0
     ? completedJobsWithValue.reduce((sum, job) =>
-        sum + (job.costs?.materialProjected || 0) + (job.costs?.laborProjected || 0), 0
+        sum + (job?.costs?.materialProjected || 0) + (job?.costs?.laborProjected || 0), 0
       ) / completedJobsWithValue.length
     : 0;
 
@@ -427,9 +473,12 @@ export function calculateBusinessFlowStats(
 
 // Get job type distribution
 export function getJobTypeDistribution(jobs: Job[]): JobTypeData[] {
+  if (!jobs || !Array.isArray(jobs)) return [];
+
   const typeCount: Record<string, number> = {};
 
   jobs.forEach((job) => {
+    if (!job) return;
     const type = job.type || 'other';
     typeCount[type] = (typeCount[type] || 0) + 1;
   });
