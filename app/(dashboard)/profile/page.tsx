@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/lib/hooks';
 import { Button } from '@/components/ui';
+import { NotificationSettings } from '@/components/notifications';
 import { User, Mail, Phone, Shield, Calendar } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -58,6 +59,9 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Notification Settings */}
+      <NotificationSettings />
 
       <Button variant="outline" onClick={signOut}>
         Sign out

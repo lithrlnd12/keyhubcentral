@@ -15,3 +15,4 @@ export { useSubscriptions } from './useSubscriptions';
 export { useSubscription } from './useSubscription';
 export { useInvoices } from './useInvoices';
 export { useInvoice } from './useInvoice';
+export { useNotifications } from './useNotifications';

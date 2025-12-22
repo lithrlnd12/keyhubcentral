@@ -145,8 +145,25 @@ const pwaConfig = withPWA({
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['firebasestorage.googleapis.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
+  // Enable experimental features for better performance
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts'],
+  },
+  // Compress responses
+  compress: true,
+  // Generate ETags for caching
+  generateEtags: true,
+  // Enable powered by header removal for security
+  poweredByHeader: false,
 };
 
 export default pwaConfig(nextConfig);

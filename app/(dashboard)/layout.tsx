@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { SideNav, BottomNav, TopBar } from '@/components/navigation';
+import { AIChatWidget } from '@/components/chat';
 import { useAuth } from '@/lib/hooks';
 
 const PAGE_TITLES: Record<string, string> = {
@@ -99,6 +100,9 @@ export default function DashboardLayout({
 
       {/* Mobile bottom navigation */}
       <BottomNav />
+
+      {/* AI Chat Widget */}
+      <AIChatWidget />
     </div>
   );
 }
