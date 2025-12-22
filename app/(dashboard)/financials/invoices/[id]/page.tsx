@@ -188,16 +188,16 @@ export default function InvoiceDetailPage() {
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <p className="text-gray-400 text-sm mb-2">From</p>
-                  <p className={cn('font-semibold', ENTITY_CONFIG[invoice.from.entity].color)}>
-                    {formatEntityName(invoice.from)}
+                  <p className={cn('font-semibold', ENTITY_CONFIG[invoice.from?.entity]?.color || 'text-gray-400')}>
+                    {formatEntityName(invoice.from) || 'Unknown'}
                   </p>
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm mb-2">To</p>
-                  <p className={cn('font-semibold', ENTITY_CONFIG[invoice.to.entity].color)}>
-                    {formatEntityName(invoice.to)}
+                  <p className={cn('font-semibold', ENTITY_CONFIG[invoice.to?.entity]?.color || 'text-gray-400')}>
+                    {formatEntityName(invoice.to) || 'Unknown'}
                   </p>
-                  {invoice.to.email && (
+                  {invoice.to?.email && (
                     <div className="flex items-center gap-2 mt-1 text-sm text-gray-400">
                       <Mail className="w-4 h-4" />
                       {invoice.to.email}

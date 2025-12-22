@@ -69,12 +69,12 @@ export function InvoiceCard({
 
           {/* From -> To */}
           <div className="flex items-center gap-2 mb-3">
-            <span className={cn('text-sm font-medium', ENTITY_CONFIG[invoice.from.entity].color)}>
-              {ENTITY_CONFIG[invoice.from.entity].shortLabel}
+            <span className={cn('text-sm font-medium', ENTITY_CONFIG[invoice.from?.entity]?.color || 'text-gray-400')}>
+              {ENTITY_CONFIG[invoice.from?.entity]?.shortLabel || 'Unknown'}
             </span>
             <ArrowRight className="w-4 h-4 text-gray-600" />
-            <span className={cn('text-sm', ENTITY_CONFIG[invoice.to.entity].color)}>
-              {formatEntityName(invoice.to)}
+            <span className={cn('text-sm', ENTITY_CONFIG[invoice.to?.entity]?.color || 'text-gray-400')}>
+              {formatEntityName(invoice.to) || 'Unknown'}
             </span>
           </div>
 
