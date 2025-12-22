@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/hooks';
 import { Button } from '@/components/ui';
 import { UserProfile, UserRole, UserStatus } from '@/types/user';
-import { Check, X, Clock, User } from 'lucide-react';
+import { Check, X, Clock, User, Database } from 'lucide-react';
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -57,9 +58,17 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-white">Admin</h2>
-        <p className="text-gray-400 mt-1">User management and settings</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-white">Admin</h2>
+          <p className="text-gray-400 mt-1">User management and settings</p>
+        </div>
+        <Link href="/admin/seed">
+          <Button variant="outline">
+            <Database className="w-4 h-4 mr-2" />
+            Seed Test Data
+          </Button>
+        </Link>
       </div>
 
       {/* Pending Approvals */}
