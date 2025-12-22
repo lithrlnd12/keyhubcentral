@@ -2,18 +2,21 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Loader2, CheckCircle, XCircle, Users, Briefcase, Target, Megaphone, CreditCard } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+import { Loader2, CheckCircle, XCircle, Users, Briefcase, Target, Megaphone, CreditCard, DollarSign, Trash2, Database } from 'lucide-react';
+
+// Helper to create dates relative to now
+const daysAgo = (days: number) => Timestamp.fromDate(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
+const daysFromNow = (days: number) => Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000));
 
 // ============ CONTRACTORS DATA ============
 const contractors = [
   {
-    userId: "test-user-001",
+    userId: "contractor-001",
     businessName: "ABC Installations LLC",
     address: { street: "123 Main Street", city: "Dallas", state: "TX", zip: "75201", lat: 32.7767, lng: -96.7970 },
     trades: ["installer"],
@@ -23,39 +26,39 @@ const contractors = [
     w9Url: null,
     achInfo: null,
     serviceRadius: 25,
-    rating: { overall: 4.2, customer: 4.5, speed: 4.0, warranty: 4.0, internal: 4.0 },
+    rating: { overall: 4.5, customer: 4.5, speed: 4.5, warranty: 4.5, internal: 4.5 },
     status: "active" as const,
   },
   {
-    userId: "test-user-002",
+    userId: "contractor-002",
     businessName: "Pro Home Services",
     address: { street: "456 Oak Avenue", city: "Fort Worth", state: "TX", zip: "76102", lat: 32.7555, lng: -97.3308 },
     trades: ["installer", "service_tech"],
-    skills: ["HVAC", "Roofing", "Gutters"],
+    skills: ["Roofing", "Gutters", "Exteriors"],
     licenses: [],
     insurance: null,
     w9Url: null,
     achInfo: null,
     serviceRadius: 30,
-    rating: { overall: 4.7, customer: 4.8, speed: 4.5, warranty: 4.8, internal: 4.5 },
+    rating: { overall: 4.8, customer: 4.9, speed: 4.7, warranty: 4.8, internal: 4.7 },
     status: "active" as const,
   },
   {
-    userId: "test-user-003",
-    businessName: "Quick Fix Renovations",
+    userId: "contractor-003",
+    businessName: "Mike's Renovation Crew",
     address: { street: "789 Elm Boulevard", city: "Arlington", state: "TX", zip: "76010", lat: 32.7357, lng: -97.1081 },
-    trades: ["sales_rep"],
-    skills: ["Sales", "Customer Relations"],
+    trades: ["installer"],
+    skills: ["Bathroom", "Kitchen", "Flooring"],
     licenses: [],
     insurance: null,
     w9Url: null,
     achInfo: null,
-    serviceRadius: 40,
-    rating: { overall: 3.8, customer: 4.0, speed: 3.5, warranty: 3.8, internal: 4.0 },
+    serviceRadius: 35,
+    rating: { overall: 4.2, customer: 4.3, speed: 4.0, warranty: 4.2, internal: 4.2 },
     status: "active" as const,
   },
   {
-    userId: "test-user-004",
+    userId: "contractor-004",
     businessName: "Elite Window & Door",
     address: { street: "321 Cedar Lane", city: "Plano", state: "TX", zip: "75074", lat: 33.0198, lng: -96.6989 },
     trades: ["installer", "pm"],
@@ -64,184 +67,291 @@ const contractors = [
     insurance: null,
     w9Url: null,
     achInfo: null,
-    serviceRadius: 35,
+    serviceRadius: 40,
     rating: { overall: 4.9, customer: 5.0, speed: 4.8, warranty: 4.9, internal: 4.8 },
     status: "active" as const,
   },
   {
-    userId: "test-user-005",
-    businessName: "Texas Home Experts",
+    userId: "contractor-005",
+    businessName: "DFW Sales Pro",
     address: { street: "555 Maple Drive", city: "Irving", state: "TX", zip: "75039", lat: 32.8140, lng: -96.9489 },
+    trades: ["sales_rep"],
+    skills: ["Sales", "Customer Relations", "Estimates"],
+    licenses: [],
+    insurance: null,
+    w9Url: null,
+    achInfo: null,
+    serviceRadius: 50,
+    rating: { overall: 4.6, customer: 4.8, speed: 4.5, warranty: 4.4, internal: 4.6 },
+    status: "active" as const,
+  },
+  {
+    userId: "contractor-006",
+    businessName: "Texas Tech Services",
+    address: { street: "777 Pine Street", city: "McKinney", state: "TX", zip: "75070", lat: 33.1972, lng: -96.6397 },
     trades: ["service_tech"],
-    skills: ["Repairs", "Maintenance", "Inspections"],
+    skills: ["Repairs", "Maintenance", "Warranty Work"],
+    licenses: [],
+    insurance: null,
+    w9Url: null,
+    achInfo: null,
+    serviceRadius: 25,
+    rating: { overall: 3.8, customer: 4.0, speed: 3.5, warranty: 3.8, internal: 3.9 },
+    status: "active" as const,
+  },
+  {
+    userId: "contractor-007",
+    businessName: "New Contractor LLC",
+    address: { street: "999 Birch Road", city: "Frisco", state: "TX", zip: "75034", lat: 33.1507, lng: -96.8236 },
+    trades: ["installer"],
+    skills: ["General"],
     licenses: [],
     insurance: null,
     w9Url: null,
     achInfo: null,
     serviceRadius: 20,
-    rating: { overall: 3.2, customer: 3.5, speed: 3.0, warranty: 3.0, internal: 3.2 },
+    rating: { overall: 0, customer: 0, speed: 0, warranty: 0, internal: 0 },
     status: "pending" as const,
   },
 ];
 
-// ============ JOBS DATA ============
+// ============ JOBS DATA (matches Job type) ============
 const jobs = [
   {
-    type: "windows" as const,
+    jobNumber: "KR-2024-001",
     customer: {
-      name: "John Smith",
-      email: "john.smith@email.com",
+      name: "John & Mary Smith",
       phone: "(214) 555-0101",
+      email: "smithfamily@email.com",
       address: { street: "100 Residential Ave", city: "Dallas", state: "TX", zip: "75201" },
     },
-    status: "sold" as const,
-    salesRepId: "test-user-003",
-    pmId: null,
-    crewIds: [],
-    pricing: { salePrice: 12500, cost: 7500, commission: 1250, profit: 3750 },
-    dates: { lead: Timestamp.fromDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)), sold: Timestamp.now() },
-    warranty: { type: "standard" as const, expiresAt: Timestamp.fromDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)) },
-    notes: "Customer wants energy-efficient windows throughout.",
-    photos: [],
+    type: "bathroom" as const,
+    status: "paid_in_full" as const,
+    salesRepId: "contractor-005",
+    crewIds: ["contractor-003"],
+    pmId: "contractor-004",
+    costs: { materialProjected: 8000, materialActual: 7800, laborProjected: 4500, laborActual: 4200 },
+    dates: {
+      created: daysAgo(90),
+      sold: daysAgo(85),
+      scheduledStart: daysAgo(60),
+      actualStart: daysAgo(58),
+      targetCompletion: daysAgo(45),
+      actualCompletion: daysAgo(42),
+      paidInFull: daysAgo(35),
+    },
+    warranty: { startDate: daysAgo(42), endDate: daysFromNow(323), status: "active" as const },
+    notes: "Master bathroom complete renovation - very happy customer!",
   },
   {
-    type: "doors" as const,
+    jobNumber: "KR-2024-002",
     customer: {
       name: "Sarah Johnson",
-      email: "sarah.j@email.com",
       phone: "(817) 555-0202",
+      email: "sarah.j@email.com",
       address: { street: "200 Oak Street", city: "Fort Worth", state: "TX", zip: "76102" },
     },
-    status: "production" as const,
-    salesRepId: "test-user-003",
-    pmId: "test-user-004",
-    crewIds: ["test-user-001"],
-    pricing: { salePrice: 8900, cost: 5200, commission: 890, profit: 2810 },
+    type: "kitchen" as const,
+    status: "complete" as const,
+    salesRepId: "contractor-005",
+    crewIds: ["contractor-003", "contractor-001"],
+    pmId: "contractor-004",
+    costs: { materialProjected: 15000, materialActual: 14500, laborProjected: 8000, laborActual: 8200 },
     dates: {
-      lead: Timestamp.fromDate(new Date(Date.now() - 21 * 24 * 60 * 60 * 1000)),
-      sold: Timestamp.fromDate(new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)),
+      created: daysAgo(75),
+      sold: daysAgo(70),
+      scheduledStart: daysAgo(45),
+      actualStart: daysAgo(44),
+      targetCompletion: daysAgo(20),
+      actualCompletion: daysAgo(18),
+      paidInFull: null,
     },
-    warranty: { type: "standard" as const, expiresAt: Timestamp.fromDate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)) },
-    notes: "Front entry door and 2 side doors.",
-    photos: [],
+    warranty: { startDate: daysAgo(18), endDate: daysFromNow(347), status: "active" as const },
+    notes: "Full kitchen remodel with new cabinets and countertops. Awaiting final payment.",
   },
   {
-    type: "siding" as const,
+    jobNumber: "KR-2024-003",
     customer: {
       name: "Mike Williams",
-      email: "mike.w@email.com",
       phone: "(972) 555-0303",
+      email: "mike.w@email.com",
       address: { street: "300 Elm Road", city: "Plano", state: "TX", zip: "75074" },
     },
-    status: "scheduled" as const,
-    salesRepId: "test-user-003",
-    pmId: "test-user-004",
-    crewIds: ["test-user-001", "test-user-002"],
-    pricing: { salePrice: 24000, cost: 14500, commission: 2400, profit: 7100 },
+    type: "exterior" as const,
+    status: "started" as const,
+    salesRepId: "contractor-005",
+    crewIds: ["contractor-001", "contractor-002"],
+    pmId: "contractor-004",
+    costs: { materialProjected: 22000, materialActual: 0, laborProjected: 12000, laborActual: 0 },
     dates: {
-      lead: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-      sold: Timestamp.fromDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)),
-      scheduled: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
+      created: daysAgo(45),
+      sold: daysAgo(40),
+      scheduledStart: daysAgo(7),
+      actualStart: daysAgo(5),
+      targetCompletion: daysFromNow(10),
+      actualCompletion: null,
+      paidInFull: null,
     },
-    warranty: { type: "extended" as const, expiresAt: Timestamp.fromDate(new Date(Date.now() + 5 * 365 * 24 * 60 * 60 * 1000)) },
-    notes: "Full house siding replacement - James Hardie.",
-    photos: [],
+    warranty: { startDate: null, endDate: null, status: "pending" as const },
+    notes: "Full siding replacement with James Hardie fiber cement.",
   },
   {
-    type: "roofing" as const,
+    jobNumber: "KR-2024-004",
     customer: {
       name: "Lisa Brown",
-      email: "lisa.b@email.com",
       phone: "(469) 555-0404",
+      email: "lisa.b@email.com",
       address: { street: "400 Pine Lane", city: "Arlington", state: "TX", zip: "76010" },
     },
-    status: "complete" as const,
-    salesRepId: "test-user-003",
-    pmId: "test-user-004",
-    crewIds: ["test-user-002"],
-    pricing: { salePrice: 18500, cost: 11000, commission: 1850, profit: 5650 },
+    type: "bathroom" as const,
+    status: "scheduled" as const,
+    salesRepId: "contractor-005",
+    crewIds: ["contractor-003"],
+    pmId: null,
+    costs: { materialProjected: 6000, materialActual: 0, laborProjected: 3500, laborActual: 0 },
     dates: {
-      lead: Timestamp.fromDate(new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)),
-      sold: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-      scheduled: Timestamp.fromDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)),
-      started: Timestamp.fromDate(new Date(Date.now() - 12 * 24 * 60 * 60 * 1000)),
-      completed: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
+      created: daysAgo(30),
+      sold: daysAgo(25),
+      scheduledStart: daysFromNow(14),
+      actualStart: null,
+      targetCompletion: daysFromNow(28),
+      actualCompletion: null,
+      paidInFull: null,
     },
-    warranty: { type: "lifetime" as const, expiresAt: null },
-    notes: "Complete roof replacement - architectural shingles.",
-    photos: [],
+    warranty: { startDate: null, endDate: null, status: "pending" as const },
+    notes: "Guest bathroom update - tile and vanity replacement.",
   },
   {
-    type: "windows" as const,
+    jobNumber: "KR-2024-005",
     customer: {
       name: "Robert Davis",
-      email: "r.davis@email.com",
       phone: "(214) 555-0505",
+      email: "r.davis@email.com",
       address: { street: "500 Maple Court", city: "Irving", state: "TX", zip: "75039" },
     },
+    type: "kitchen" as const,
+    status: "production" as const,
+    salesRepId: "contractor-005",
+    crewIds: [],
+    pmId: "contractor-004",
+    costs: { materialProjected: 18000, materialActual: 0, laborProjected: 9000, laborActual: 0 },
+    dates: {
+      created: daysAgo(21),
+      sold: daysAgo(14),
+      scheduledStart: null,
+      actualStart: null,
+      targetCompletion: null,
+      actualCompletion: null,
+      paidInFull: null,
+    },
+    warranty: { startDate: null, endDate: null, status: "pending" as const },
+    notes: "Kitchen renovation - materials being ordered.",
+  },
+  {
+    jobNumber: "KR-2024-006",
+    customer: {
+      name: "Jennifer Martinez",
+      phone: "(817) 555-0606",
+      email: "j.martinez@email.com",
+      address: { street: "600 Cedar Ave", city: "Fort Worth", state: "TX", zip: "76103" },
+    },
+    type: "exterior" as const,
+    status: "sold" as const,
+    salesRepId: "contractor-005",
+    crewIds: [],
+    pmId: null,
+    costs: { materialProjected: 28000, materialActual: 0, laborProjected: 14000, laborActual: 0 },
+    dates: {
+      created: daysAgo(10),
+      sold: daysAgo(5),
+      scheduledStart: null,
+      actualStart: null,
+      targetCompletion: null,
+      actualCompletion: null,
+      paidInFull: null,
+    },
+    warranty: { startDate: null, endDate: null, status: "pending" as const },
+    notes: "Complete exterior renovation - siding, windows, and front door.",
+  },
+  {
+    jobNumber: "KR-2024-007",
+    customer: {
+      name: "David Wilson",
+      phone: "(972) 555-0707",
+      email: "d.wilson@email.com",
+      address: { street: "700 Birch Street", city: "Plano", state: "TX", zip: "75075" },
+    },
+    type: "bathroom" as const,
     status: "lead" as const,
     salesRepId: null,
-    pmId: null,
     crewIds: [],
-    pricing: { salePrice: 0, cost: 0, commission: 0, profit: 0 },
-    dates: { lead: Timestamp.now() },
-    warranty: null,
-    notes: "Interested in replacement windows - 8 windows total.",
-    photos: [],
+    pmId: null,
+    costs: { materialProjected: 0, materialActual: 0, laborProjected: 0, laborActual: 0 },
+    dates: {
+      created: daysAgo(3),
+      sold: null,
+      scheduledStart: null,
+      actualStart: null,
+      targetCompletion: null,
+      actualCompletion: null,
+      paidInFull: null,
+    },
+    warranty: { startDate: null, endDate: null, status: "pending" as const },
+    notes: "New lead - interested in bathroom remodel.",
   },
 ];
 
 // ============ CAMPAIGNS DATA ============
 const campaigns = [
   {
-    name: "Dallas Metro Windows Q4",
+    name: "Dallas Windows Q4 2024",
     platform: "google_ads" as const,
-    market: "Dallas-Fort Worth",
-    trade: "windows",
-    startDate: Timestamp.fromDate(new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)),
+    market: "Dallas",
+    trade: "bathroom",
+    startDate: daysAgo(90),
     endDate: null,
-    spend: 4500,
-    leadsGenerated: 45,
+    spend: 8500,
+    leadsGenerated: 42,
   },
   {
-    name: "Facebook Doors Campaign",
-    platform: "facebook" as const,
-    market: "Dallas-Fort Worth",
-    trade: "doors",
-    startDate: Timestamp.fromDate(new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)),
+    name: "Fort Worth Kitchen Campaign",
+    platform: "meta" as const,
+    market: "Fort Worth",
+    trade: "kitchen",
+    startDate: daysAgo(60),
     endDate: null,
-    spend: 2800,
-    leadsGenerated: 32,
-  },
-  {
-    name: "Roofing Storm Season",
-    platform: "google_ads" as const,
-    market: "Dallas-Fort Worth",
-    trade: "roofing",
-    startDate: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-    endDate: null,
-    spend: 6200,
-    leadsGenerated: 58,
-  },
-  {
-    name: "Instagram Siding Showcase",
-    platform: "instagram" as const,
-    market: "Dallas-Fort Worth",
-    trade: "siding",
-    startDate: Timestamp.fromDate(new Date(Date.now() - 20 * 24 * 60 * 60 * 1000)),
-    endDate: null,
-    spend: 1500,
-    leadsGenerated: 18,
-  },
-  {
-    name: "Nextdoor Home Improvement",
-    platform: "nextdoor" as const,
-    market: "Dallas-Fort Worth",
-    trade: "windows",
-    startDate: Timestamp.fromDate(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)),
-    endDate: Timestamp.fromDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-    spend: 3200,
+    spend: 5200,
     leadsGenerated: 28,
+  },
+  {
+    name: "DFW Exterior Blitz",
+    platform: "google_ads" as const,
+    market: "Dallas-Fort Worth",
+    trade: "exterior",
+    startDate: daysAgo(45),
+    endDate: null,
+    spend: 12000,
+    leadsGenerated: 65,
+  },
+  {
+    name: "TikTok Home Reno",
+    platform: "tiktok" as const,
+    market: "Dallas-Fort Worth",
+    trade: "bathroom",
+    startDate: daysAgo(30),
+    endDate: null,
+    spend: 3500,
+    leadsGenerated: 35,
+  },
+  {
+    name: "Summer Siding Special",
+    platform: "meta" as const,
+    market: "Plano",
+    trade: "exterior",
+    startDate: daysAgo(120),
+    endDate: daysAgo(60),
+    spend: 6800,
+    leadsGenerated: 38,
   },
 ];
 
@@ -249,147 +359,115 @@ const campaigns = [
 const leads = [
   {
     source: "google_ads" as const,
-    campaignId: null, // Will be linked after campaigns are created
-    market: "Dallas-Fort Worth",
-    trade: "windows",
-    customer: {
-      name: "Amanda Green",
-      email: "amanda.g@email.com",
-      phone: "(214) 555-1001",
-      address: { street: "101 First Street", city: "Dallas", state: "TX", zip: "75201" },
-    },
+    campaignId: null,
+    market: "Dallas",
+    trade: "bathroom",
+    customer: { name: "Amanda Green", phone: "(214) 555-1001", email: "amanda.g@email.com", address: { street: "101 First Street", city: "Dallas", state: "TX", zip: "75201" }, notes: null },
     quality: "hot" as const,
     status: "new" as const,
     assignedTo: null,
     assignedType: null,
     returnReason: null,
     returnedAt: null,
+    createdAt: daysAgo(2),
   },
   {
-    source: "facebook" as const,
+    source: "meta" as const,
     campaignId: null,
-    market: "Dallas-Fort Worth",
-    trade: "doors",
-    customer: {
-      name: "Brian Taylor",
-      email: "b.taylor@email.com",
-      phone: "(817) 555-1002",
-      address: { street: "202 Second Ave", city: "Fort Worth", state: "TX", zip: "76102" },
-    },
+    market: "Fort Worth",
+    trade: "kitchen",
+    customer: { name: "Brian Taylor", phone: "(817) 555-1002", email: "b.taylor@email.com", address: { street: "202 Second Ave", city: "Fort Worth", state: "TX", zip: "76102" }, notes: null },
     quality: "warm" as const,
     status: "contacted" as const,
-    assignedTo: "test-user-003",
+    assignedTo: "contractor-005",
     assignedType: "internal" as const,
     returnReason: null,
     returnedAt: null,
+    createdAt: daysAgo(5),
   },
   {
     source: "referral" as const,
     campaignId: null,
-    market: "Dallas-Fort Worth",
-    trade: "roofing",
-    customer: {
-      name: "Carol Martinez",
-      email: "c.martinez@email.com",
-      phone: "(972) 555-1003",
-      address: { street: "303 Third Blvd", city: "Plano", state: "TX", zip: "75074" },
-    },
+    market: "Plano",
+    trade: "exterior",
+    customer: { name: "Carol Martinez", phone: "(972) 555-1003", email: "c.martinez@email.com", address: { street: "303 Third Blvd", city: "Plano", state: "TX", zip: "75074" }, notes: null },
     quality: "hot" as const,
-    status: "quoted" as const,
-    assignedTo: "test-user-003",
+    status: "qualified" as const,
+    assignedTo: "contractor-005",
     assignedType: "internal" as const,
     returnReason: null,
     returnedAt: null,
+    createdAt: daysAgo(8),
   },
   {
     source: "google_ads" as const,
     campaignId: null,
-    market: "Dallas-Fort Worth",
-    trade: "siding",
-    customer: {
-      name: "David Wilson",
-      email: "d.wilson@email.com",
-      phone: "(469) 555-1004",
-      address: { street: "404 Fourth Lane", city: "Arlington", state: "TX", zip: "76010" },
-    },
-    quality: "cold" as const,
+    market: "Arlington",
+    trade: "bathroom",
+    customer: { name: "Dennis Lee", phone: "(469) 555-1004", email: "d.lee@email.com", address: { street: "404 Fourth Lane", city: "Arlington", state: "TX", zip: "76010" }, notes: null },
+    quality: "warm" as const,
     status: "new" as const,
     assignedTo: null,
     assignedType: null,
     returnReason: null,
     returnedAt: null,
+    createdAt: daysAgo(1),
   },
   {
-    source: "website" as const,
+    source: "tiktok" as const,
     campaignId: null,
-    market: "Dallas-Fort Worth",
-    trade: "windows",
-    customer: {
-      name: "Emily Harris",
-      email: "e.harris@email.com",
-      phone: "(214) 555-1005",
-      address: { street: "505 Fifth Court", city: "Irving", state: "TX", zip: "75039" },
-    },
-    quality: "warm" as const,
+    market: "Dallas",
+    trade: "kitchen",
+    customer: { name: "Emily Chen", phone: "(214) 555-1005", email: "e.chen@email.com", address: { street: "505 Fifth Court", city: "Irving", state: "TX", zip: "75039" }, notes: null },
+    quality: "hot" as const,
     status: "converted" as const,
-    assignedTo: "test-user-003",
+    assignedTo: "contractor-005",
     assignedType: "internal" as const,
     returnReason: null,
     returnedAt: null,
+    createdAt: daysAgo(15),
   },
   {
-    source: "instagram" as const,
+    source: "meta" as const,
     campaignId: null,
-    market: "Dallas-Fort Worth",
-    trade: "doors",
-    customer: {
-      name: "Frank Anderson",
-      email: "f.anderson@email.com",
-      phone: "(817) 555-1006",
-      address: { street: "606 Sixth Drive", city: "Fort Worth", state: "TX", zip: "76103" },
-    },
-    quality: "hot" as const,
-    status: "new" as const,
-    assignedTo: null,
-    assignedType: null,
-    returnReason: null,
-    returnedAt: null,
-  },
-  {
-    source: "nextdoor" as const,
-    campaignId: null,
-    market: "Dallas-Fort Worth",
-    trade: "roofing",
-    customer: {
-      name: "Grace Thompson",
-      email: "g.thompson@email.com",
-      phone: "(972) 555-1007",
-      address: { street: "707 Seventh Way", city: "Plano", state: "TX", zip: "75075" },
-    },
-    quality: "warm" as const,
-    status: "contacted" as const,
-    assignedTo: null,
-    assignedType: null,
-    returnReason: null,
-    returnedAt: null,
-  },
-  {
-    source: "google_ads" as const,
-    campaignId: null,
-    market: "Dallas-Fort Worth",
-    trade: "windows",
-    customer: {
-      name: "Henry Lee",
-      email: "h.lee@email.com",
-      phone: "(469) 555-1008",
-      address: { street: "808 Eighth Place", city: "Arlington", state: "TX", zip: "76011" },
-    },
+    market: "Fort Worth",
+    trade: "exterior",
+    customer: { name: "Frank Anderson", phone: "(817) 555-1006", email: "f.anderson@email.com", address: { street: "606 Sixth Drive", city: "Fort Worth", state: "TX", zip: "76103" }, notes: null },
     quality: "cold" as const,
     status: "lost" as const,
-    assignedTo: "test-user-003",
+    assignedTo: "contractor-005",
     assignedType: "internal" as const,
     returnReason: null,
     returnedAt: null,
+    createdAt: daysAgo(20),
+  },
+  {
+    source: "google_ads" as const,
+    campaignId: null,
+    market: "Dallas",
+    trade: "bathroom",
+    customer: { name: "Grace Kim", phone: "(972) 555-1007", email: "g.kim@email.com", address: { street: "707 Seventh Way", city: "Plano", state: "TX", zip: "75075" }, notes: null },
+    quality: "warm" as const,
+    status: "assigned" as const,
+    assignedTo: "contractor-005",
+    assignedType: "internal" as const,
+    returnReason: null,
+    returnedAt: null,
+    createdAt: daysAgo(4),
+  },
+  {
+    source: "event" as const,
+    campaignId: null,
+    market: "Dallas",
+    trade: "kitchen",
+    customer: { name: "Henry Park", phone: "(469) 555-1008", email: "h.park@email.com", address: { street: "808 Eighth Place", city: "McKinney", state: "TX", zip: "75070" }, notes: null },
+    quality: "hot" as const,
+    status: "new" as const,
+    assignedTo: null,
+    assignedType: null,
+    returnReason: null,
+    returnedAt: null,
+    createdAt: daysAgo(0),
   },
 ];
 
@@ -401,15 +479,9 @@ const subscriptions = [
     monthlyFee: 399,
     adSpendMin: 600,
     leadCap: 15,
-    leadsDelivered: 8,
     status: "active" as const,
-    startDate: Timestamp.fromDate(new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)),
-    billingCycle: Timestamp.fromDate(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)),
-    coverageAreas: ["Dallas", "Irving"],
-    trades: ["windows", "doors"],
-    companyName: "North Texas Windows",
-    contactEmail: "info@ntxwindows.com",
-    contactPhone: "(214) 555-2001",
+    startDate: daysAgo(90),
+    billingCycle: daysFromNow(10),
   },
   {
     userId: "subscriber-002",
@@ -417,15 +489,9 @@ const subscriptions = [
     monthlyFee: 899,
     adSpendMin: 900,
     leadCap: 25,
-    leadsDelivered: 18,
     status: "active" as const,
-    startDate: Timestamp.fromDate(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)),
-    billingCycle: Timestamp.fromDate(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)),
-    coverageAreas: ["Fort Worth", "Arlington", "Mansfield"],
-    trades: ["roofing", "siding"],
-    companyName: "DFW Roofing Pros",
-    contactEmail: "sales@dfwroofing.com",
-    contactPhone: "(817) 555-2002",
+    startDate: daysAgo(180),
+    billingCycle: daysFromNow(5),
   },
   {
     userId: "subscriber-003",
@@ -433,15 +499,9 @@ const subscriptions = [
     monthlyFee: 1499,
     adSpendMin: 1500,
     leadCap: 50,
-    leadsDelivered: 42,
     status: "active" as const,
-    startDate: Timestamp.fromDate(new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)),
-    billingCycle: Timestamp.fromDate(new Date(Date.now() + 15 * 24 * 60 * 60 * 1000)),
-    coverageAreas: ["Dallas", "Fort Worth", "Plano", "Arlington", "Irving"],
-    trades: ["windows", "doors", "siding", "roofing"],
-    companyName: "Premier Home Solutions",
-    contactEmail: "leads@premierhome.com",
-    contactPhone: "(972) 555-2003",
+    startDate: daysAgo(365),
+    billingCycle: daysFromNow(15),
   },
   {
     userId: "subscriber-004",
@@ -449,40 +509,247 @@ const subscriptions = [
     monthlyFee: 399,
     adSpendMin: 600,
     leadCap: 15,
-    leadsDelivered: 15,
     status: "paused" as const,
-    startDate: Timestamp.fromDate(new Date(Date.now() - 120 * 24 * 60 * 60 * 1000)),
-    billingCycle: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)),
-    coverageAreas: ["Plano", "McKinney"],
-    trades: ["windows"],
-    companyName: "Collin County Glass",
-    contactEmail: "info@ccglass.com",
-    contactPhone: "(469) 555-2004",
+    startDate: daysAgo(120),
+    billingCycle: daysAgo(5),
   },
 ];
 
-type SeedCategory = 'contractors' | 'jobs' | 'campaigns' | 'leads' | 'subscriptions';
+// ============ INVOICES DATA ============
+const invoices = [
+  // KR invoices (to customers)
+  {
+    invoiceNumber: "INV-KR-001",
+    from: { entity: "kr" as const, name: "Key Renovations" },
+    to: { type: "customer" as const, name: "John & Mary Smith", email: "smithfamily@email.com" },
+    items: [
+      { description: "Master Bathroom Renovation", quantity: 1, unitPrice: 25000, total: 25000 },
+    ],
+    subtotal: 25000,
+    tax: 0,
+    total: 25000,
+    status: "paid" as const,
+    dueDate: daysAgo(40),
+    paidAt: daysAgo(35),
+    jobId: null,
+  },
+  {
+    invoiceNumber: "INV-KR-002",
+    from: { entity: "kr" as const, name: "Key Renovations" },
+    to: { type: "customer" as const, name: "Sarah Johnson", email: "sarah.j@email.com" },
+    items: [
+      { description: "Kitchen Remodel - Deposit", quantity: 1, unitPrice: 15000, total: 15000 },
+    ],
+    subtotal: 15000,
+    tax: 0,
+    total: 15000,
+    status: "paid" as const,
+    dueDate: daysAgo(65),
+    paidAt: daysAgo(63),
+    jobId: null,
+  },
+  {
+    invoiceNumber: "INV-KR-003",
+    from: { entity: "kr" as const, name: "Key Renovations" },
+    to: { type: "customer" as const, name: "Sarah Johnson", email: "sarah.j@email.com" },
+    items: [
+      { description: "Kitchen Remodel - Final Balance", quantity: 1, unitPrice: 23000, total: 23000 },
+    ],
+    subtotal: 23000,
+    tax: 0,
+    total: 23000,
+    status: "sent" as const,
+    dueDate: daysAgo(3),
+    paidAt: null,
+    jobId: null,
+  },
+  {
+    invoiceNumber: "INV-KR-004",
+    from: { entity: "kr" as const, name: "Key Renovations" },
+    to: { type: "customer" as const, name: "Mike Williams", email: "mike.w@email.com" },
+    items: [
+      { description: "Exterior Siding - Deposit (50%)", quantity: 1, unitPrice: 24000, total: 24000 },
+    ],
+    subtotal: 24000,
+    tax: 0,
+    total: 24000,
+    status: "paid" as const,
+    dueDate: daysAgo(35),
+    paidAt: daysAgo(33),
+    jobId: null,
+  },
+  // KTS invoices (to contractors for labor)
+  {
+    invoiceNumber: "INV-KTS-001",
+    from: { entity: "kts" as const, name: "Key Trade Solutions" },
+    to: { type: "contractor" as const, id: "contractor-003", name: "Mike's Renovation Crew", email: "mike@renovationcrew.com" },
+    items: [
+      { description: "Labor - Smith Bathroom (Job KR-2024-001)", quantity: 1, unitPrice: 4200, total: 4200 },
+      { description: "Commission (10%)", quantity: 1, unitPrice: 420, total: 420 },
+    ],
+    subtotal: 4620,
+    tax: 0,
+    total: 4620,
+    status: "paid" as const,
+    dueDate: daysAgo(30),
+    paidAt: daysAgo(28),
+    jobId: null,
+  },
+  {
+    invoiceNumber: "INV-KTS-002",
+    from: { entity: "kts" as const, name: "Key Trade Solutions" },
+    to: { type: "contractor" as const, id: "contractor-003", name: "Mike's Renovation Crew", email: "mike@renovationcrew.com" },
+    items: [
+      { description: "Labor - Johnson Kitchen (Job KR-2024-002)", quantity: 1, unitPrice: 8200, total: 8200 },
+      { description: "Commission (10%)", quantity: 1, unitPrice: 820, total: 820 },
+    ],
+    subtotal: 9020,
+    tax: 0,
+    total: 9020,
+    status: "sent" as const,
+    dueDate: daysFromNow(7),
+    paidAt: null,
+    jobId: null,
+  },
+  // KD invoices (lead fees and subscriptions)
+  {
+    invoiceNumber: "INV-KD-001",
+    from: { entity: "kd" as const, name: "Keynote Digital" },
+    to: { type: "subscriber" as const, id: "subscriber-003", name: "Premier Home Solutions", email: "leads@premierhome.com" },
+    items: [
+      { description: "Monthly Subscription - Pro Tier", quantity: 1, unitPrice: 1499, total: 1499 },
+      { description: "Ad Spend Management", quantity: 1, unitPrice: 1500, total: 1500 },
+    ],
+    subtotal: 2999,
+    tax: 0,
+    total: 2999,
+    status: "paid" as const,
+    dueDate: daysAgo(20),
+    paidAt: daysAgo(18),
+    jobId: null,
+  },
+  {
+    invoiceNumber: "INV-KD-002",
+    from: { entity: "kd" as const, name: "Keynote Digital" },
+    to: { type: "subscriber" as const, id: "subscriber-002", name: "DFW Roofing Pros", email: "sales@dfwroofing.com" },
+    items: [
+      { description: "Monthly Subscription - Growth Tier", quantity: 1, unitPrice: 899, total: 899 },
+      { description: "Ad Spend Management", quantity: 1, unitPrice: 900, total: 900 },
+    ],
+    subtotal: 1799,
+    tax: 0,
+    total: 1799,
+    status: "paid" as const,
+    dueDate: daysAgo(25),
+    paidAt: daysAgo(24),
+    jobId: null,
+  },
+  {
+    invoiceNumber: "INV-KD-003",
+    from: { entity: "kd" as const, name: "Keynote Digital" },
+    to: { type: "subscriber" as const, id: "subscriber-001", name: "North Texas Windows", email: "info@ntxwindows.com" },
+    items: [
+      { description: "Monthly Subscription - Starter Tier", quantity: 1, unitPrice: 399, total: 399 },
+      { description: "Ad Spend Management", quantity: 1, unitPrice: 600, total: 600 },
+    ],
+    subtotal: 999,
+    tax: 0,
+    total: 999,
+    status: "sent" as const,
+    dueDate: daysFromNow(10),
+    paidAt: null,
+    jobId: null,
+  },
+  // Intercompany invoice (KD to KR for lead fee)
+  {
+    invoiceNumber: "INV-KD-IC-001",
+    from: { entity: "kd" as const, name: "Keynote Digital" },
+    to: { type: "intercompany" as const, entity: "kr" as const, name: "Key Renovations" },
+    items: [
+      { description: "Lead Fee - Martinez (converted)", quantity: 1, unitPrice: 150, total: 150 },
+      { description: "Lead Fee - Smith (converted)", quantity: 1, unitPrice: 150, total: 150 },
+    ],
+    subtotal: 300,
+    tax: 0,
+    total: 300,
+    status: "paid" as const,
+    dueDate: daysAgo(30),
+    paidAt: daysAgo(28),
+    jobId: null,
+  },
+  // More historical paid invoices for revenue chart
+  {
+    invoiceNumber: "INV-KR-H001",
+    from: { entity: "kr" as const, name: "Key Renovations" },
+    to: { type: "customer" as const, name: "Historical Customer 1", email: "hist1@email.com" },
+    items: [{ description: "Bathroom Renovation", quantity: 1, unitPrice: 18000, total: 18000 }],
+    subtotal: 18000, tax: 0, total: 18000,
+    status: "paid" as const,
+    dueDate: daysAgo(120),
+    paidAt: daysAgo(118),
+    jobId: null,
+  },
+  {
+    invoiceNumber: "INV-KR-H002",
+    from: { entity: "kr" as const, name: "Key Renovations" },
+    to: { type: "customer" as const, name: "Historical Customer 2", email: "hist2@email.com" },
+    items: [{ description: "Kitchen Renovation", quantity: 1, unitPrice: 32000, total: 32000 }],
+    subtotal: 32000, tax: 0, total: 32000,
+    status: "paid" as const,
+    dueDate: daysAgo(95),
+    paidAt: daysAgo(92),
+    jobId: null,
+  },
+  {
+    invoiceNumber: "INV-KD-H001",
+    from: { entity: "kd" as const, name: "Keynote Digital" },
+    to: { type: "subscriber" as const, id: "subscriber-003", name: "Premier Home Solutions", email: "leads@premierhome.com" },
+    items: [{ description: "Monthly Subscription + Ad Spend", quantity: 1, unitPrice: 2999, total: 2999 }],
+    subtotal: 2999, tax: 0, total: 2999,
+    status: "paid" as const,
+    dueDate: daysAgo(50),
+    paidAt: daysAgo(48),
+    jobId: null,
+  },
+  {
+    invoiceNumber: "INV-KTS-H001",
+    from: { entity: "kts" as const, name: "Key Trade Solutions" },
+    to: { type: "contractor" as const, id: "contractor-001", name: "ABC Installations LLC", email: "abc@install.com" },
+    items: [{ description: "Labor + Commission", quantity: 1, unitPrice: 5500, total: 5500 }],
+    subtotal: 5500, tax: 0, total: 5500,
+    status: "paid" as const,
+    dueDate: daysAgo(60),
+    paidAt: daysAgo(58),
+    jobId: null,
+  },
+];
+
+type SeedCategory = 'contractors' | 'jobs' | 'campaigns' | 'leads' | 'subscriptions' | 'invoices';
 
 const SEED_CATEGORIES = [
-  { id: 'contractors' as SeedCategory, label: 'Contractors', icon: Users, count: contractors.length, route: '/kts' },
-  { id: 'jobs' as SeedCategory, label: 'Jobs', icon: Briefcase, count: jobs.length, route: '/kr' },
-  { id: 'campaigns' as SeedCategory, label: 'Campaigns', icon: Megaphone, count: campaigns.length, route: '/kd/campaigns' },
-  { id: 'leads' as SeedCategory, label: 'Leads', icon: Target, count: leads.length, route: '/kd' },
-  { id: 'subscriptions' as SeedCategory, label: 'Subscriptions', icon: CreditCard, count: subscriptions.length, route: '/kd/subscribers' },
+  { id: 'contractors' as SeedCategory, label: 'Contractors', icon: Users, count: contractors.length, route: '/kts', collection: 'contractors' },
+  { id: 'jobs' as SeedCategory, label: 'Jobs', icon: Briefcase, count: jobs.length, route: '/kr', collection: 'jobs' },
+  { id: 'campaigns' as SeedCategory, label: 'Campaigns', icon: Megaphone, count: campaigns.length, route: '/kd/campaigns', collection: 'campaigns' },
+  { id: 'leads' as SeedCategory, label: 'Leads', icon: Target, count: leads.length, route: '/kd', collection: 'leads' },
+  { id: 'subscriptions' as SeedCategory, label: 'Subscriptions', icon: CreditCard, count: subscriptions.length, route: '/kd/subscribers', collection: 'subscriptions' },
+  { id: 'invoices' as SeedCategory, label: 'Invoices', icon: DollarSign, count: invoices.length, route: '/financials/invoices', collection: 'invoices' },
 ];
 
 export default function SeedPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [seeding, setSeeding] = useState<SeedCategory | null>(null);
-  const [results, setResults] = useState<Record<SeedCategory, { name: string; success: boolean; id?: string; error?: string }[]>>({
-    contractors: [],
-    jobs: [],
-    campaigns: [],
-    leads: [],
-    subscriptions: [],
+  const [clearing, setClearing] = useState<SeedCategory | null>(null);
+  const [results, setResults] = useState<Record<SeedCategory, { success: number; failed: number }>>({
+    contractors: { success: 0, failed: 0 },
+    jobs: { success: 0, failed: 0 },
+    campaigns: { success: 0, failed: 0 },
+    leads: { success: 0, failed: 0 },
+    subscriptions: { success: 0, failed: 0 },
+    invoices: { success: 0, failed: 0 },
   });
   const [seedingAll, setSeedingAll] = useState(false);
+  const [clearingAll, setClearingAll] = useState(false);
 
   // Only allow owner/admin
   if (user?.role !== 'owner' && user?.role !== 'admin') {
@@ -490,207 +757,176 @@ export default function SeedPage() {
       <div className="p-6">
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-red-500">Access denied. Admin only.</p>
+            <p className="text-red-400">Access denied. Admin only.</p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const seedContractors = async () => {
-    const categoryResults: typeof results.contractors = [];
-    for (const contractor of contractors) {
+  const seedCollection = async (collectionName: string, data: any[]) => {
+    let success = 0;
+    let failed = 0;
+    for (const item of data) {
       try {
-        const docRef = await addDoc(collection(db, 'contractors'), {
-          ...contractor,
-          createdAt: Timestamp.now(),
+        await addDoc(collection(db, collectionName), {
+          ...item,
+          createdAt: item.createdAt || Timestamp.now(),
           updatedAt: Timestamp.now(),
         });
-        categoryResults.push({ name: contractor.businessName, success: true, id: docRef.id });
+        success++;
       } catch (err) {
-        categoryResults.push({
-          name: contractor.businessName,
-          success: false,
-          error: err instanceof Error ? err.message : 'Unknown error'
-        });
+        console.error(`Error adding to ${collectionName}:`, err);
+        failed++;
       }
     }
-    return categoryResults;
+    return { success, failed };
   };
 
-  const seedJobs = async () => {
-    const categoryResults: typeof results.jobs = [];
-    for (const job of jobs) {
-      try {
-        const docRef = await addDoc(collection(db, 'jobs'), {
-          ...job,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        });
-        categoryResults.push({ name: job.customer.name, success: true, id: docRef.id });
-      } catch (err) {
-        categoryResults.push({
-          name: job.customer.name,
-          success: false,
-          error: err instanceof Error ? err.message : 'Unknown error'
-        });
-      }
+  const clearCollection = async (collectionName: string) => {
+    try {
+      const snapshot = await getDocs(collection(db, collectionName));
+      const deletePromises = snapshot.docs.map((d) => deleteDoc(doc(db, collectionName, d.id)));
+      await Promise.all(deletePromises);
+      return snapshot.size;
+    } catch (err) {
+      console.error(`Error clearing ${collectionName}:`, err);
+      return 0;
     }
-    return categoryResults;
-  };
-
-  const seedCampaigns = async () => {
-    const categoryResults: typeof results.campaigns = [];
-    for (const campaign of campaigns) {
-      try {
-        const docRef = await addDoc(collection(db, 'campaigns'), {
-          ...campaign,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        });
-        categoryResults.push({ name: campaign.name, success: true, id: docRef.id });
-      } catch (err) {
-        categoryResults.push({
-          name: campaign.name,
-          success: false,
-          error: err instanceof Error ? err.message : 'Unknown error'
-        });
-      }
-    }
-    return categoryResults;
-  };
-
-  const seedLeads = async () => {
-    const categoryResults: typeof results.leads = [];
-    for (const lead of leads) {
-      try {
-        const docRef = await addDoc(collection(db, 'leads'), {
-          ...lead,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        });
-        categoryResults.push({ name: lead.customer.name, success: true, id: docRef.id });
-      } catch (err) {
-        categoryResults.push({
-          name: lead.customer.name,
-          success: false,
-          error: err instanceof Error ? err.message : 'Unknown error'
-        });
-      }
-    }
-    return categoryResults;
-  };
-
-  const seedSubscriptions = async () => {
-    const categoryResults: typeof results.subscriptions = [];
-    for (const subscription of subscriptions) {
-      try {
-        const docRef = await addDoc(collection(db, 'subscriptions'), {
-          ...subscription,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        });
-        categoryResults.push({ name: subscription.companyName, success: true, id: docRef.id });
-      } catch (err) {
-        categoryResults.push({
-          name: subscription.companyName,
-          success: false,
-          error: err instanceof Error ? err.message : 'Unknown error'
-        });
-      }
-    }
-    return categoryResults;
   };
 
   const handleSeedCategory = async (category: SeedCategory) => {
     setSeeding(category);
-    let categoryResults: typeof results.contractors = [];
+    let result = { success: 0, failed: 0 };
 
     switch (category) {
       case 'contractors':
-        categoryResults = await seedContractors();
+        result = await seedCollection('contractors', contractors);
         break;
       case 'jobs':
-        categoryResults = await seedJobs();
+        result = await seedCollection('jobs', jobs);
         break;
       case 'campaigns':
-        categoryResults = await seedCampaigns();
+        result = await seedCollection('campaigns', campaigns);
         break;
       case 'leads':
-        categoryResults = await seedLeads();
+        result = await seedCollection('leads', leads);
         break;
       case 'subscriptions':
-        categoryResults = await seedSubscriptions();
+        result = await seedCollection('subscriptions', subscriptions);
+        break;
+      case 'invoices':
+        result = await seedCollection('invoices', invoices);
         break;
     }
 
-    setResults(prev => ({ ...prev, [category]: categoryResults }));
+    setResults(prev => ({ ...prev, [category]: result }));
     setSeeding(null);
+  };
+
+  const handleClearCategory = async (category: SeedCategory) => {
+    setClearing(category);
+    const cat = SEED_CATEGORIES.find(c => c.id === category);
+    if (cat) {
+      await clearCollection(cat.collection);
+    }
+    setResults(prev => ({ ...prev, [category]: { success: 0, failed: 0 } }));
+    setClearing(null);
   };
 
   const handleSeedAll = async () => {
     setSeedingAll(true);
 
-    // Seed in order: contractors first (dependencies), then jobs, campaigns, leads, subscriptions
-    const contractorResults = await seedContractors();
-    setResults(prev => ({ ...prev, contractors: contractorResults }));
-
-    const jobResults = await seedJobs();
-    setResults(prev => ({ ...prev, jobs: jobResults }));
-
-    const campaignResults = await seedCampaigns();
-    setResults(prev => ({ ...prev, campaigns: campaignResults }));
-
-    const leadResults = await seedLeads();
-    setResults(prev => ({ ...prev, leads: leadResults }));
-
-    const subscriptionResults = await seedSubscriptions();
-    setResults(prev => ({ ...prev, subscriptions: subscriptionResults }));
+    for (const category of SEED_CATEGORIES) {
+      let data: any[] = [];
+      switch (category.id) {
+        case 'contractors': data = contractors; break;
+        case 'jobs': data = jobs; break;
+        case 'campaigns': data = campaigns; break;
+        case 'leads': data = leads; break;
+        case 'subscriptions': data = subscriptions; break;
+        case 'invoices': data = invoices; break;
+      }
+      const result = await seedCollection(category.collection, data);
+      setResults(prev => ({ ...prev, [category.id]: result }));
+    }
 
     setSeedingAll(false);
   };
 
-  const totalSeeded = Object.values(results).flat().filter(r => r.success).length;
-  const totalErrors = Object.values(results).flat().filter(r => !r.success).length;
+  const handleClearAll = async () => {
+    setClearingAll(true);
+
+    for (const category of SEED_CATEGORIES) {
+      await clearCollection(category.collection);
+      setResults(prev => ({ ...prev, [category.id]: { success: 0, failed: 0 } }));
+    }
+
+    setClearingAll(false);
+  };
+
+  const totalSeeded = Object.values(results).reduce((acc, r) => acc + r.success, 0);
+  const totalRecords = SEED_CATEGORIES.reduce((acc, c) => acc + c.count, 0);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Seed Test Data</h1>
-        <p className="text-gray-400 mt-1">Add sample data for testing all modules.</p>
+        <p className="text-gray-400 mt-1">Add realistic test data to see the dashboard and all modules working together.</p>
       </div>
 
-      {/* Seed All Button */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white font-medium">Seed All Data</p>
-              <p className="text-sm text-gray-400">
-                Add {contractors.length + jobs.length + campaigns.length + leads.length + subscriptions.length} records across all modules
-              </p>
+      {/* Quick Actions */}
+      <div className="flex gap-4 flex-wrap">
+        <Button onClick={handleSeedAll} disabled={seedingAll || clearingAll || seeding !== null}>
+          {seedingAll ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Seeding...
+            </>
+          ) : (
+            <>
+              <Database className="w-4 h-4 mr-2" />
+              Seed All ({totalRecords} records)
+            </>
+          )}
+        </Button>
+        <Button variant="outline" onClick={handleClearAll} disabled={seedingAll || clearingAll || clearing !== null}>
+          {clearingAll ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Clearing...
+            </>
+          ) : (
+            <>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clear All Data
+            </>
+          )}
+        </Button>
+        <Button variant="outline" onClick={() => router.push('/overview')}>
+          View Dashboard
+        </Button>
+      </div>
+
+      {/* Results Summary */}
+      {totalSeeded > 0 && (
+        <Card className="border-green-500/30">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-400" />
+              <span className="text-green-400 font-medium">{totalSeeded} records created successfully</span>
             </div>
-            <Button onClick={handleSeedAll} disabled={seedingAll || seeding !== null}>
-              {seedingAll ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Seeding All...
-                </>
-              ) : (
-                'Seed All'
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Category Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {SEED_CATEGORIES.map((category) => {
           const Icon = category.icon;
           const categoryResults = results[category.id];
-          const successCount = categoryResults.filter(r => r.success).length;
-          const hasResults = categoryResults.length > 0;
+          const isSeeding = seeding === category.id;
+          const isClearing = clearing === category.id;
 
           return (
             <Card key={category.id}>
@@ -701,18 +937,16 @@ export default function SeedPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-sm text-gray-400">{category.count} records to add</p>
+                <p className="text-sm text-gray-400">{category.count} records</p>
 
-                {hasResults && (
+                {categoryResults.success > 0 && (
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span className="text-green-400">{successCount} added</span>
-                    {categoryResults.some(r => !r.success) && (
+                    <span className="text-green-400">{categoryResults.success} added</span>
+                    {categoryResults.failed > 0 && (
                       <>
                         <XCircle className="w-4 h-4 text-red-400 ml-2" />
-                        <span className="text-red-400">
-                          {categoryResults.filter(r => !r.success).length} failed
-                        </span>
+                        <span className="text-red-400">{categoryResults.failed} failed</span>
                       </>
                     )}
                   </div>
@@ -722,27 +956,26 @@ export default function SeedPage() {
                   <Button
                     size="sm"
                     onClick={() => handleSeedCategory(category.id)}
-                    disabled={seeding !== null || seedingAll}
+                    disabled={seeding !== null || seedingAll || clearingAll}
                     className="flex-1"
                   >
-                    {seeding === category.id ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Adding...
-                      </>
-                    ) : (
-                      `Add ${category.label}`
-                    )}
+                    {isSeeding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
                   </Button>
-                  {hasResults && successCount > 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => router.push(category.route)}
-                    >
-                      View
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleClearCategory(category.id)}
+                    disabled={clearing !== null || seedingAll || clearingAll}
+                  >
+                    {isClearing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(category.route)}
+                  >
+                    View
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -750,56 +983,20 @@ export default function SeedPage() {
         })}
       </div>
 
-      {/* Results Summary */}
-      {(totalSeeded > 0 || totalErrors > 0) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Results Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-6 mb-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                <span className="text-green-400 font-medium">{totalSeeded} records created</span>
-              </div>
-              {totalErrors > 0 && (
-                <div className="flex items-center gap-2">
-                  <XCircle className="w-5 h-5 text-red-400" />
-                  <span className="text-red-400 font-medium">{totalErrors} errors</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              {SEED_CATEGORIES.map((category) => {
-                const categoryResults = results[category.id];
-                if (categoryResults.length === 0) return null;
-
-                return (
-                  <div key={category.id}>
-                    <p className="text-sm font-medium text-gray-300 mb-2">{category.label}</p>
-                    <ul className="space-y-1 text-sm">
-                      {categoryResults.map((r, i) => (
-                        <li key={i} className="flex items-center gap-2">
-                          {r.success ? (
-                            <CheckCircle className="w-3 h-3 text-green-400" />
-                          ) : (
-                            <XCircle className="w-3 h-3 text-red-400" />
-                          )}
-                          <span className={r.success ? 'text-gray-400' : 'text-red-400'}>
-                            {r.name}
-                          </span>
-                          {r.error && <span className="text-red-400 text-xs">- {r.error}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* What This Creates */}
+      <Card>
+        <CardHeader>
+          <CardTitle>What This Creates</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-gray-400 space-y-2">
+          <p><strong className="text-white">Contractors (7):</strong> Mix of active installers, sales reps, PMs, and service techs with various ratings</p>
+          <p><strong className="text-white">Jobs (7):</strong> Various stages from lead to paid-in-full across bathroom, kitchen, and exterior types</p>
+          <p><strong className="text-white">Campaigns (5):</strong> Active and completed campaigns across Google, Meta, and TikTok</p>
+          <p><strong className="text-white">Leads (8):</strong> Various statuses from new to converted, different sources and quality levels</p>
+          <p><strong className="text-white">Subscriptions (4):</strong> Starter, Growth, and Pro tiers with active and paused statuses</p>
+          <p><strong className="text-white">Invoices (14):</strong> Mix of KR customer invoices, KTS contractor payments, KD subscriptions, and intercompany - includes paid and outstanding</p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
