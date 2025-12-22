@@ -47,7 +47,8 @@ const renderLegend = (props: any) => {
 };
 
 export function LeadSourceChart({ data }: LeadSourceChartProps) {
-  if (!data || data.length === 0) {
+  // Strict validation - return early if data is invalid
+  if (!data || !Array.isArray(data) || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-[200px] text-gray-500">
         No lead data available
@@ -55,13 +56,23 @@ export function LeadSourceChart({ data }: LeadSourceChartProps) {
     );
   }
 
-  // Ensure all entries have required properties
-  const safeData = data.map((entry) => ({
-    ...entry,
-    name: entry.name || 'Unknown',
-    value: entry.value || 0,
-    color: entry.color || '#6B7280',
-  }));
+  // Filter out any invalid entries and ensure all have required properties
+  const safeData = data
+    .filter((entry) => entry && typeof entry === 'object')
+    .map((entry) => ({
+      name: String(entry.name || 'Unknown'),
+      value: Number(entry.value) || 0,
+      color: String(entry.color || '#6B7280'),
+    }));
+
+  // Return empty state if no valid data after filtering
+  if (safeData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[200px] text-gray-500">
+        No lead data available
+      </div>
+    );
+  }
 
   return (
     <ResponsiveContainer width="100%" height={200}>
@@ -74,6 +85,7 @@ export function LeadSourceChart({ data }: LeadSourceChartProps) {
           outerRadius={70}
           paddingAngle={2}
           dataKey="value"
+          nameKey="name"
         >
           {safeData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.color} />

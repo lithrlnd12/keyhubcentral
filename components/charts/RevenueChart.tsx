@@ -37,6 +37,24 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+const CustomLegend = ({ payload }: any) => {
+  if (!payload || !Array.isArray(payload)) return null;
+
+  return (
+    <div className="flex flex-wrap justify-center gap-4 pt-5">
+      {payload.map((entry: any, index: number) => (
+        <div key={index} className="flex items-center gap-2">
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: entry?.color || '#6B7280' }}
+          />
+          <span className="text-gray-400 text-sm">{entry?.value || 'Unknown'}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export function RevenueChart({ data }: RevenueChartProps) {
   if (!data || data.length === 0) {
     return (
@@ -77,10 +95,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
           tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
         />
         <Tooltip content={<CustomTooltip />} />
-        <Legend
-          wrapperStyle={{ paddingTop: 20 }}
-          formatter={(value) => <span className="text-gray-400 text-sm">{value}</span>}
-        />
+        <Legend content={<CustomLegend />} />
         <Area
           type="monotone"
           dataKey="kd"
