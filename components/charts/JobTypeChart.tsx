@@ -8,18 +8,18 @@ interface JobTypeChartProps {
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload || !payload.length) return null;
+  if (!active || !payload || !Array.isArray(payload) || !payload.length) return null;
 
   return (
     <div className="bg-brand-black border border-gray-700 rounded-lg p-3 shadow-lg">
-      <p className="text-white font-medium">{label}</p>
-      <p className="text-brand-gold text-sm">{payload[0].value} jobs</p>
+      <p className="text-white font-medium">{label || 'Unknown'}</p>
+      <p className="text-brand-gold text-sm">{payload[0]?.value || 0} jobs</p>
     </div>
   );
 };
 
 export function JobTypeChart({ data }: JobTypeChartProps) {
-  if (data.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-[200px] text-gray-500">
         No job data available

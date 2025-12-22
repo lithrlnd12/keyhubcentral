@@ -18,7 +18,7 @@ interface RevenueChartProps {
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload) return null;
+  if (!active || !payload || !Array.isArray(payload)) return null;
 
   return (
     <div className="bg-brand-black border border-gray-700 rounded-lg p-3 shadow-lg">
@@ -27,10 +27,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <div key={index} className="flex items-center gap-2 text-sm">
           <div
             className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: entry.color }}
+            style={{ backgroundColor: entry?.color || '#6B7280' }}
           />
-          <span className="text-gray-400">{entry.name}:</span>
-          <span className="text-white">{formatCurrency(entry.value)}</span>
+          <span className="text-gray-400">{entry?.name || 'Unknown'}:</span>
+          <span className="text-white">{formatCurrency(entry?.value || 0)}</span>
         </div>
       ))}
     </div>
@@ -38,6 +38,14 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function RevenueChart({ data }: RevenueChartProps) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[300px] text-gray-500">
+        No revenue data available
+      </div>
+    );
+  }
+
   return (
     <ResponsiveContainer width="100%" height={300}>
       <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
