@@ -31,20 +31,37 @@ export function formatEntityName(entity: InvoiceEntity): string {
 }
 
 // Format invoice date
-export function formatInvoiceDate(timestamp: Timestamp | null): string {
+export function formatInvoiceDate(timestamp: Timestamp | Date | null | undefined): string {
   if (!timestamp) return '-';
-  return timestamp.toDate().toLocaleDateString('en-US', {
+  let date: Date | null = null;
+  if (timestamp instanceof Date) {
+    date = timestamp;
+  } else if (typeof timestamp.toDate === 'function') {
+    date = timestamp.toDate();
+  }
+  if (!date) return '-';
+  return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
 }
 
+// Helper to safely convert Timestamp to Date
+function toDate(timestamp: Timestamp | Date | null | undefined): Date | null {
+  if (!timestamp) return null;
+  if (timestamp instanceof Date) return timestamp;
+  if (typeof timestamp.toDate === 'function') return timestamp.toDate();
+  return null;
+}
+
 // Get days until due / days overdue
 export function getDaysUntilDue(invoice: Invoice): number | null {
   if (invoice.status === 'paid') return null;
+  if (!invoice.dueDate) return null;
   const now = new Date();
-  const dueDate = invoice.dueDate.toDate();
+  const dueDate = toDate(invoice.dueDate);
+  if (!dueDate) return null;
   const diffTime = dueDate.getTime() - now.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
@@ -72,7 +89,9 @@ export function getInvoiceType(invoice: Invoice): string {
 
 // Calculate invoice age in days
 export function getInvoiceAge(invoice: Invoice): number {
-  const createdDate = invoice.createdAt.toDate();
+  if (!invoice.createdAt) return 0;
+  const createdDate = toDate(invoice.createdAt);
+  if (!createdDate) return 0;
   const now = new Date();
   const diffTime = now.getTime() - createdDate.getTime();
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -124,7 +143,10 @@ export function sortInvoicesByPriority(invoices: Invoice[]): Invoice[] {
     if (!aOverdue && bOverdue) return 1;
 
     // Then by due date (earliest first)
-    return a.dueDate.toMillis() - b.dueDate.toMillis();
+    const aDueDate = toDate(a.dueDate);
+    const bDueDate = toDate(b.dueDate);
+    if (!aDueDate || !bDueDate) return 0;
+    return aDueDate.getTime() - bDueDate.getTime();
   });
 }
 

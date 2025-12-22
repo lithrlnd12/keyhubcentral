@@ -64,7 +64,12 @@ export async function getInvoices(filters?: InvoiceFilters): Promise<Invoice[]> 
   if (filters?.overdue) {
     const now = Timestamp.now();
     invoices = invoices.filter(
-      (inv) => inv.status !== 'paid' && inv.dueDate.toMillis() < now.toMillis()
+      (inv) => {
+        if (inv.status === 'paid') return false;
+        if (!inv.dueDate) return false;
+        const dueMillis = typeof inv.dueDate.toMillis === 'function' ? inv.dueDate.toMillis() : 0;
+        return dueMillis < now.toMillis();
+      }
     );
   }
 
@@ -181,7 +186,12 @@ export function subscribeToInvoices(
     if (filters?.overdue) {
       const now = Timestamp.now();
       invoices = invoices.filter(
-        (inv) => inv.status !== 'paid' && inv.dueDate.toMillis() < now.toMillis()
+        (inv) => {
+          if (inv.status === 'paid') return false;
+          if (!inv.dueDate) return false;
+          const dueMillis = typeof inv.dueDate.toMillis === 'function' ? inv.dueDate.toMillis() : 0;
+          return dueMillis < now.toMillis();
+        }
       );
     }
 
@@ -239,7 +249,9 @@ export function calculateDueDate(fromDate?: Date): Timestamp {
 // Check if invoice is overdue
 export function isInvoiceOverdue(invoice: Invoice): boolean {
   if (invoice.status === 'paid') return false;
-  return invoice.dueDate.toMillis() < Timestamp.now().toMillis();
+  if (!invoice.dueDate) return false;
+  const dueMillis = typeof invoice.dueDate.toMillis === 'function' ? invoice.dueDate.toMillis() : 0;
+  return dueMillis < Timestamp.now().toMillis();
 }
 
 // Calculate line item total
@@ -415,10 +427,11 @@ export async function getInvoiceStats(): Promise<{
         break;
       case 'sent':
         stats.totalSent++;
-        stats.amountOutstanding += inv.total;
-        if (inv.dueDate.toMillis() < now.toMillis()) {
+        stats.amountOutstanding += inv.total || 0;
+        const dueMillis = inv.dueDate && typeof inv.dueDate.toMillis === 'function' ? inv.dueDate.toMillis() : 0;
+        if (dueMillis < now.toMillis()) {
           stats.totalOverdue++;
-          stats.amountOverdue += inv.total;
+          stats.amountOverdue += inv.total || 0;
         }
         break;
       case 'paid':
@@ -426,8 +439,8 @@ export async function getInvoiceStats(): Promise<{
         break;
       case 'overdue':
         stats.totalOverdue++;
-        stats.amountOutstanding += inv.total;
-        stats.amountOverdue += inv.total;
+        stats.amountOutstanding += inv.total || 0;
+        stats.amountOverdue += inv.total || 0;
         break;
     }
   });
