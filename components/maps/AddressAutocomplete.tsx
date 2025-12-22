@@ -1,5 +1,7 @@
 'use client';
 
+/// <reference types="@types/google.maps" />
+
 import { useEffect, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
