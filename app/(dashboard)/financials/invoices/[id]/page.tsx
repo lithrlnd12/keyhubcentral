@@ -11,6 +11,8 @@ import {
   markInvoiceAsPaid,
   deleteInvoice,
 } from '@/lib/firebase/invoices';
+import { functions } from '@/lib/firebase/config';
+import { httpsCallable } from 'firebase/functions';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { InvoiceStatusBadge } from '@/components/invoices';
@@ -95,6 +97,30 @@ export default function InvoiceDetailPage() {
     }
   };
 
+  const handleSendEmail = async () => {
+    if (!invoice) return;
+
+    const recipientEmail = invoice.to?.email;
+    if (!recipientEmail) {
+      alert('No email address on this invoice. Please edit the invoice to add a recipient email.');
+      return;
+    }
+
+    if (!confirm(`Send invoice to ${recipientEmail}?`)) return;
+
+    setActionLoading('email');
+    try {
+      const sendInvoiceEmail = httpsCallable(functions, 'sendInvoiceEmail');
+      await sendInvoiceEmail({ invoiceId: invoice.id });
+      alert(`Invoice sent to ${recipientEmail}`);
+    } catch (err) {
+      console.error('Failed to send email:', err);
+      alert('Failed to send email. Please check the email configuration.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -148,25 +174,49 @@ export default function InvoiceDetailPage() {
                     Edit
                   </Button>
                 </Link>
-                <Button
-                  onClick={handleMarkAsSent}
-                  loading={actionLoading === 'send'}
-                  disabled={!!actionLoading}
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  Mark as Sent
-                </Button>
+                {invoice.to?.email ? (
+                  <Button
+                    onClick={handleSendEmail}
+                    loading={actionLoading === 'email'}
+                    disabled={!!actionLoading}
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Send Email
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleMarkAsSent}
+                    loading={actionLoading === 'send'}
+                    disabled={!!actionLoading}
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Mark as Sent
+                  </Button>
+                )}
               </>
             )}
             {invoice.status === 'sent' && (
-              <Button
-                onClick={handleMarkAsPaid}
-                loading={actionLoading === 'paid'}
-                disabled={!!actionLoading}
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Mark as Paid
-              </Button>
+              <>
+                <Button
+                  onClick={handleMarkAsPaid}
+                  loading={actionLoading === 'paid'}
+                  disabled={!!actionLoading}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Mark as Paid
+                </Button>
+                {invoice.to?.email && (
+                  <Button
+                    variant="secondary"
+                    onClick={handleSendEmail}
+                    loading={actionLoading === 'email'}
+                    disabled={!!actionLoading}
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Resend
+                  </Button>
+                )}
+              </>
             )}
             <InvoicePDFButton invoice={invoice} />
             {invoice.status === 'draft' && (

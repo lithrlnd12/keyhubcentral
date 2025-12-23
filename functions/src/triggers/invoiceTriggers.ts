@@ -6,12 +6,18 @@ import {
   rebuildMonthlySummary,
 } from '../lib/sheetsSync';
 
+// Define secrets for Google Sheets access
+const runtimeOpts: functions.RuntimeOptions = {
+  secrets: ['GOOGLE_SERVICE_ACCOUNT_KEY', 'GOOGLE_SHEETS_SPREADSHEET_ID'],
+};
+
 /**
  * Trigger when a new invoice is created
  */
-export const onInvoiceCreated = functions.firestore
-  .document('invoices/{invoiceId}')
-  .onCreate(async (snapshot) => {
+export const onInvoiceCreated = functions
+  .runWith(runtimeOpts)
+  .firestore.document('invoices/{invoiceId}')
+  .onCreate(async (snapshot: functions.firestore.QueryDocumentSnapshot) => {
     try {
       const invoice = snapshot.data();
       console.log(`Invoice created: ${invoice.invoiceNumber}`);
@@ -27,9 +33,10 @@ export const onInvoiceCreated = functions.firestore
 /**
  * Trigger when an invoice is updated
  */
-export const onInvoiceUpdated = functions.firestore
-  .document('invoices/{invoiceId}')
-  .onUpdate(async (change) => {
+export const onInvoiceUpdated = functions
+  .runWith(runtimeOpts)
+  .firestore.document('invoices/{invoiceId}')
+  .onUpdate(async (change: functions.Change<functions.firestore.QueryDocumentSnapshot>) => {
     try {
       const beforeData = change.before.data();
       const afterData = change.after.data();
@@ -61,9 +68,10 @@ export const onInvoiceUpdated = functions.firestore
 /**
  * Trigger when an invoice is deleted
  */
-export const onInvoiceDeleted = functions.firestore
-  .document('invoices/{invoiceId}')
-  .onDelete(async (snapshot) => {
+export const onInvoiceDeleted = functions
+  .runWith(runtimeOpts)
+  .firestore.document('invoices/{invoiceId}')
+  .onDelete(async (snapshot: functions.firestore.QueryDocumentSnapshot) => {
     try {
       const invoice = snapshot.data();
       console.log(`Invoice deleted: ${invoice.invoiceNumber}`);

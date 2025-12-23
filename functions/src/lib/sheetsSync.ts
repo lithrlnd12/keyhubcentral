@@ -197,12 +197,19 @@ export async function removeInvoiceFromSheets(invoiceNumber: string): Promise<vo
   }
 }
 
+// Helper to add delay between API calls
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 /**
  * Rebuild all invoice tabs from Firestore data
  */
 export async function rebuildAllInvoiceTabs(): Promise<void> {
   const db = admin.firestore();
   const invoicesSnapshot = await db.collection('invoices').get();
+
+  console.log(`Found ${invoicesSnapshot.size} invoices to sync`);
 
   // Group invoices by tab
   const tabData: Record<string, (string | number)[][]> = {};
@@ -225,15 +232,24 @@ export async function rebuildAllInvoiceTabs(): Promise<void> {
     }
   }
 
-  // Write all tabs
+  // Write all tabs with delays to avoid rate limiting
   for (const [tab, data] of Object.entries(tabData)) {
+    console.log(`Writing ${data.length - 1} invoices to tab: ${tab}`);
     await writeToSheet(tab, data);
+    await delay(1000); // 1 second delay
     await formatHeaderRow(tab);
+    await delay(1000); // 1 second delay
   }
 
   // Build special reports
+  console.log('Building aging report...');
   await rebuildAgingReport();
+  await delay(1000);
+
+  console.log('Building monthly summary...');
   await rebuildMonthlySummary();
+
+  console.log('Rebuild complete!');
 }
 
 /**

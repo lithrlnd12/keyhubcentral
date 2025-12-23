@@ -14,7 +14,11 @@ export {
   dailyOverdueCheck,
   weeklyFullRebuild,
   manualRebuildSheets,
+  triggerRebuild,
 } from './scheduled/dailySheetsTasks';
+
+// Email triggers
+export { sendInvoiceEmail } from './triggers/emailTriggers';
 
 admin.initializeApp();
 
@@ -36,7 +40,7 @@ const transporter = nodemailer.createTransport({
 // Trigger when a new user document is created in Firestore
 export const onUserCreated = functions.firestore
   .document('users/{userId}')
-  .onCreate(async (snapshot, context) => {
+  .onCreate(async (snapshot: functions.firestore.QueryDocumentSnapshot, context: functions.EventContext) => {
     const userData = snapshot.data();
     const userId = context.params.userId;
 
@@ -104,7 +108,7 @@ export const onUserCreated = functions.firestore
 // Trigger when a user is approved (status changes to active)
 export const onUserApproved = functions.firestore
   .document('users/{userId}')
-  .onUpdate(async (change, context) => {
+  .onUpdate(async (change: functions.Change<functions.firestore.QueryDocumentSnapshot>, context: functions.EventContext) => {
     const beforeData = change.before.data();
     const afterData = change.after.data();
 

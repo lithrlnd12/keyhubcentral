@@ -22,10 +22,13 @@ interface InvoiceFormProps {
   mode: 'create' | 'edit';
 }
 
-const entityOptions: { value: InvoiceEntity['entity']; label: string }[] = [
+const fromEntityOptions: { value: InvoiceEntity['entity']; label: string }[] = [
   { value: 'kd', label: 'Keynote Digital' },
   { value: 'kts', label: 'Key Trade Solutions' },
   { value: 'kr', label: 'Key Renovations' },
+];
+
+const toEntityOptions: { value: InvoiceEntity['entity']; label: string }[] = [
   { value: 'customer', label: 'Customer' },
   { value: 'subscriber', label: 'Subscriber' },
 ];
@@ -48,7 +51,7 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
   );
   const [fromName, setFromName] = useState(invoice?.from.name || '');
   const [toEntity, setToEntity] = useState<InvoiceEntity['entity']>(
-    invoice?.to.entity || 'kr'
+    invoice?.to.entity || 'customer'
   );
   const [toName, setToName] = useState(invoice?.to.name || '');
   const [toEmail, setToEmail] = useState(invoice?.to.email || '');
@@ -120,8 +123,8 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
 
       const toEntityData: InvoiceEntity = {
         entity: toEntity,
-        name: toName || getDefaultEntityName(toEntity),
-        email: toEmail || undefined,
+        name: toName,
+        ...(toEmail ? { email: toEmail } : {}),
       };
 
       if (mode === 'create') {
@@ -190,7 +193,7 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
                 }}
                 className="w-full bg-brand-black border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-gold"
               >
-                {entityOptions.slice(0, 3).map((opt) => (
+                {fromEntityOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
@@ -225,15 +228,11 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
                 value={toEntity}
                 onChange={(e) => {
                   setToEntity(e.target.value as InvoiceEntity['entity']);
-                  if (['kd', 'kts', 'kr'].includes(e.target.value)) {
-                    setToName(getDefaultEntityName(e.target.value as InvoiceEntity['entity']));
-                  } else {
-                    setToName('');
-                  }
+                  setToName('');
                 }}
                 className="w-full bg-brand-black border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-gold"
               >
-                {entityOptions.map((opt) => (
+                {toEntityOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
@@ -242,35 +241,29 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
-                Name {(toEntity === 'customer' || toEntity === 'subscriber') && '*'}
+                Name *
               </label>
               <input
                 type="text"
                 value={toName}
                 onChange={(e) => setToName(e.target.value)}
-                placeholder={
-                  toEntity === 'customer' || toEntity === 'subscriber'
-                    ? 'Enter name'
-                    : getDefaultEntityName(toEntity)
-                }
-                required={toEntity === 'customer' || toEntity === 'subscriber'}
+                placeholder="Enter name"
+                required
                 className="w-full bg-brand-black border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-brand-gold"
               />
             </div>
-            {(toEntity === 'customer' || toEntity === 'subscriber') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={toEmail}
-                  onChange={(e) => setToEmail(e.target.value)}
-                  placeholder="email@example.com"
-                  className="w-full bg-brand-black border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-brand-gold"
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={toEmail}
+                onChange={(e) => setToEmail(e.target.value)}
+                placeholder="email@example.com"
+                className="w-full bg-brand-black border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-brand-gold"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

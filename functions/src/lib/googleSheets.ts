@@ -50,10 +50,10 @@ export async function getOrCreateSheet(sheetName: string): Promise<number> {
   // Get all sheets
   const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
   const existingSheet = spreadsheet.data.sheets?.find(
-    (s) => s.properties?.title === sheetName
+    (s: sheets_v4.Schema$Sheet) => s.properties?.title === sheetName
   );
 
-  if (existingSheet?.properties?.sheetId !== undefined) {
+  if (existingSheet?.properties?.sheetId != null) {
     return existingSheet.properties.sheetId;
   }
 
@@ -72,7 +72,7 @@ export async function getOrCreateSheet(sheetName: string): Promise<number> {
   });
 
   const newSheetId = response.data.replies?.[0]?.addSheet?.properties?.sheetId;
-  if (newSheetId === undefined) {
+  if (newSheetId == null) {
     throw new Error(`Failed to create sheet: ${sheetName}`);
   }
 
@@ -155,7 +155,7 @@ export async function updateRowByInvoiceNumber(
   });
 
   const values = response.data.values || [];
-  const rowIndex = values.findIndex((row) => row[0] === invoiceNumber);
+  const rowIndex = values.findIndex((row: (string | number)[]) => row[0] === invoiceNumber);
 
   if (rowIndex === -1) {
     return false;
@@ -189,7 +189,7 @@ export async function deleteRowByInvoiceNumber(
   });
 
   const values = response.data.values || [];
-  const rowIndex = values.findIndex((row) => row[0] === invoiceNumber);
+  const rowIndex = values.findIndex((row: (string | number)[]) => row[0] === invoiceNumber);
 
   if (rowIndex === -1) {
     return false;
@@ -221,43 +221,141 @@ export async function deleteRowByInvoiceNumber(
 }
 
 /**
- * Format header row with bold and background color
+ * Format sheet with professional styling
  */
 export async function formatHeaderRow(sheetName: string): Promise<void> {
   const sheets = getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
   const sheetId = await getOrCreateSheet(sheetName);
 
+  // Column indices (0-based):
+  // 0=Invoice#, 1=Status, 2=FromEntity, 3=FromName, 4=ToEntity, 5=ToName,
+  // 6=Subtotal, 7=Discount, 8=Total, 9=DueDate, 10=DaysUntilDue, 11=SentDate, 12=PaidDate, 13=CreatedDate
+
+  const requests: sheets_v4.Schema$Request[] = [
+    // Header row: dark background, white bold text
+    {
+      repeatCell: {
+        range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
+        cell: {
+          userEnteredFormat: {
+            backgroundColor: { red: 0.2, green: 0.2, blue: 0.2 },
+            textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } },
+            horizontalAlignment: 'CENTER',
+          },
+        },
+        fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)',
+      },
+    },
+    // Freeze header row
+    {
+      updateSheetProperties: {
+        properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
+        fields: 'gridProperties.frozenRowCount',
+      },
+    },
+    // Currency format for Subtotal (col 6)
+    {
+      repeatCell: {
+        range: { sheetId, startColumnIndex: 6, endColumnIndex: 7, startRowIndex: 1 },
+        cell: {
+          userEnteredFormat: {
+            numberFormat: { type: 'CURRENCY', pattern: '"$"#,##0.00' },
+          },
+        },
+        fields: 'userEnteredFormat.numberFormat',
+      },
+    },
+    // Currency format for Discount (col 7)
+    {
+      repeatCell: {
+        range: { sheetId, startColumnIndex: 7, endColumnIndex: 8, startRowIndex: 1 },
+        cell: {
+          userEnteredFormat: {
+            numberFormat: { type: 'CURRENCY', pattern: '"$"#,##0.00' },
+          },
+        },
+        fields: 'userEnteredFormat.numberFormat',
+      },
+    },
+    // Currency format for Total (col 8) - bold
+    {
+      repeatCell: {
+        range: { sheetId, startColumnIndex: 8, endColumnIndex: 9, startRowIndex: 1 },
+        cell: {
+          userEnteredFormat: {
+            numberFormat: { type: 'CURRENCY', pattern: '"$"#,##0.00' },
+            textFormat: { bold: true },
+          },
+        },
+        fields: 'userEnteredFormat(numberFormat,textFormat)',
+      },
+    },
+    // Auto-resize columns
+    {
+      autoResizeDimensions: {
+        dimensions: { sheetId, dimension: 'COLUMNS', startIndex: 0, endIndex: 14 },
+      },
+    },
+    // Add conditional formatting: green for PAID status
+    {
+      addConditionalFormatRule: {
+        rule: {
+          ranges: [{ sheetId, startRowIndex: 1 }],
+          booleanRule: {
+            condition: {
+              type: 'TEXT_EQ',
+              values: [{ userEnteredValue: 'PAID' }],
+            },
+            format: {
+              backgroundColor: { red: 0.85, green: 0.95, blue: 0.85 },
+            },
+          },
+        },
+        index: 0,
+      },
+    },
+    // Add conditional formatting: red for overdue (negative days)
+    {
+      addConditionalFormatRule: {
+        rule: {
+          ranges: [{ sheetId, startColumnIndex: 10, endColumnIndex: 11, startRowIndex: 1 }],
+          booleanRule: {
+            condition: {
+              type: 'NUMBER_LESS',
+              values: [{ userEnteredValue: '0' }],
+            },
+            format: {
+              backgroundColor: { red: 1, green: 0.85, blue: 0.85 },
+              textFormat: { foregroundColor: { red: 0.8, green: 0, blue: 0 }, bold: true },
+            },
+          },
+        },
+        index: 1,
+      },
+    },
+    // Yellow for SENT status
+    {
+      addConditionalFormatRule: {
+        rule: {
+          ranges: [{ sheetId, startRowIndex: 1 }],
+          booleanRule: {
+            condition: {
+              type: 'TEXT_EQ',
+              values: [{ userEnteredValue: 'SENT' }],
+            },
+            format: {
+              backgroundColor: { red: 1, green: 0.95, blue: 0.8 },
+            },
+          },
+        },
+        index: 2,
+      },
+    },
+  ];
+
   await sheets.spreadsheets.batchUpdate({
     spreadsheetId,
-    requestBody: {
-      requests: [
-        {
-          repeatCell: {
-            range: {
-              sheetId,
-              startRowIndex: 0,
-              endRowIndex: 1,
-            },
-            cell: {
-              userEnteredFormat: {
-                backgroundColor: { red: 0.9, green: 0.9, blue: 0.9 },
-                textFormat: { bold: true },
-              },
-            },
-            fields: 'userEnteredFormat(backgroundColor,textFormat)',
-          },
-        },
-        {
-          updateSheetProperties: {
-            properties: {
-              sheetId,
-              gridProperties: { frozenRowCount: 1 },
-            },
-            fields: 'gridProperties.frozenRowCount',
-          },
-        },
-      ],
-    },
+    requestBody: { requests },
   });
 }
