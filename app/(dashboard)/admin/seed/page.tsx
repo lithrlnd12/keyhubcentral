@@ -522,8 +522,8 @@ const invoices = [
     invoiceNumber: "INV-KR-001",
     from: { entity: "kr" as const, name: "Key Renovations" },
     to: { type: "customer" as const, name: "John & Mary Smith", email: "smithfamily@email.com" },
-    items: [
-      { description: "Master Bathroom Renovation", quantity: 1, unitPrice: 25000, total: 25000 },
+    lineItems: [
+      { description: "Master Bathroom Renovation", qty: 1, rate: 25000, total: 25000 },
     ],
     subtotal: 25000,
     tax: 0,
@@ -537,8 +537,8 @@ const invoices = [
     invoiceNumber: "INV-KR-002",
     from: { entity: "kr" as const, name: "Key Renovations" },
     to: { type: "customer" as const, name: "Sarah Johnson", email: "sarah.j@email.com" },
-    items: [
-      { description: "Kitchen Remodel - Deposit", quantity: 1, unitPrice: 15000, total: 15000 },
+    lineItems: [
+      { description: "Kitchen Remodel - Deposit", qty: 1, rate: 15000, total: 15000 },
     ],
     subtotal: 15000,
     tax: 0,
@@ -552,8 +552,8 @@ const invoices = [
     invoiceNumber: "INV-KR-003",
     from: { entity: "kr" as const, name: "Key Renovations" },
     to: { type: "customer" as const, name: "Sarah Johnson", email: "sarah.j@email.com" },
-    items: [
-      { description: "Kitchen Remodel - Final Balance", quantity: 1, unitPrice: 23000, total: 23000 },
+    lineItems: [
+      { description: "Kitchen Remodel - Final Balance", qty: 1, rate: 23000, total: 23000 },
     ],
     subtotal: 23000,
     tax: 0,
@@ -567,8 +567,8 @@ const invoices = [
     invoiceNumber: "INV-KR-004",
     from: { entity: "kr" as const, name: "Key Renovations" },
     to: { type: "customer" as const, name: "Mike Williams", email: "mike.w@email.com" },
-    items: [
-      { description: "Exterior Siding - Deposit (50%)", quantity: 1, unitPrice: 24000, total: 24000 },
+    lineItems: [
+      { description: "Exterior Siding - Deposit (50%)", qty: 1, rate: 24000, total: 24000 },
     ],
     subtotal: 24000,
     tax: 0,
@@ -583,9 +583,9 @@ const invoices = [
     invoiceNumber: "INV-KTS-001",
     from: { entity: "kts" as const, name: "Key Trade Solutions" },
     to: { type: "contractor" as const, id: "contractor-003", name: "Mike's Renovation Crew", email: "mike@renovationcrew.com" },
-    items: [
-      { description: "Labor - Smith Bathroom (Job KR-2024-001)", quantity: 1, unitPrice: 4200, total: 4200 },
-      { description: "Commission (10%)", quantity: 1, unitPrice: 420, total: 420 },
+    lineItems: [
+      { description: "Labor - Smith Bathroom (Job KR-2024-001)", qty: 1, rate: 4200, total: 4200 },
+      { description: "Commission (10%)", qty: 1, rate: 420, total: 420 },
     ],
     subtotal: 4620,
     tax: 0,
@@ -599,9 +599,9 @@ const invoices = [
     invoiceNumber: "INV-KTS-002",
     from: { entity: "kts" as const, name: "Key Trade Solutions" },
     to: { type: "contractor" as const, id: "contractor-003", name: "Mike's Renovation Crew", email: "mike@renovationcrew.com" },
-    items: [
-      { description: "Labor - Johnson Kitchen (Job KR-2024-002)", quantity: 1, unitPrice: 8200, total: 8200 },
-      { description: "Commission (10%)", quantity: 1, unitPrice: 820, total: 820 },
+    lineItems: [
+      { description: "Labor - Johnson Kitchen (Job KR-2024-002)", qty: 1, rate: 8200, total: 8200 },
+      { description: "Commission (10%)", qty: 1, rate: 820, total: 820 },
     ],
     subtotal: 9020,
     tax: 0,
@@ -616,9 +616,9 @@ const invoices = [
     invoiceNumber: "INV-KD-001",
     from: { entity: "kd" as const, name: "Keynote Digital" },
     to: { type: "subscriber" as const, id: "subscriber-003", name: "Premier Home Solutions", email: "leads@premierhome.com" },
-    items: [
-      { description: "Monthly Subscription - Pro Tier", quantity: 1, unitPrice: 1499, total: 1499 },
-      { description: "Ad Spend Management", quantity: 1, unitPrice: 1500, total: 1500 },
+    lineItems: [
+      { description: "Monthly Subscription - Pro Tier", qty: 1, rate: 1499, total: 1499 },
+      { description: "Ad Spend Management", qty: 1, rate: 1500, total: 1500 },
     ],
     subtotal: 2999,
     tax: 0,
@@ -632,9 +632,9 @@ const invoices = [
     invoiceNumber: "INV-KD-002",
     from: { entity: "kd" as const, name: "Keynote Digital" },
     to: { type: "subscriber" as const, id: "subscriber-002", name: "DFW Roofing Pros", email: "sales@dfwroofing.com" },
-    items: [
-      { description: "Monthly Subscription - Growth Tier", quantity: 1, unitPrice: 899, total: 899 },
-      { description: "Ad Spend Management", quantity: 1, unitPrice: 900, total: 900 },
+    lineItems: [
+      { description: "Monthly Subscription - Growth Tier", qty: 1, rate: 899, total: 899 },
+      { description: "Ad Spend Management", qty: 1, rate: 900, total: 900 },
     ],
     subtotal: 1799,
     tax: 0,
@@ -648,9 +648,9 @@ const invoices = [
     invoiceNumber: "INV-KD-003",
     from: { entity: "kd" as const, name: "Keynote Digital" },
     to: { type: "subscriber" as const, id: "subscriber-001", name: "North Texas Windows", email: "info@ntxwindows.com" },
-    items: [
-      { description: "Monthly Subscription - Starter Tier", quantity: 1, unitPrice: 399, total: 399 },
-      { description: "Ad Spend Management", quantity: 1, unitPrice: 600, total: 600 },
+    lineItems: [
+      { description: "Monthly Subscription - Starter Tier", qty: 1, rate: 399, total: 399 },
+      { description: "Ad Spend Management", qty: 1, rate: 600, total: 600 },
     ],
     subtotal: 999,
     tax: 0,
@@ -665,9 +665,9 @@ const invoices = [
     invoiceNumber: "INV-KD-IC-001",
     from: { entity: "kd" as const, name: "Keynote Digital" },
     to: { type: "intercompany" as const, entity: "kr" as const, name: "Key Renovations" },
-    items: [
-      { description: "Lead Fee - Martinez (converted)", quantity: 1, unitPrice: 150, total: 150 },
-      { description: "Lead Fee - Smith (converted)", quantity: 1, unitPrice: 150, total: 150 },
+    lineItems: [
+      { description: "Lead Fee - Martinez (converted)", qty: 1, rate: 150, total: 150 },
+      { description: "Lead Fee - Smith (converted)", qty: 1, rate: 150, total: 150 },
     ],
     subtotal: 300,
     tax: 0,
@@ -682,7 +682,7 @@ const invoices = [
     invoiceNumber: "INV-KR-H001",
     from: { entity: "kr" as const, name: "Key Renovations" },
     to: { type: "customer" as const, name: "Historical Customer 1", email: "hist1@email.com" },
-    items: [{ description: "Bathroom Renovation", quantity: 1, unitPrice: 18000, total: 18000 }],
+    lineItems: [{ description: "Bathroom Renovation", qty: 1, rate: 18000, total: 18000 }],
     subtotal: 18000, tax: 0, total: 18000,
     status: "paid" as const,
     dueDate: daysAgo(120),
@@ -693,7 +693,7 @@ const invoices = [
     invoiceNumber: "INV-KR-H002",
     from: { entity: "kr" as const, name: "Key Renovations" },
     to: { type: "customer" as const, name: "Historical Customer 2", email: "hist2@email.com" },
-    items: [{ description: "Kitchen Renovation", quantity: 1, unitPrice: 32000, total: 32000 }],
+    lineItems: [{ description: "Kitchen Renovation", qty: 1, rate: 32000, total: 32000 }],
     subtotal: 32000, tax: 0, total: 32000,
     status: "paid" as const,
     dueDate: daysAgo(95),
@@ -704,7 +704,7 @@ const invoices = [
     invoiceNumber: "INV-KD-H001",
     from: { entity: "kd" as const, name: "Keynote Digital" },
     to: { type: "subscriber" as const, id: "subscriber-003", name: "Premier Home Solutions", email: "leads@premierhome.com" },
-    items: [{ description: "Monthly Subscription + Ad Spend", quantity: 1, unitPrice: 2999, total: 2999 }],
+    lineItems: [{ description: "Monthly Subscription + Ad Spend", qty: 1, rate: 2999, total: 2999 }],
     subtotal: 2999, tax: 0, total: 2999,
     status: "paid" as const,
     dueDate: daysAgo(50),
@@ -715,7 +715,7 @@ const invoices = [
     invoiceNumber: "INV-KTS-H001",
     from: { entity: "kts" as const, name: "Key Trade Solutions" },
     to: { type: "contractor" as const, id: "contractor-001", name: "ABC Installations LLC", email: "abc@install.com" },
-    items: [{ description: "Labor + Commission", quantity: 1, unitPrice: 5500, total: 5500 }],
+    lineItems: [{ description: "Labor + Commission", qty: 1, rate: 5500, total: 5500 }],
     subtotal: 5500, tax: 0, total: 5500,
     status: "paid" as const,
     dueDate: daysAgo(60),
