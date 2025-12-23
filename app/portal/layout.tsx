@@ -3,13 +3,15 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, User, LogOut, Home } from 'lucide-react';
+import { Calendar, User, LogOut, Home, Briefcase, DollarSign } from 'lucide-react';
 import { Logo } from '@/components/ui/Logo';
 import { useAuth } from '@/lib/hooks';
 
 const NAV_ITEMS = [
   { href: '/portal', label: 'Dashboard', icon: Home },
   { href: '/portal/availability', label: 'Availability', icon: Calendar },
+  { href: '/portal/jobs', label: 'Jobs', icon: Briefcase },
+  { href: '/portal/earnings', label: 'Earnings', icon: DollarSign },
   { href: '/portal/my-profile', label: 'Profile', icon: User },
 ];
 
