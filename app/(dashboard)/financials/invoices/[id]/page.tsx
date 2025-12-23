@@ -99,7 +99,7 @@ export default function InvoiceDetailPage() {
     }
   };
 
-  const handleSendEmail = async () => {
+  const handleSendEmail = () => {
     if (!invoice) return;
 
     const recipientEmail = invoice.to?.email;
@@ -109,17 +109,21 @@ export default function InvoiceDetailPage() {
     }
 
     setActionLoading('email');
-    try {
-      const sendInvoiceEmail = httpsCallable(functions, 'sendInvoiceEmail');
-      await sendInvoiceEmail({ invoiceId: invoice.id });
-      const action = invoice.status === 'sent' ? 'resent' : 'sent';
-      showToast(`Invoice ${action} to ${recipientEmail}`, 'success');
-    } catch (err) {
-      console.error('Failed to send email:', err);
-      showToast('Failed to send invoice. Please try again.', 'error');
-    } finally {
-      setActionLoading(null);
-    }
+
+    // Defer network call to allow UI to update first (fixes INP)
+    setTimeout(async () => {
+      try {
+        const sendInvoiceEmail = httpsCallable(functions, 'sendInvoiceEmail');
+        await sendInvoiceEmail({ invoiceId: invoice.id });
+        const action = invoice.status === 'sent' ? 'resent' : 'sent';
+        showToast(`Invoice ${action} to ${recipientEmail}`, 'success');
+      } catch (err) {
+        console.error('Failed to send email:', err);
+        showToast('Failed to send invoice. Please try again.', 'error');
+      } finally {
+        setActionLoading(null);
+      }
+    }, 0);
   };
 
   if (loading) {
