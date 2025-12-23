@@ -147,7 +147,9 @@ export function groupLeadsBySource(leads: Lead[]): Record<LeadSource, Lead[]> {
   };
 
   leads.forEach((lead) => {
-    grouped[lead.source].push(lead);
+    // Handle invalid sources gracefully by grouping them as 'other'
+    const source = grouped[lead.source] ? lead.source : 'other';
+    grouped[source].push(lead);
   });
 
   return grouped;
