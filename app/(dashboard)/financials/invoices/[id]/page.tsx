@@ -174,7 +174,15 @@ export default function InvoiceDetailPage() {
                     Edit
                   </Button>
                 </Link>
-                {invoice.to?.email ? (
+                <Button
+                  onClick={handleMarkAsSent}
+                  loading={actionLoading === 'send'}
+                  disabled={!!actionLoading}
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Mark as Sent
+                </Button>
+                {invoice.to?.email && (
                   <Button
                     onClick={handleSendEmail}
                     loading={actionLoading === 'email'}
@@ -182,15 +190,6 @@ export default function InvoiceDetailPage() {
                   >
                     <Mail className="w-4 h-4 mr-2" />
                     Send Email
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleMarkAsSent}
-                    loading={actionLoading === 'send'}
-                    disabled={!!actionLoading}
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    Mark as Sent
                   </Button>
                 )}
               </>
