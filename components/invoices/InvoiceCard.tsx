@@ -93,7 +93,7 @@ export function InvoiceCard({
           </div>
 
           {/* Line items preview */}
-          {showDetails && invoice.lineItems.length > 0 && (
+          {showDetails && invoice.lineItems?.length > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-700/50">
               <div className="text-sm text-gray-400">
                 {invoice.lineItems.length} line item

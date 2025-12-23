@@ -6,7 +6,8 @@
       "Bash(node scripts/generate-icons.mjs:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(SKIP_ENV_VALIDATION=1 npm test:*)"
+      "Bash(SKIP_ENV_VALIDATION=1 npm test:*)",
+      "Bash(ls:*)"
     ]
   }
 }
