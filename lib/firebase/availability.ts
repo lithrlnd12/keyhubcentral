@@ -128,3 +128,22 @@ export function subscribeToMonthAvailability(
     callback(availabilityMap);
   });
 }
+
+// Get availability for all contractors for a date range
+export async function getAllContractorsAvailability(
+  contractorIds: string[],
+  startDate: Date,
+  endDate: Date
+): Promise<Map<string, Map<string, Availability>>> {
+  const result = new Map<string, Map<string, Availability>>();
+
+  const promises = contractorIds.map(async (contractorId) => {
+    const availability = await getAvailabilityRange(contractorId, startDate, endDate);
+    const availabilityMap = new Map<string, Availability>();
+    availability.forEach((a) => availabilityMap.set(a.date, a));
+    result.set(contractorId, availabilityMap);
+  });
+
+  await Promise.all(promises);
+  return result;
+}

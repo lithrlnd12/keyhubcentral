@@ -2,6 +2,20 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
 
+// Invoice Sheets sync triggers
+export {
+  onInvoiceCreated,
+  onInvoiceUpdated,
+  onInvoiceDeleted,
+} from './triggers/invoiceTriggers';
+
+// Scheduled tasks
+export {
+  dailyOverdueCheck,
+  weeklyFullRebuild,
+  manualRebuildSheets,
+} from './scheduled/dailySheetsTasks';
+
 admin.initializeApp();
 
 // Admin emails to notify when new users sign up

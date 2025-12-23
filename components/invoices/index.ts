@@ -4,3 +4,4 @@ export { InvoiceFilters } from './InvoiceFilters';
 export { InvoiceList } from './InvoiceList';
 export { InvoiceStats } from './InvoiceStats';
 export { InvoiceForm } from './InvoiceForm';
+export { InvoiceExportCSV } from './InvoiceExportCSV';

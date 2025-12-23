@@ -1,8 +1,15 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Building2 } from 'lucide-react';
+
+// Dynamic import for PDF button (SSR disabled for @react-pdf/renderer)
+const PnLPDFButton = dynamic(
+  () => import('@/components/pdf/PnLPDFButton').then((mod) => mod.PnLPDFButton),
+  { ssr: false, loading: () => null }
+);
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { useInvoices } from '@/lib/hooks/useInvoices';
@@ -56,6 +63,21 @@ export default function PnLPage() {
   const profitMargin = calculateProfitMargin(selectedPnL.revenue, selectedPnL.expenses);
   const groupedEntries = groupEntriesByCategory(selectedPnL.entries);
 
+  // Format date range for PDF export
+  const currentDateRange = useMemo(() => {
+    const preset = datePresets[selectedPreset];
+    const formatDate = (d: Date) =>
+      d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${formatDate(preset.start)} - ${formatDate(preset.end)}`;
+  }, [datePresets, selectedPreset]);
+
+  const entityNameMap: Record<string, string> = {
+    all: 'Combined',
+    kd: 'Keynote Digital',
+    kts: 'Key Trade Solutions',
+    kr: 'Key Renovations',
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -82,22 +104,34 @@ export default function PnLPage() {
           <p className="text-gray-400 mt-1">Financial performance by entity</p>
         </div>
 
-        {/* Date Range Selector */}
-        <div className="flex items-center gap-2">
-          {datePresets.map((preset, index) => (
-            <button
-              key={preset.label}
-              onClick={() => setSelectedPreset(index)}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                selectedPreset === index
-                  ? 'bg-brand-gold text-brand-black'
-                  : 'bg-brand-charcoal text-gray-400 hover:text-white'
-              )}
-            >
-              {preset.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-4">
+          {/* Export PDF Button */}
+          <PnLPDFButton
+            data={selectedPnL}
+            combinedData={selectedEntity === 'all' ? pnlData : undefined}
+            entityName={entityNameMap[selectedEntity]}
+            entityKey={selectedEntity}
+            dateRange={currentDateRange}
+            datePresetLabel={datePresets[selectedPreset].label}
+          />
+
+          {/* Date Range Selector */}
+          <div className="flex items-center gap-2">
+            {datePresets.map((preset, index) => (
+              <button
+                key={preset.label}
+                onClick={() => setSelectedPreset(index)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                  selectedPreset === index
+                    ? 'bg-brand-gold text-brand-black'
+                    : 'bg-brand-charcoal text-gray-400 hover:text-white'
+                )}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

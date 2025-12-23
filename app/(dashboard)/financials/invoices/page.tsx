@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { InvoiceFilters, InvoiceList, InvoiceStats } from '@/components/invoices';
+import { InvoiceFilters, InvoiceList, InvoiceStats, InvoiceExportCSV } from '@/components/invoices';
 import { useInvoices } from '@/lib/hooks/useInvoices';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { canViewFinancials } from '@/types/user';
@@ -46,14 +46,17 @@ export default function InvoicesListPage() {
           <p className="text-gray-400 mt-1">View and manage all invoices</p>
         </div>
 
-        {canManage && (
-          <Link href="/financials/invoices/new">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Invoice
-            </Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <InvoiceExportCSV invoices={invoices} />
+          {canManage && (
+            <Link href="/financials/invoices/new">
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Invoice
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Stats */}

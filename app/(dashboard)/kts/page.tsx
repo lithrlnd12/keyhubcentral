@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ContractorFilters, ContractorList } from '@/components/contractors';
 import { useContractors } from '@/lib/hooks/useContractors';
@@ -37,14 +37,22 @@ export default function KTSPage() {
           </p>
         </div>
 
-        {canAddContractor && (
-          <Link href="/kts/new">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Contractor
+        <div className="flex gap-2">
+          <Link href="/kts/availability">
+            <Button variant="outline">
+              <Calendar className="w-4 h-4 mr-2" />
+              Availability
             </Button>
           </Link>
-        )}
+          {canAddContractor && (
+            <Link href="/kts/new">
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Contractor
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       <ContractorFilters

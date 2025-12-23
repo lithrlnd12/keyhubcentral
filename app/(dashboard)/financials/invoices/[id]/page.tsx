@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useInvoice } from '@/lib/hooks/useInvoice';
 import { useAuth } from '@/lib/hooks/useAuth';
 import {
@@ -34,9 +35,14 @@ import {
   Calendar,
   Mail,
   AlertTriangle,
-  Printer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Dynamic import for PDF button (SSR disabled for @react-pdf/renderer)
+const InvoicePDFButton = dynamic(
+  () => import('@/components/pdf/InvoicePDFButton').then((mod) => mod.InvoicePDFButton),
+  { ssr: false, loading: () => null }
+);
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -162,9 +168,7 @@ export default function InvoiceDetailPage() {
                 Mark as Paid
               </Button>
             )}
-            <Button variant="ghost">
-              <Printer className="w-4 h-4" />
-            </Button>
+            <InvoicePDFButton invoice={invoice} />
             {invoice.status === 'draft' && (
               <Button
                 variant="danger"
