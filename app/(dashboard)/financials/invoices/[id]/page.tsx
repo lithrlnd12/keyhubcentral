@@ -13,6 +13,7 @@ import {
 } from '@/lib/firebase/invoices';
 import { functions } from '@/lib/firebase/config';
 import { httpsCallable } from 'firebase/functions';
+import { useToast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { InvoiceStatusBadge } from '@/components/invoices';
@@ -53,6 +54,7 @@ export default function InvoiceDetailPage() {
 
   const { invoice, loading, error } = useInvoice(id, { realtime: true });
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const canManage = user?.role && canViewFinancials(user.role);
@@ -102,20 +104,19 @@ export default function InvoiceDetailPage() {
 
     const recipientEmail = invoice.to?.email;
     if (!recipientEmail) {
-      alert('No email address on this invoice. Please edit the invoice to add a recipient email.');
+      showToast('No email address on invoice. Add one in Edit mode.', 'error');
       return;
     }
-
-    if (!confirm(`Send invoice to ${recipientEmail}?`)) return;
 
     setActionLoading('email');
     try {
       const sendInvoiceEmail = httpsCallable(functions, 'sendInvoiceEmail');
       await sendInvoiceEmail({ invoiceId: invoice.id });
-      alert(`Invoice sent to ${recipientEmail}`);
+      const action = invoice.status === 'sent' ? 'resent' : 'sent';
+      showToast(`Invoice ${action} to ${recipientEmail}`, 'success');
     } catch (err) {
       console.error('Failed to send email:', err);
-      alert('Failed to send email. Please check the email configuration.');
+      showToast('Failed to send invoice. Please try again.', 'error');
     } finally {
       setActionLoading(null);
     }
