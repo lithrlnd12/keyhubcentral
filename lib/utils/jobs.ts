@@ -215,7 +215,9 @@ export function groupJobsByStatus(jobs: Job[]): Record<JobStatus, Job[]> {
   };
 
   jobs.forEach((job) => {
-    grouped[job.status].push(job);
+    // Handle invalid status gracefully
+    const status = grouped[job.status] ? job.status : 'lead';
+    grouped[status].push(job);
   });
 
   return grouped;

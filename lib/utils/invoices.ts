@@ -166,7 +166,9 @@ export function groupInvoicesByStatus(
     if (invoice.status !== 'paid' && isOverdue(invoice)) {
       grouped.overdue.push(invoice);
     } else {
-      grouped[invoice.status].push(invoice);
+      // Handle invalid status gracefully
+      const status = grouped[invoice.status] ? invoice.status : 'draft';
+      grouped[status].push(invoice);
     }
   });
 
