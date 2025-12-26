@@ -46,6 +46,12 @@ service cloud.firestore {
 
       // Only owner can delete users
       allow delete: if isOwner();
+
+      // Integrations subcollection (Google Calendar, etc.)
+      match /integrations/{integrationId} {
+        // Users can only read/write their own integrations
+        allow read, write: if isOwnDocument(userId);
+      }
     }
 
     // Contractors collection

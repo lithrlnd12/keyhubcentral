@@ -1,10 +1,11 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { rebuildAgingReport, rebuildAllInvoiceTabs } from '../lib/sheetsSync';
+import { rebuildPnLSheet } from '../lib/pnlSync';
 
 // Define secrets for Google Sheets access
 const runtimeOpts: functions.RuntimeOptions = {
-  secrets: ['GOOGLE_SERVICE_ACCOUNT_KEY', 'GOOGLE_SHEETS_SPREADSHEET_ID'],
+  secrets: ['GOOGLE_SERVICE_ACCOUNT_KEY', 'GOOGLE_SHEETS_SPREADSHEET_ID', 'GOOGLE_PNL_SPREADSHEET_ID'],
   timeoutSeconds: 300, // 5 minutes for rebuild operations
   memory: '512MB',
 };
@@ -116,6 +117,43 @@ export const triggerRebuild = functions
       res.status(200).json({ success: true, message: 'Sheets rebuilt successfully' });
     } catch (error) {
       console.error('Error in trigger rebuild:', error);
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
+/**
+ * Daily P&L sheet sync
+ * Runs every day at 7:00 AM EST (after overdue check)
+ */
+export const dailyPnLSync = functions
+  .runWith(runtimeOpts)
+  .pubsub.schedule('0 7 * * *')
+  .timeZone('America/New_York')
+  .onRun(async () => {
+    console.log('Running daily P&L sync...');
+
+    try {
+      await rebuildPnLSheet();
+      console.log('Daily P&L sync completed');
+    } catch (error) {
+      console.error('Error in daily P&L sync:', error);
+    }
+  });
+
+/**
+ * HTTP endpoint to trigger P&L rebuild
+ * Call via: https://us-central1-key-hub-central.cloudfunctions.net/triggerPnLRebuild
+ */
+export const triggerPnLRebuild = functions
+  .runWith(runtimeOpts)
+  .https.onRequest(async (req, res) => {
+    console.log('Trigger P&L rebuild called');
+
+    try {
+      await rebuildPnLSheet();
+      res.status(200).json({ success: true, message: 'P&L sheet rebuilt successfully' });
+    } catch (error) {
+      console.error('Error in P&L rebuild:', error);
       res.status(500).json({ success: false, error: String(error) });
     }
   });

@@ -15,10 +15,18 @@ export {
   weeklyFullRebuild,
   manualRebuildSheets,
   triggerRebuild,
+  dailyPnLSync,
+  triggerPnLRebuild,
 } from './scheduled/dailySheetsTasks';
 
 // Email triggers
 export { sendInvoiceEmail } from './triggers/emailTriggers';
+
+// Availability & Calendar sync triggers
+export { onAvailabilityChange } from './triggers/availabilityTriggers';
+
+// Calendar sync scheduled tasks
+export { syncCalendarToApp, manualCalendarSync } from './scheduled/calendarSync';
 
 admin.initializeApp();
 

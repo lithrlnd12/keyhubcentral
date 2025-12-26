@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onUserApproved = exports.onUserCreated = exports.sendInvoiceEmail = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
+exports.onUserApproved = exports.onUserCreated = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -15,6 +15,8 @@ Object.defineProperty(exports, "dailyOverdueCheck", { enumerable: true, get: fun
 Object.defineProperty(exports, "weeklyFullRebuild", { enumerable: true, get: function () { return dailySheetsTasks_1.weeklyFullRebuild; } });
 Object.defineProperty(exports, "manualRebuildSheets", { enumerable: true, get: function () { return dailySheetsTasks_1.manualRebuildSheets; } });
 Object.defineProperty(exports, "triggerRebuild", { enumerable: true, get: function () { return dailySheetsTasks_1.triggerRebuild; } });
+Object.defineProperty(exports, "dailyPnLSync", { enumerable: true, get: function () { return dailySheetsTasks_1.dailyPnLSync; } });
+Object.defineProperty(exports, "triggerPnLRebuild", { enumerable: true, get: function () { return dailySheetsTasks_1.triggerPnLRebuild; } });
 // Email triggers
 var emailTriggers_1 = require("./triggers/emailTriggers");
 Object.defineProperty(exports, "sendInvoiceEmail", { enumerable: true, get: function () { return emailTriggers_1.sendInvoiceEmail; } });

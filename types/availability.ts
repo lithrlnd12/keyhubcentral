@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
+import { SyncSource } from './calendarIntegration';
 
 export type AvailabilityStatus = 'available' | 'busy' | 'unavailable' | 'on_leave';
 
@@ -8,6 +9,9 @@ export interface Availability {
   status: AvailabilityStatus;
   notes?: string;
   updatedAt: Timestamp;
+  // Google Calendar sync fields
+  googleEventId?: string; // ID of synced Google Calendar event
+  syncSource?: SyncSource; // 'app' or 'google' - where this entry originated
 }
 
 export interface DayAvailability {
