@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onUserApproved = exports.onUserCreated = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
+exports.onUserApproved = exports.onUserCreated = exports.manualCalendarSync = exports.syncCalendarToApp = exports.onAvailabilityChange = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -20,6 +20,13 @@ Object.defineProperty(exports, "triggerPnLRebuild", { enumerable: true, get: fun
 // Email triggers
 var emailTriggers_1 = require("./triggers/emailTriggers");
 Object.defineProperty(exports, "sendInvoiceEmail", { enumerable: true, get: function () { return emailTriggers_1.sendInvoiceEmail; } });
+// Availability & Calendar sync triggers
+var availabilityTriggers_1 = require("./triggers/availabilityTriggers");
+Object.defineProperty(exports, "onAvailabilityChange", { enumerable: true, get: function () { return availabilityTriggers_1.onAvailabilityChange; } });
+// Calendar sync scheduled tasks
+var calendarSync_1 = require("./scheduled/calendarSync");
+Object.defineProperty(exports, "syncCalendarToApp", { enumerable: true, get: function () { return calendarSync_1.syncCalendarToApp; } });
+Object.defineProperty(exports, "manualCalendarSync", { enumerable: true, get: function () { return calendarSync_1.manualCalendarSync; } });
 admin.initializeApp();
 // Admin emails to notify when new users sign up
 const ADMIN_EMAILS = [

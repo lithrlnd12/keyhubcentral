@@ -14,6 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/financials': 'Financials',
   '/admin': 'Admin',
   '/profile': 'Profile',
+  '/settings': 'Settings',
 };
 
 export default function DashboardLayout({

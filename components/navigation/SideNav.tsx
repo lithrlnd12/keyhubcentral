@@ -9,6 +9,7 @@ import {
   Megaphone,
   FileText,
   Settings,
+  Cog,
   LogOut,
   Building2,
   Wrench,
@@ -36,6 +37,10 @@ interface NavItem {
   permission?: (role: UserRole) => boolean;
 }
 
+// Can access settings (staff with calendar sync capability)
+const canAccessSettings = (role: UserRole): boolean =>
+  ['owner', 'admin', 'pm', 'sales_rep'].includes(role);
+
 const navItems: NavItem[] = [
   { label: 'Overview', href: '/overview', icon: LayoutDashboard, permission: isInternalStaff },
   { label: 'Portal', href: '/portal', icon: UserCircle, permission: isContractor },
@@ -45,6 +50,7 @@ const navItems: NavItem[] = [
   { label: 'Keynote Digital', href: '/kd', icon: Target, permission: canManageCampaigns },
   { label: 'Financials', href: '/financials', icon: FileText, permission: canViewFinancials },
   { label: 'Admin', href: '/admin', icon: Settings, permission: canManageUsers },
+  { label: 'Settings', href: '/settings', icon: Cog, permission: canAccessSettings },
 ];
 
 export function SideNav() {
