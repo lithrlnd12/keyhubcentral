@@ -75,12 +75,12 @@ export function LeadSourceChart({ data }: LeadSourceChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height={240}>
       <PieChart>
         <Pie
           data={safeData}
           cx="50%"
-          cy="50%"
+          cy="40%"
           innerRadius={50}
           outerRadius={70}
           paddingAngle={2}
