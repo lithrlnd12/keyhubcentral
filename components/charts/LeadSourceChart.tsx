@@ -75,14 +75,14 @@ export function LeadSourceChart({ data }: LeadSourceChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={240}>
-      <PieChart>
+    <ResponsiveContainer width="100%" height={260}>
+      <PieChart margin={{ top: 20, right: 0, bottom: 0, left: 0 }}>
         <Pie
           data={safeData}
           cx="50%"
-          cy="40%"
-          innerRadius={50}
-          outerRadius={70}
+          cy="42%"
+          innerRadius={45}
+          outerRadius={65}
           paddingAngle={2}
           dataKey="value"
           nameKey="name"
