@@ -12,6 +12,11 @@ function getAdminApp(): App {
     // In production (Vercel), this should be set as a secret
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
 
+    console.log('Firebase Admin: Checking env vars...');
+    console.log('Firebase Admin: FIREBASE_SERVICE_ACCOUNT_KEY exists:', !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    console.log('Firebase Admin: GOOGLE_SERVICE_ACCOUNT_KEY exists:', !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+    console.log('Firebase Admin: serviceAccount length:', serviceAccount?.length || 0);
+
     if (serviceAccount) {
       try {
         const credentials = JSON.parse(serviceAccount);
