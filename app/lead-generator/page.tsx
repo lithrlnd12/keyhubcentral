@@ -2,44 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Users } from 'lucide-react';
 import Image from 'next/image';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 
 export default function LeadGeneratorFullscreenPage() {
   const [captureUrl, setCaptureUrl] = useState('');
-  const [todayLeadsCount, setTodayLeadsCount] = useState(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setCaptureUrl(`${window.location.origin}/capture`);
     }
-  }, []);
-
-  // Subscribe to today's event leads
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const q = query(
-      collection(db, 'leads'),
-      where('source', '==', 'event')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const todayLeads = snapshot.docs.filter((doc) => {
-        const data = doc.data();
-        const createdAt = data.createdAt?.toDate?.();
-        if (!createdAt) return false;
-        return createdAt >= today;
-      });
-      setTodayLeadsCount(todayLeads.length);
-    });
-
-    return () => unsubscribe();
   }, []);
 
   return (
@@ -79,18 +50,9 @@ export default function LeadGeneratorFullscreenPage() {
       )}
 
       {/* URL Display */}
-      <p className="text-2xl text-gray-500 mb-8">
+      <p className="text-2xl text-gray-500">
         Or visit: <span className="text-brand-gold font-semibold">{captureUrl.replace('https://', '')}</span>
       </p>
-
-      {/* Live Counter */}
-      <div className="flex items-center gap-4 bg-brand-gold/10 border border-brand-gold/30 rounded-full px-8 py-4">
-        <Users className="w-8 h-8 text-brand-gold" />
-        <span className="text-2xl text-white font-semibold">
-          {todayLeadsCount} leads today
-        </span>
-        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-      </div>
     </div>
   );
 }
