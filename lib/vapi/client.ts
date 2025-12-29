@@ -127,7 +127,11 @@ export async function createOutboundCall(
       number: normalizedPhone,
       name: customerName,
     },
-    metadata,
+    // Pass customerName in metadata so Vapi can access it as {{customerName}}
+    metadata: {
+      ...metadata,
+      customerName,
+    },
   };
 
   if (assistantId) {
