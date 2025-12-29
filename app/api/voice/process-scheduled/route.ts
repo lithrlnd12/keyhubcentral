@@ -201,13 +201,27 @@ export async function GET(request: NextRequest) {
       try {
         // Make the call - use firstName for more natural greeting
         const customerName = lead.customer.firstName || lead.customer.name?.split(' ')[0] || 'there';
-        console.log(`Calling lead ${doc.id}: ${customerName} at ${lead.customer.phone}`);
+        const phoneNumber = lead.customer.phone;
+
+        console.log(`=== VAPI CALL ATTEMPT ===`);
+        console.log(`Lead ID: ${doc.id}`);
+        console.log(`Customer Name: ${customerName}`);
+        console.log(`Phone Number: ${phoneNumber}`);
+        console.log(`Attempt: ${attempts + 1}`);
+        console.log(`VAPI_API_KEY exists: ${!!process.env.VAPI_API_KEY}`);
+        console.log(`VAPI_PHONE_NUMBER_ID exists: ${!!process.env.VAPI_PHONE_NUMBER_ID}`);
+        console.log(`VAPI_ASSISTANT_ID exists: ${!!process.env.VAPI_ASSISTANT_ID}`);
+        console.log(`VAPI_PHONE_NUMBER_ID value: ${process.env.VAPI_PHONE_NUMBER_ID}`);
 
         const call = await createOutboundCall(
-          lead.customer.phone,
+          phoneNumber,
           customerName,
           { leadId: doc.id, attempt: attempts + 1 }
         );
+
+        console.log(`=== VAPI CALL SUCCESS ===`);
+        console.log(`Call ID: ${call.id}`);
+        console.log(`Call Status: ${call.status}`);
 
         // Update lead
         await doc.ref.update({
@@ -231,9 +245,11 @@ export async function GET(request: NextRequest) {
         });
 
         results.push({ leadId: doc.id, success: true });
-        console.log(`Call initiated for lead ${doc.id}, call ID: ${call.id}`);
       } catch (error) {
-        console.error(`Failed to call lead ${doc.id}:`, error);
+        console.error(`=== VAPI CALL FAILED ===`);
+        console.error(`Lead ID: ${doc.id}`);
+        console.error(`Error:`, error);
+        console.error(`Error message:`, error instanceof Error ? error.message : 'Unknown');
 
         // Schedule retry in 1 hour if not max attempts
         if (attempts < 2) {
