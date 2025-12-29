@@ -13,6 +13,7 @@ interface FormData {
   phone: string;
   email: string;
   address: string;
+  isHomeowner: string;
   notes: string;
 }
 
@@ -30,6 +31,7 @@ export default function LeadCapturePage() {
     phone: '',
     email: '',
     address: '',
+    isHomeowner: '',
     notes: '',
   });
   const [files, setFiles] = useState<FilePreview[]>([]);
@@ -39,7 +41,7 @@ export default function LeadCapturePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -145,12 +147,12 @@ export default function LeadCapturePage() {
       // Upload files first
       const attachments = files.length > 0 ? await uploadFiles() : [];
 
-      // Schedule auto-call for 10 minutes from now if phone provided
+      // Schedule auto-call immediately for testing (change to +10 minutes for production)
       const phoneNumber = formData.phone.trim();
       let scheduledCallAt = null;
       if (phoneNumber) {
         const callTime = new Date();
-        callTime.setMinutes(callTime.getMinutes() + 10);
+        // callTime.setMinutes(callTime.getMinutes() + 10); // Production: 10 min delay
         scheduledCallAt = Timestamp.fromDate(callTime);
       }
 
@@ -165,6 +167,7 @@ export default function LeadCapturePage() {
           phone: phoneNumber || null,
           email: formData.email.trim() || null,
           address: parseAddress(formData.address),
+          isHomeowner: formData.isHomeowner || null,
           notes: formData.notes.trim() || null,
           attachments: attachments.length > 0 ? attachments : null,
         },
@@ -212,7 +215,7 @@ export default function LeadCapturePage() {
           <button
             onClick={() => {
               setSubmitted(false);
-              setFormData({ name: '', phone: '', email: '', address: '', notes: '' });
+              setFormData({ name: '', phone: '', email: '', address: '', isHomeowner: '', notes: '' });
               setFiles([]);
             }}
             className="text-brand-gold hover:text-brand-gold-light transition-colors"
@@ -323,6 +326,26 @@ export default function LeadCapturePage() {
               placeholder="123 Main St, Austin, 78701"
               autoComplete="street-address"
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="isHomeowner"
+              className="block text-sm font-medium text-gray-300 mb-1"
+            >
+              Are you a homeowner?
+            </label>
+            <select
+              id="isHomeowner"
+              name="isHomeowner"
+              value={formData.isHomeowner}
+              onChange={handleChange}
+              className="w-full px-4 py-3 bg-brand-black border border-gray-700 rounded-lg text-white focus:outline-none focus:border-brand-gold transition-colors"
+            >
+              <option value="">Select an option</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
           </div>
 
           <div>

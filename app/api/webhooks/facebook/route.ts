@@ -126,11 +126,11 @@ async function createLeadFromFacebook(data: FacebookLeadData) {
       }
     }
 
-    // Schedule auto-call for 10 minutes from now if phone provided
+    // Schedule auto-call immediately for testing (change to +10 minutes for production)
     let scheduledCallAt = null;
     if (phone) {
       const callTime = new Date();
-      callTime.setMinutes(callTime.getMinutes() + 10);
+      // callTime.setMinutes(callTime.getMinutes() + 10); // Production: 10 min delay
       scheduledCallAt = callTime;
     }
 
