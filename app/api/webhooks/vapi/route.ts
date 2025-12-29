@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
-import { VapiWebhookPayload } from '@/lib/vapi/types';
+import { VapiWebhookPayload, VapiCall } from '@/lib/vapi/types';
 import { FieldValue } from 'firebase-admin/firestore';
 
 // POST - Receive webhook events from Vapi
