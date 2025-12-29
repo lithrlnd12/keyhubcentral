@@ -135,9 +135,12 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
-    // Campaigns collection (admin only)
+    // Campaigns collection
     match /campaigns/{campaignId} {
-      allow read, write: if isAdmin();
+      // Internal users can read campaigns (needed for overview stats)
+      // Only admins can create/modify campaigns
+      allow read: if isInternalUser();
+      allow write: if isAdmin();
     }
 
     // Subscriptions collection
