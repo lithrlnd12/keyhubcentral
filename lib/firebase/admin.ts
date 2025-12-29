@@ -15,14 +15,17 @@ function getAdminApp(): App {
     if (serviceAccount) {
       try {
         const credentials = JSON.parse(serviceAccount);
+        console.log('Firebase Admin: Using service account credentials for project:', credentials.project_id);
         adminApp = initializeApp({
           credential: cert(credentials),
         });
-      } catch {
+      } catch (error) {
+        console.error('Firebase Admin: Failed to parse service account JSON:', error);
         // If parsing fails, try using application default credentials
         adminApp = initializeApp();
       }
     } else {
+      console.warn('Firebase Admin: No FIREBASE_SERVICE_ACCOUNT_KEY or GOOGLE_SERVICE_ACCOUNT_KEY found');
       // Use application default credentials (works in GCP environments)
       adminApp = initializeApp();
     }
