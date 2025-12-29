@@ -29,6 +29,13 @@ export interface LeadCustomer {
   attachments?: LeadAttachment[];
 }
 
+export interface FacebookLeadData {
+  leadgenId: string;
+  formId: string;
+  pageId: string;
+  createdTime: number;
+}
+
 export interface Lead {
   id: string;
   source: LeadSource;
@@ -42,6 +49,7 @@ export interface Lead {
   assignedType: AssignedType | null;
   returnReason: string | null;
   returnedAt: Timestamp | null;
+  facebookData?: FacebookLeadData | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
