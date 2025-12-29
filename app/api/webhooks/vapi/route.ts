@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
 
       case 'end-of-call-report':
         // Call ended - save all the details
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const vapiCall = call as any; // Extended call data from Vapi
+        // Extended call data from Vapi (includes analysis field not in our types)
+        const vapiCall = call as VapiCall & { analysis?: { structuredData?: Record<string, unknown> } };
 
         const updateData: Record<string, unknown> = {
           status: 'completed',
