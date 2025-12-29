@@ -38,10 +38,11 @@ function getApiKey(): string {
 }
 
 function getPhoneNumberId(): string {
-  const phoneNumberId = process.env.VAPI_PHONE_NUMBER_ID;
+  const phoneNumberId = process.env.VAPI_PHONE_NUMBER_ID?.trim();
   if (!phoneNumberId) {
     throw new Error('VAPI_PHONE_NUMBER_ID environment variable is not set');
   }
+  console.log(`Vapi: Phone Number ID length: ${phoneNumberId.length}, value: "${phoneNumberId}"`);
   return phoneNumberId;
 }
 
