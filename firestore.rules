@@ -36,8 +36,8 @@ service cloud.firestore {
       // Anyone can create their own user document (signup)
       allow create: if isAuthenticated() && request.auth.uid == userId;
 
-      // Users can read their own profile, admins can read all
-      allow read: if isOwnDocument(userId) || isAdmin();
+      // Internal users can read user profiles (needed for user lookups)
+      allow read: if isOwnDocument(userId) || isInternalUser();
 
       // Only admins can update user status/role, users can update own profile fields
       allow update: if isAdmin() ||
@@ -56,9 +56,9 @@ service cloud.firestore {
 
     // Contractors collection
     match /contractors/{contractorId} {
-      // Admins can read all, contractors can read their own
-      allow read: if isAdmin() ||
-        (isActiveUser() && resource.data.userId == request.auth.uid);
+      // Internal users can read all contractors (needed for job assignment, availability views)
+      // Per PRD: Owner, Admin, PM can see all contractors
+      allow read: if isInternalUser();
 
       // Admins can create/update, contractors can update their own (limited fields)
       allow create: if isAdmin();
@@ -70,9 +70,8 @@ service cloud.firestore {
 
       // Availability subcollection
       match /availability/{dateId} {
-        // Admins can read all, contractors can read their own
-        allow read: if isAdmin() ||
-          (isActiveUser() && get(/databases/$(database)/documents/contractors/$(contractorId)).data.userId == request.auth.uid);
+        // Internal users can read availability (needed for scheduling)
+        allow read: if isInternalUser();
 
         // Admins and the contractor themselves can manage availability
         allow create, update: if isAdmin() ||
@@ -85,13 +84,9 @@ service cloud.firestore {
 
     // Jobs collection
     match /jobs/{jobId} {
-      // Admins see all, PMs see assigned, Sales reps see their sales
-      allow read: if isAdmin() ||
-        (isActiveUser() && (
-          resource.data.pmId == request.auth.uid ||
-          resource.data.salesRepId == request.auth.uid ||
-          request.auth.uid in resource.data.crewIds
-        ));
+      // Internal users can read jobs (UI filters based on role)
+      // This allows list queries to work; frontend controls what's displayed
+      allow read: if isInternalUser();
 
       allow create: if isAdmin();
 
@@ -110,12 +105,8 @@ service cloud.firestore {
 
       // Job communications subcollection
       match /communications/{commId} {
-        allow read: if isAdmin() ||
-          (isActiveUser() && (
-            get(/databases/$(database)/documents/jobs/$(jobId)).data.pmId == request.auth.uid ||
-            get(/databases/$(database)/documents/jobs/$(jobId)).data.salesRepId == request.auth.uid ||
-            request.auth.uid in get(/databases/$(database)/documents/jobs/$(jobId)).data.crewIds
-          ));
+        // Internal users can read job communications
+        allow read: if isInternalUser();
 
         allow create: if isActiveUser();
         allow update, delete: if isAdmin() || resource.data.userId == request.auth.uid;
@@ -124,8 +115,8 @@ service cloud.firestore {
 
     // Service Tickets collection
     match /serviceTickets/{ticketId} {
-      allow read: if isAdmin() ||
-        (isActiveUser() && resource.data.assignedTechId == request.auth.uid);
+      // Internal users can read service tickets
+      allow read: if isInternalUser();
 
       allow create: if isAdmin();
       allow update: if isAdmin() ||
@@ -135,9 +126,8 @@ service cloud.firestore {
 
     // Leads collection
     match /leads/{leadId} {
-      // Admins see all, sales reps see assigned, subscribers see assigned
-      allow read: if isAdmin() ||
-        (isActiveUser() && resource.data.assignedTo == request.auth.uid);
+      // Internal users can read leads (UI filters by assignment)
+      allow read: if isInternalUser();
 
       allow create: if isAdmin();
       allow update: if isAdmin() ||
@@ -161,12 +151,8 @@ service cloud.firestore {
 
     // Invoices collection
     match /invoices/{invoiceId} {
-      // Admins see all, users see invoices to/from them
-      allow read: if isAdmin() ||
-        (isActiveUser() && (
-          resource.data.to.email == request.auth.token.email ||
-          resource.data.from.email == request.auth.token.email
-        ));
+      // Internal users can read invoices (needed for earnings calculations)
+      allow read: if isInternalUser();
 
       allow create, update: if isAdmin();
       allow delete: if isOwner();
