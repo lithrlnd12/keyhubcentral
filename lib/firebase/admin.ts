@@ -10,7 +10,7 @@ function getAdminApp(): App {
   if (getApps().length === 0) {
     // In development, use service account from environment variable
     // In production (Vercel), this should be set as a secret
-    const serviceAccount = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
 
     if (serviceAccount) {
       try {
