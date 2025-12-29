@@ -59,5 +59,15 @@ service firebase.storage {
         request.resource.contentType.matches('image/.*') &&
         request.resource.size < 5 * 1024 * 1024; // 5MB for profile pics
     }
+
+    // Lead attachments (public upload for event capture forms)
+    match /lead-attachments/{fileName} {
+      // Authenticated users can read (admins viewing leads)
+      allow read: if isAuthenticated();
+
+      // Allow public uploads with validation
+      allow write: if isValidFileType(request.resource.contentType) &&
+        isUnderSizeLimit(request.resource.size);
+    }
   }
 }

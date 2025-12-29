@@ -13,12 +13,20 @@ export type LeadStatus =
   | 'returned';
 export type AssignedType = 'internal' | 'subscriber';
 
+export interface LeadAttachment {
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+}
+
 export interface LeadCustomer {
   name: string;
   phone: string | null;
   email: string | null;
   address: Address;
   notes: string | null;
+  attachments?: LeadAttachment[];
 }
 
 export interface Lead {

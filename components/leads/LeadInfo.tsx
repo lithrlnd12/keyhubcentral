@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Lead } from '@/types/lead';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { formatDateTime, formatPhone } from '@/lib/utils/formatters';
@@ -11,6 +12,11 @@ import {
   Calendar,
   MessageSquare,
   UserCheck,
+  Paperclip,
+  FileText,
+  Image as ImageIcon,
+  Download,
+  ExternalLink,
 } from 'lucide-react';
 
 interface LeadInfoProps {
@@ -168,6 +174,81 @@ export function LeadInfo({ lead, className }: LeadInfoProps) {
           </CardHeader>
           <CardContent>
             <p className="text-gray-300 whitespace-pre-wrap">{lead.customer.notes}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Attachments */}
+      {lead.customer.attachments && lead.customer.attachments.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Paperclip className="w-5 h-5 text-brand-gold" />
+              Attachments ({lead.customer.attachments.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {lead.customer.attachments.map((attachment, index) => {
+                const isImage = attachment.type.startsWith('image/');
+                const sizeKB = (attachment.size / 1024).toFixed(1);
+                const sizeMB = (attachment.size / (1024 * 1024)).toFixed(1);
+                const displaySize = attachment.size > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
+
+                return (
+                  <div
+                    key={index}
+                    className="bg-brand-black border border-gray-700 rounded-lg overflow-hidden hover:border-gray-600 transition-colors"
+                  >
+                    {isImage ? (
+                      <a
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block relative h-32"
+                      >
+                        <Image
+                          src={attachment.url}
+                          alt={attachment.name}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </a>
+                    ) : (
+                      <div className="h-32 flex items-center justify-center bg-gray-800">
+                        <FileText className="w-12 h-12 text-gray-500" />
+                      </div>
+                    )}
+                    <div className="p-3">
+                      <p className="text-sm text-white truncate" title={attachment.name}>
+                        {attachment.name}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">{displaySize}</p>
+                      <div className="flex gap-2 mt-2">
+                        <a
+                          href={attachment.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs text-brand-gold hover:text-brand-gold-light transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          View
+                        </a>
+                        <a
+                          href={attachment.url}
+                          download={attachment.name}
+                          className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
+                        >
+                          <Download className="w-3 h-3" />
+                          Download
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
