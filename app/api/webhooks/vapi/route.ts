@@ -45,6 +45,9 @@ export async function POST(request: NextRequest) {
 
       case 'end-of-call-report':
         // Call ended - save all the details
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const vapiCall = call as any; // Extended call data from Vapi
+
         const updateData: Record<string, unknown> = {
           status: 'completed',
           endedReason: call.endedReason,
@@ -57,9 +60,14 @@ export async function POST(request: NextRequest) {
           cost: call.cost,
           costBreakdown: call.costBreakdown,
           messages: call.messages,
+          // Capture structured data extracted by Vapi
+          structuredData: vapiCall.analysis?.structuredData || null,
+          analysis: vapiCall.analysis || null,
           completedAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         };
+
+        console.log('Vapi structured data:', JSON.stringify(vapiCall.analysis?.structuredData, null, 2));
 
         // Determine call outcome
         if (call.endedReason === 'customer-ended-call' || call.endedReason === 'assistant-ended-call') {
@@ -82,6 +90,9 @@ export async function POST(request: NextRequest) {
             lastCallOutcome: updateData.outcome,
             lastCallSummary: call.summary || message.summary,
             lastCallTranscript: call.transcript || message.transcript,
+            lastCallRecordingUrl: call.recordingUrl || message.recordingUrl,
+            // Save structured data from Vapi analysis
+            callAnalysis: vapiCall.analysis?.structuredData || null,
             updatedAt: FieldValue.serverTimestamp(),
           };
 
@@ -92,6 +103,7 @@ export async function POST(request: NextRequest) {
           }
 
           await db.collection('leads').doc(callData.leadId).update(leadUpdate);
+          console.log(`Lead ${callData.leadId} updated with call analysis:`, vapiCall.analysis?.structuredData);
         }
 
         console.log(`Call ${call.id} completed. Outcome: ${updateData.outcome}`);
