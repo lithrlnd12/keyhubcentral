@@ -140,9 +140,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET - Check status (for debugging)
+// GET - Process scheduled calls (used by Vercel cron)
 export async function GET(request: NextRequest) {
   try {
+    // Vercel cron sends authorization header automatically
     const authHeader = request.headers.get('authorization');
     if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -151,31 +152,123 @@ export async function GET(request: NextRequest) {
     const db = getAdminDb();
     const now = Timestamp.now();
 
-    // Count pending scheduled calls
-    const pendingSnapshot = await db
+    // Find leads that need to be called
+    const leadsSnapshot = await db
       .collection('leads')
-      .where('scheduledCallAt', '!=', null)
+      .where('scheduledCallAt', '<=', now)
+      .where('status', 'in', ['new', 'assigned'])
+      .limit(10)
       .get();
 
-    const pendingCount = pendingSnapshot.docs.filter((doc) => {
-      const data = doc.data();
-      return data.scheduledCallAt && data.scheduledCallAt <= now;
-    }).length;
+    console.log(`Found ${leadsSnapshot.size} leads to process`);
 
-    const upcomingCount = pendingSnapshot.docs.filter((doc) => {
-      const data = doc.data();
-      return data.scheduledCallAt && data.scheduledCallAt > now;
-    }).length;
+    const results: Array<{ leadId: string; success: boolean; error?: string }> = [];
+
+    for (const doc of leadsSnapshot.docs) {
+      const lead = doc.data();
+
+      // Skip if no phone number
+      if (!lead.customer?.phone) {
+        await doc.ref.update({
+          scheduledCallAt: null,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        results.push({ leadId: doc.id, success: false, error: 'No phone number' });
+        continue;
+      }
+
+      // Skip if already contacted
+      if (lead.lastCallOutcome === 'answered') {
+        await doc.ref.update({
+          scheduledCallAt: null,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        results.push({ leadId: doc.id, success: false, error: 'Already contacted' });
+        continue;
+      }
+
+      // Skip if max attempts reached (3 attempts)
+      const attempts = lead.callAttempts || 0;
+      if (attempts >= 3) {
+        await doc.ref.update({
+          scheduledCallAt: null,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        results.push({ leadId: doc.id, success: false, error: 'Max attempts reached' });
+        continue;
+      }
+
+      try {
+        // Make the call - use firstName for more natural greeting
+        const customerName = lead.customer.firstName || lead.customer.name?.split(' ')[0] || 'there';
+        console.log(`Calling lead ${doc.id}: ${customerName} at ${lead.customer.phone}`);
+
+        const call = await createOutboundCall(
+          lead.customer.phone,
+          customerName,
+          { leadId: doc.id, attempt: attempts + 1 }
+        );
+
+        // Update lead
+        await doc.ref.update({
+          lastCallAt: FieldValue.serverTimestamp(),
+          lastCallId: call.id,
+          callAttempts: attempts + 1,
+          scheduledCallAt: null,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Store call record
+        await db.collection('voiceCalls').add({
+          leadId: doc.id,
+          vapiCallId: call.id,
+          phoneNumber: lead.customer.phone,
+          customerName: customerName,
+          status: call.status,
+          attempt: attempts + 1,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        results.push({ leadId: doc.id, success: true });
+        console.log(`Call initiated for lead ${doc.id}, call ID: ${call.id}`);
+      } catch (error) {
+        console.error(`Failed to call lead ${doc.id}:`, error);
+
+        // Schedule retry in 1 hour if not max attempts
+        if (attempts < 2) {
+          const retryTime = new Date();
+          retryTime.setHours(retryTime.getHours() + 1);
+
+          await doc.ref.update({
+            scheduledCallAt: Timestamp.fromDate(retryTime),
+            callAttempts: attempts + 1,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        } else {
+          await doc.ref.update({
+            scheduledCallAt: null,
+            callAttempts: attempts + 1,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
+
+        results.push({
+          leadId: doc.id,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
 
     return NextResponse.json({
-      pendingCalls: pendingCount,
-      upcomingCalls: upcomingCount,
-      totalScheduled: pendingSnapshot.size,
+      processed: results.length,
+      results,
     });
   } catch (error) {
-    console.error('Error getting scheduled calls status:', error);
+    console.error('Error processing scheduled calls:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to get status' },
+      { error: error instanceof Error ? error.message : 'Failed to process calls' },
       { status: 500 }
     );
   }
