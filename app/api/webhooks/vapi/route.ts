@@ -3,6 +3,13 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { VapiWebhookPayload, VapiCall } from '@/lib/vapi/types';
 import { FieldValue } from 'firebase-admin/firestore';
 
+// Helper to remove undefined values (Firestore doesn't accept undefined)
+function removeUndefined(obj: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, value]) => value !== undefined)
+  );
+}
+
 // POST - Receive webhook events from Vapi
 export async function POST(request: NextRequest) {
   try {
@@ -50,16 +57,16 @@ export async function POST(request: NextRequest) {
 
         const updateData: Record<string, unknown> = {
           status: 'completed',
-          endedReason: call.endedReason,
+          endedReason: call.endedReason || null,
           duration: call.messages
             ? Math.max(...call.messages.map((m) => m.secondsFromStart || 0))
             : 0,
-          transcript: call.transcript || message.transcript,
-          summary: call.summary || message.summary,
-          recordingUrl: call.recordingUrl || message.recordingUrl,
-          cost: call.cost,
-          costBreakdown: call.costBreakdown,
-          messages: call.messages,
+          transcript: call.transcript || message.transcript || null,
+          summary: call.summary || message.summary || null,
+          recordingUrl: call.recordingUrl || message.recordingUrl || null,
+          cost: call.cost || 0,
+          costBreakdown: call.costBreakdown || null,
+          messages: call.messages || null,
           // Capture structured data extracted by Vapi
           structuredData: vapiCall.analysis?.structuredData || null,
           analysis: vapiCall.analysis || null,
@@ -82,15 +89,15 @@ export async function POST(request: NextRequest) {
           updateData.outcome = 'failed';
         }
 
-        await callDoc.ref.update(updateData);
+        await callDoc.ref.update(removeUndefined(updateData));
 
         // Update the lead with call results
         if (callData.leadId) {
           const leadUpdate: Record<string, unknown> = {
             lastCallOutcome: updateData.outcome,
-            lastCallSummary: call.summary || message.summary,
-            lastCallTranscript: call.transcript || message.transcript,
-            lastCallRecordingUrl: call.recordingUrl || message.recordingUrl,
+            lastCallSummary: call.summary || message.summary || null,
+            lastCallTranscript: call.transcript || message.transcript || null,
+            lastCallRecordingUrl: call.recordingUrl || message.recordingUrl || null,
             // Save structured data from Vapi analysis
             callAnalysis: vapiCall.analysis?.structuredData || null,
             updatedAt: FieldValue.serverTimestamp(),
@@ -102,7 +109,7 @@ export async function POST(request: NextRequest) {
             leadUpdate.contactedAt = FieldValue.serverTimestamp();
           }
 
-          await db.collection('leads').doc(callData.leadId).update(leadUpdate);
+          await db.collection('leads').doc(callData.leadId).update(removeUndefined(leadUpdate));
           console.log(`Lead ${callData.leadId} updated with call analysis:`, vapiCall.analysis?.structuredData);
         }
 
