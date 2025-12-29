@@ -4,6 +4,31 @@ import { VapiCallRequest, VapiCall, VapiAssistant } from './types';
 
 const VAPI_API_URL = 'https://api.vapi.ai';
 
+// Normalize phone number to E.164 format for US numbers
+function normalizePhoneNumber(phone: string): string {
+  // Remove all non-digit characters
+  const digits = phone.replace(/\D/g, '');
+
+  // If it's already 11 digits starting with 1, format it
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return `+${digits}`;
+  }
+
+  // If it's 10 digits, add +1 prefix
+  if (digits.length === 10) {
+    return `+1${digits}`;
+  }
+
+  // If it already has a + prefix, return as-is
+  if (phone.startsWith('+')) {
+    return phone;
+  }
+
+  // Return original if we can't normalize
+  console.warn(`Could not normalize phone number: ${phone}`);
+  return phone;
+}
+
 function getApiKey(): string {
   const apiKey = process.env.VAPI_API_KEY;
   if (!apiKey) {
@@ -88,13 +113,17 @@ export async function createOutboundCall(
   const apiKey = getApiKey();
   const phoneNumberId = getPhoneNumberId();
 
+  // Normalize phone number to E.164 format
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+  console.log(`Vapi: Calling ${normalizedPhone} (original: ${phoneNumber})`);
+
   // Use custom assistant ID if set, otherwise use inline assistant
   const assistantId = process.env.VAPI_ASSISTANT_ID;
 
   const requestBody: VapiCallRequest = {
     phoneNumberId,
     customer: {
-      number: phoneNumber,
+      number: normalizedPhone,
       name: customerName,
     },
     metadata,
