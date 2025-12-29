@@ -15,6 +15,10 @@ function getAdminApp(): App {
     if (serviceAccount) {
       try {
         const credentials = JSON.parse(serviceAccount);
+        // Fix private key - replace literal \n with actual newlines
+        if (credentials.private_key) {
+          credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+        }
         console.log('Firebase Admin: Using service account credentials for project:', credentials.project_id);
         adminApp = initializeApp({
           credential: cert(credentials),
