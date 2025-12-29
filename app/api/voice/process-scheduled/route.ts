@@ -67,10 +67,11 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Make the call
+        // Make the call - use firstName for more natural greeting
+        const customerName = lead.customer.firstName || lead.customer.name?.split(' ')[0] || 'there';
         const call = await createOutboundCall(
           lead.customer.phone,
-          lead.customer.name,
+          customerName,
           { leadId: doc.id, attempt: attempts + 1 }
         );
 

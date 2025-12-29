@@ -9,7 +9,8 @@ import { db, storage } from '@/lib/firebase/config';
 import { LeadAttachment } from '@/types/lead';
 
 interface FormData {
-  name: string;
+  firstName: string;
+  lastName: string;
   phone: string;
   email: string;
   address: string;
@@ -27,7 +28,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function LeadCapturePage() {
   const [formData, setFormData] = useState<FormData>({
-    name: '',
+    firstName: '',
+    lastName: '',
     phone: '',
     email: '',
     address: '',
@@ -132,8 +134,8 @@ export default function LeadCapturePage() {
     setError(null);
 
     // Validation
-    if (!formData.name.trim()) {
-      setError('Please enter your name');
+    if (!formData.firstName.trim()) {
+      setError('Please enter your first name');
       return;
     }
     if (!formData.email.trim()) {
@@ -163,7 +165,9 @@ export default function LeadCapturePage() {
         market: 'General',
         trade: 'General',
         customer: {
-          name: formData.name.trim(),
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim() || null,
+          name: `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim(),
           phone: phoneNumber || null,
           email: formData.email.trim() || null,
           address: parseAddress(formData.address),
@@ -215,7 +219,7 @@ export default function LeadCapturePage() {
           <button
             onClick={() => {
               setSubmitted(false);
-              setFormData({ name: '', phone: '', email: '', address: '', isHomeowner: '', notes: '' });
+              setFormData({ firstName: '', lastName: '', phone: '', email: '', address: '', isHomeowner: '', notes: '' });
               setFiles([]);
             }}
             className="text-brand-gold hover:text-brand-gold-light transition-colors"
@@ -252,23 +256,43 @@ export default function LeadCapturePage() {
             </div>
           )}
 
-          <div>
-            <label
-              htmlFor="name"
-              className="block text-sm font-medium text-gray-300 mb-1"
-            >
-              Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-brand-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold transition-colors"
-              placeholder="Your full name"
-              autoComplete="name"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                htmlFor="firstName"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                First Name <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-brand-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold transition-colors"
+                placeholder="First"
+                autoComplete="given-name"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="lastName"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Last Name
+              </label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-brand-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold transition-colors"
+                placeholder="Last"
+                autoComplete="family-name"
+              />
+            </div>
           </div>
 
           <div>
