@@ -36,7 +36,18 @@ export interface FacebookLeadData {
   createdTime: number;
 }
 
-export interface Lead {
+export interface LeadCallData {
+  lastCallAt?: Timestamp | null;
+  lastCallId?: string | null;
+  lastCallOutcome?: 'answered' | 'voicemail' | 'no_answer' | 'busy' | 'failed' | null;
+  lastCallSummary?: string | null;
+  lastCallTranscript?: string | null;
+  scheduledCallAt?: Timestamp | null;
+  callAttempts?: number;
+  contactedAt?: Timestamp | null;
+}
+
+export interface Lead extends LeadCallData {
   id: string;
   source: LeadSource;
   campaignId: string | null;
@@ -50,6 +61,7 @@ export interface Lead {
   returnReason: string | null;
   returnedAt: Timestamp | null;
   facebookData?: FacebookLeadData | null;
+  autoCallEnabled?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

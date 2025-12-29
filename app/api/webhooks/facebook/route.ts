@@ -126,6 +126,14 @@ async function createLeadFromFacebook(data: FacebookLeadData) {
       }
     }
 
+    // Schedule auto-call for 10 minutes from now if phone provided
+    let scheduledCallAt = null;
+    if (phone) {
+      const callTime = new Date();
+      callTime.setMinutes(callTime.getMinutes() + 10);
+      scheduledCallAt = callTime;
+    }
+
     // Create the lead in Firestore
     const leadData = {
       source: 'meta' as const,
@@ -152,6 +160,10 @@ async function createLeadFromFacebook(data: FacebookLeadData) {
       assignedType: null,
       returnReason: null,
       returnedAt: null,
+      // Auto-call fields
+      scheduledCallAt,
+      autoCallEnabled: !!phone,
+      callAttempts: 0,
       // Store Facebook-specific data for reference
       facebookData: {
         leadgenId: data.leadgenId,

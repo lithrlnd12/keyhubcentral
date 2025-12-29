@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { CheckCircle, Loader2, Paperclip, X, FileText, ImageIcon } from 'lucide-react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
 import { LeadAttachment } from '@/types/lead';
@@ -145,6 +145,15 @@ export default function LeadCapturePage() {
       // Upload files first
       const attachments = files.length > 0 ? await uploadFiles() : [];
 
+      // Schedule auto-call for 10 minutes from now if phone provided
+      const phoneNumber = formData.phone.trim();
+      let scheduledCallAt = null;
+      if (phoneNumber) {
+        const callTime = new Date();
+        callTime.setMinutes(callTime.getMinutes() + 10);
+        scheduledCallAt = Timestamp.fromDate(callTime);
+      }
+
       // Create lead directly in Firestore
       await addDoc(collection(db, 'leads'), {
         source: 'event',
@@ -153,7 +162,7 @@ export default function LeadCapturePage() {
         trade: 'General',
         customer: {
           name: formData.name.trim(),
-          phone: formData.phone.trim() || null,
+          phone: phoneNumber || null,
           email: formData.email.trim() || null,
           address: parseAddress(formData.address),
           notes: formData.notes.trim() || null,
@@ -165,6 +174,10 @@ export default function LeadCapturePage() {
         assignedType: null,
         returnReason: null,
         returnedAt: null,
+        // Auto-call fields
+        scheduledCallAt,
+        autoCallEnabled: !!phoneNumber,
+        callAttempts: 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
