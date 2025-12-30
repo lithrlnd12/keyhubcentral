@@ -16,6 +16,7 @@ import {
   getUserProfile,
   onAuthChange,
 } from '@/lib/firebase/auth';
+import { auth } from '@/lib/firebase/config';
 import { UserProfile, AuthContextType } from '@/types/user';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -108,6 +109,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const getIdToken = async (): Promise<string | null> => {
+    const currentUser = auth?.currentUser;
+    if (!currentUser) return null;
+    return currentUser.getIdToken();
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -116,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signOut,
     resetPassword,
+    getIdToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

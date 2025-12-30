@@ -5,6 +5,7 @@ import { MessageSquare, X, Send, Sparkles, Minimize2, Maximize2 } from 'lucide-r
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 interface Message {
   id: string;
@@ -26,6 +27,7 @@ interface AIChatWidgetProps {
 }
 
 export function AIChatWidget({ context }: AIChatWidgetProps) {
+  const { getIdToken } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -65,9 +67,18 @@ export function AIChatWidget({ context }: AIChatWidgetProps) {
     setError(null);
 
     try {
+      // Get fresh ID token for auth
+      const token = await getIdToken();
+      if (!token) {
+        throw new Error('You must be logged in to use the AI assistant');
+      }
+
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           messages: [...messages, userMessage].map((m) => ({
             role: m.role,

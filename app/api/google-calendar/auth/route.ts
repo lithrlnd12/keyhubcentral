@@ -44,6 +44,75 @@ function isAllowedReturnUrl(url: string): boolean {
   return ALLOWED_RETURN_URLS.some(allowed => url.startsWith(allowed));
 }
 
+// Helper to generate the OAuth URL
+function generateOAuthUrl(userId: string, returnUrl: string): string {
+  const safeReturnUrl = isAllowedReturnUrl(returnUrl) ? returnUrl : '/portal/settings';
+  const oauth2Client = getOAuth2Client();
+
+  // Create state payload
+  const statePayload = JSON.stringify({
+    userId,
+    returnUrl: safeReturnUrl,
+    timestamp: Date.now(),
+  });
+
+  // Sign the state to prevent tampering
+  const stateSignature = signState(statePayload, STATE_SECRET);
+  const state = Buffer.from(
+    JSON.stringify({ payload: statePayload, signature: stateSignature })
+  ).toString('base64');
+
+  return oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: SCOPES,
+    state,
+    prompt: 'consent', // Force consent to get refresh token
+    include_granted_scopes: true,
+  });
+}
+
+// POST - Get auth URL (for frontend with auth token)
+export async function POST(request: NextRequest) {
+  try {
+    // Verify the user is authenticated
+    const auth = await verifyFirebaseAuth(request);
+
+    if (!auth.authenticated || !auth.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized: You must be logged in' },
+        { status: 401 }
+      );
+    }
+
+    const { userId, returnUrl = '/portal/settings' } = await request.json();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'userId is required' },
+        { status: 400 }
+      );
+    }
+
+    // SECURITY: Verify the authenticated user matches the requested userId
+    if (auth.user.uid !== userId) {
+      return NextResponse.json(
+        { error: 'Forbidden: You can only connect your own calendar' },
+        { status: 403 }
+      );
+    }
+
+    const authUrl = generateOAuthUrl(userId, returnUrl);
+    return NextResponse.json({ authUrl });
+  } catch (error) {
+    console.error('Google Calendar auth error:', error);
+    return NextResponse.json(
+      { error: 'Failed to initiate Google Calendar authorization' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET - Redirect to OAuth (legacy, requires auth cookie or session)
 export async function GET(request: NextRequest) {
   try {
     // Verify the user is authenticated
@@ -75,32 +144,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate returnUrl to prevent open redirect
-    const safeReturnUrl = isAllowedReturnUrl(returnUrl) ? returnUrl : '/portal/settings';
-
-    const oauth2Client = getOAuth2Client();
-
-    // Create state payload
-    const statePayload = JSON.stringify({
-      userId,
-      returnUrl: safeReturnUrl,
-      timestamp: Date.now(),
-    });
-
-    // Sign the state to prevent tampering
-    const stateSignature = signState(statePayload, STATE_SECRET);
-    const state = Buffer.from(
-      JSON.stringify({ payload: statePayload, signature: stateSignature })
-    ).toString('base64');
-
-    const authUrl = oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: SCOPES,
-      state,
-      prompt: 'consent', // Force consent to get refresh token
-      include_granted_scopes: true,
-    });
-
+    const authUrl = generateOAuthUrl(userId, returnUrl);
     return NextResponse.redirect(authUrl);
   } catch (error) {
     console.error('Google Calendar auth error:', error);

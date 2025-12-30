@@ -15,11 +15,12 @@ interface GoogleCalendarConnectProps {
 export function GoogleCalendarConnect({
   returnUrl = '/portal/settings',
 }: GoogleCalendarConnectProps) {
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const [integration, setIntegration] = useState<GoogleCalendarIntegration | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   const loadIntegration = useCallback(async () => {
     if (!user?.uid) return;
@@ -38,10 +39,35 @@ export function GoogleCalendarConnect({
     loadIntegration();
   }, [loadIntegration]);
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!user?.uid) return;
-    const encodedReturnUrl = encodeURIComponent(returnUrl);
-    window.location.href = `/api/google-calendar/auth?userId=${user.uid}&returnUrl=${encodedReturnUrl}`;
+
+    setConnecting(true);
+    try {
+      // Get fresh ID token for auth
+      const token = await getIdToken();
+
+      const response = await fetch('/api/google-calendar/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId: user.uid, returnUrl }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        console.error('Failed to get auth URL:', data.error);
+      }
+    } catch (error) {
+      console.error('Error connecting calendar:', error);
+    } finally {
+      setConnecting(false);
+    }
   };
 
   const handleDisconnect = async () => {
@@ -49,9 +75,15 @@ export function GoogleCalendarConnect({
 
     setDisconnecting(true);
     try {
+      // Get fresh ID token for auth
+      const token = await getIdToken();
+
       const response = await fetch('/api/google-calendar/disconnect', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ userId: user.uid }),
       });
 
@@ -211,7 +243,9 @@ export function GoogleCalendarConnect({
             </Button>
           </div>
         ) : (
-          <Button onClick={handleConnect}>Connect Calendar</Button>
+          <Button onClick={handleConnect} disabled={connecting} loading={connecting}>
+            Connect Calendar
+          </Button>
         )}
       </div>
 
