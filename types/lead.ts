@@ -42,6 +42,8 @@ export interface LeadCallData {
   lastCallOutcome?: 'answered' | 'voicemail' | 'no_answer' | 'busy' | 'failed' | null;
   lastCallSummary?: string | null;
   lastCallTranscript?: string | null;
+  lastCallRecordingUrl?: string | null;
+  callAnalysis?: Record<string, unknown> | null;
   scheduledCallAt?: Timestamp | null;
   callAttempts?: number;
   contactedAt?: Timestamp | null;

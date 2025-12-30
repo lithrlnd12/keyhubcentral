@@ -17,6 +17,13 @@ import {
   Image as ImageIcon,
   Download,
   ExternalLink,
+  PhoneCall,
+  Play,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Voicemail,
+  PhoneMissed,
 } from 'lucide-react';
 
 interface LeadInfoProps {
@@ -174,6 +181,122 @@ export function LeadInfo({ lead, className }: LeadInfoProps) {
           </CardHeader>
           <CardContent>
             <p className="text-gray-300 whitespace-pre-wrap">{lead.customer.notes}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Call Activity */}
+      {(lead.lastCallOutcome || lead.callAttempts) && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PhoneCall className="w-5 h-5 text-brand-gold" />
+              Call Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Call Status */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                {lead.lastCallOutcome === 'answered' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-green-500/20 text-green-400">
+                    <CheckCircle className="w-4 h-4" />
+                    Answered
+                  </span>
+                )}
+                {lead.lastCallOutcome === 'voicemail' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/20 text-yellow-400">
+                    <Voicemail className="w-4 h-4" />
+                    Voicemail
+                  </span>
+                )}
+                {lead.lastCallOutcome === 'no_answer' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-orange-500/20 text-orange-400">
+                    <PhoneMissed className="w-4 h-4" />
+                    No Answer
+                  </span>
+                )}
+                {lead.lastCallOutcome === 'busy' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-red-500/20 text-red-400">
+                    <XCircle className="w-4 h-4" />
+                    Busy
+                  </span>
+                )}
+                {lead.lastCallOutcome === 'failed' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-red-500/20 text-red-400">
+                    <XCircle className="w-4 h-4" />
+                    Failed
+                  </span>
+                )}
+              </div>
+              {lead.callAttempts !== undefined && lead.callAttempts > 0 && (
+                <span className="text-sm text-gray-400">
+                  {lead.callAttempts} attempt{lead.callAttempts !== 1 ? 's' : ''}
+                </span>
+              )}
+              {lead.lastCallAt && (
+                <span className="text-sm text-gray-400">
+                  <Clock className="w-3 h-3 inline mr-1" />
+                  {formatDateTime(lead.lastCallAt.toDate())}
+                </span>
+              )}
+            </div>
+
+            {/* Recording */}
+            {lead.lastCallRecordingUrl && (
+              <div className="bg-brand-black rounded-lg p-3 border border-gray-700">
+                <p className="text-sm text-gray-400 mb-2">Recording</p>
+                <audio controls className="w-full" src={lead.lastCallRecordingUrl}>
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            )}
+
+            {/* Summary */}
+            {lead.lastCallSummary && (
+              <div>
+                <p className="text-sm text-gray-400 mb-1">AI Summary</p>
+                <p className="text-gray-300 bg-brand-black rounded-lg p-3 border border-gray-700">
+                  {lead.lastCallSummary}
+                </p>
+              </div>
+            )}
+
+            {/* Structured Data / Call Analysis */}
+            {lead.callAnalysis && Object.keys(lead.callAnalysis).length > 0 && (
+              <div>
+                <p className="text-sm text-gray-400 mb-2">Extracted Information</p>
+                <div className="bg-brand-black rounded-lg p-3 border border-gray-700 space-y-2">
+                  {Object.entries(lead.callAnalysis).map(([key, value]) => (
+                    <div key={key} className="flex justify-between items-start gap-4">
+                      <span className="text-gray-400 text-sm capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-white text-sm text-right">
+                        {typeof value === 'boolean'
+                          ? (value ? 'Yes' : 'No')
+                          : String(value || '-')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Transcript */}
+            {lead.lastCallTranscript && (
+              <details className="group">
+                <summary className="text-sm text-gray-400 cursor-pointer hover:text-gray-300 flex items-center gap-2">
+                  <span>View Full Transcript</span>
+                  <span className="text-xs text-gray-500 group-open:hidden">Click to expand</span>
+                </summary>
+                <div className="mt-2 bg-brand-black rounded-lg p-3 border border-gray-700 max-h-64 overflow-y-auto">
+                  <p className="text-gray-300 whitespace-pre-wrap text-sm">
+                    {lead.lastCallTranscript}
+                  </p>
+                </div>
+              </details>
+            )}
           </CardContent>
         </Card>
       )}
