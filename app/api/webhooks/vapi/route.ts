@@ -13,9 +13,10 @@ function removeUndefined(obj: Record<string, unknown>): Record<string, unknown> 
 // POST - Receive webhook events from Vapi
 export async function POST(request: NextRequest) {
   try {
-    const payload: VapiWebhookPayload = await request.json();
+    const rawPayload = await request.json();
+    const payload = rawPayload as VapiWebhookPayload;
 
-    console.log('Vapi webhook received:', JSON.stringify(payload, null, 2));
+    console.log('Vapi webhook received:', JSON.stringify(rawPayload, null, 2));
 
     const { message } = payload;
     const call = message.call;
@@ -25,6 +26,15 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getAdminDb();
+
+    // Save raw webhook payload for debugging
+    await db.collection('webhookLogs').add({
+      type: 'vapi',
+      messageType: message.type,
+      callId: call.id,
+      rawPayload: JSON.stringify(rawPayload),
+      createdAt: FieldValue.serverTimestamp(),
+    });
 
     // Find the voice call record by Vapi call ID
     const callsSnapshot = await db
