@@ -39,6 +39,30 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // Check webhook logs for this call
+    let webhookLogs = null;
+    if (voiceCallData?.vapiCallId) {
+      const logsSnapshot = await db.collection('webhookLogs')
+        .where('callId', '==', voiceCallData.vapiCallId)
+        .where('messageType', '==', 'end-of-call-report')
+        .limit(1)
+        .get();
+
+      if (!logsSnapshot.empty) {
+        const logData = logsSnapshot.docs[0].data();
+        try {
+          const parsed = JSON.parse(logData.rawPayload);
+          webhookLogs = {
+            hasAnalysis: !!parsed?.message?.call?.analysis,
+            analysisKeys: parsed?.message?.call?.analysis ? Object.keys(parsed.message.call.analysis) : [],
+            analysis: parsed?.message?.call?.analysis || null,
+          };
+        } catch {
+          webhookLogs = { error: 'Failed to parse payload' };
+        }
+      }
+    }
+
     return NextResponse.json({
       lead: {
         id: leadDoc.id,
@@ -49,6 +73,7 @@ export async function GET(request: NextRequest) {
         callAnalysisKeys: data?.callAnalysis ? Object.keys(data.callAnalysis) : [],
       },
       voiceCall: voiceCallData,
+      webhookLogs,
     });
   } catch (error) {
     return NextResponse.json({
