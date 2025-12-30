@@ -99,7 +99,7 @@ Important: Be concise and conversational. The call should last 2-3 minutes maxim
       provider: 'openai',
       voiceId: 'nova', // Warm, friendly female voice
     },
-    firstMessage: `Hi, is this ${customerName}? Hey! This is Riley with Key Trade Solutions, calling on behalf of Key Renovations. I'm just following up on your recent inquiry about our renovation services. Do you have a quick minute to chat?`,
+    firstMessage: `Hi, is this ${customerName}?`,
     endCallMessage: `Thank you so much for your time, ${customerName}! One of our renovation specialists will be reaching out soon to schedule your free consultation. Have a wonderful day!`,
     analysisPlan: {
       summaryPrompt: `Summarize this phone call with ${customerName}. Include:
@@ -161,7 +161,7 @@ export async function createOutboundCall(
     // Override the first message and end call message with actual customer name
     // This ensures {{customerName}} is replaced even if Vapi's template system fails
     requestBody.assistantOverrides = {
-      firstMessage: `Hi, is this ${customerName}? Hey! This is Riley with Key Trade Solutions, calling on behalf of Key Renovations. I'm just following up on your recent inquiry about our renovation services. Do you have a quick minute to chat?`,
+      firstMessage: `Hi, is this ${customerName}?`,
       endCallMessage: `Thank you so much for your time, ${customerName}! One of our renovation specialists will be reaching out soon to schedule your free consultation. Have a wonderful day!`,
       analysisPlan: {
         summaryPrompt: `Summarize this phone call with ${customerName}. Include:
