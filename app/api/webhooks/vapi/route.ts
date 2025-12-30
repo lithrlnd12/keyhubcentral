@@ -74,10 +74,24 @@ export async function POST(request: NextRequest) {
           updatedAt: FieldValue.serverTimestamp(),
         };
 
-        console.log('Vapi structured data:', JSON.stringify(vapiCall.analysis?.structuredData, null, 2));
+        const structuredData = vapiCall.analysis?.structuredData as Record<string, unknown> | undefined;
+        console.log('Vapi structured data:', JSON.stringify(structuredData, null, 2));
+        console.log('Vapi endedReason:', call.endedReason);
 
-        // Determine call outcome
-        if (call.endedReason === 'customer-ended-call' || call.endedReason === 'assistant-ended-call') {
+        // Determine call outcome - prefer structured data's callOutcome if available
+        const vapiCallOutcome = structuredData?.callOutcome as string | undefined;
+
+        if (vapiCallOutcome === 'answered' || vapiCallOutcome === 'successful') {
+          updateData.outcome = 'answered';
+        } else if (vapiCallOutcome === 'voicemail') {
+          updateData.outcome = 'voicemail';
+        } else if (vapiCallOutcome === 'no_answer' || vapiCallOutcome === 'not_answered') {
+          updateData.outcome = 'no_answer';
+        } else if (vapiCallOutcome === 'busy') {
+          updateData.outcome = 'busy';
+        } else if (vapiCallOutcome === 'failed') {
+          updateData.outcome = 'failed';
+        } else if (call.endedReason === 'customer-ended-call' || call.endedReason === 'assistant-ended-call') {
           updateData.outcome = 'answered';
         } else if (call.endedReason === 'voicemail') {
           updateData.outcome = 'voicemail';
@@ -85,6 +99,9 @@ export async function POST(request: NextRequest) {
           updateData.outcome = 'no_answer';
         } else if (call.endedReason === 'customer-busy') {
           updateData.outcome = 'busy';
+        } else if (call.transcript || call.summary || message.transcript || message.summary) {
+          // If we have a transcript or summary, the call was likely answered
+          updateData.outcome = 'answered';
         } else {
           updateData.outcome = 'failed';
         }
@@ -99,7 +116,7 @@ export async function POST(request: NextRequest) {
             lastCallTranscript: call.transcript || message.transcript || null,
             lastCallRecordingUrl: call.recordingUrl || message.recordingUrl || null,
             // Save structured data from Vapi analysis
-            callAnalysis: vapiCall.analysis?.structuredData || null,
+            callAnalysis: structuredData || null,
             updatedAt: FieldValue.serverTimestamp(),
           };
 
@@ -109,8 +126,21 @@ export async function POST(request: NextRequest) {
             leadUpdate.contactedAt = FieldValue.serverTimestamp();
           }
 
+          // Update lead quality based on interestLevel from call analysis
+          const interestLevel = structuredData?.interestLevel as string | undefined;
+          if (interestLevel) {
+            if (interestLevel === 'high' || interestLevel === 'very_high') {
+              leadUpdate.quality = 'hot';
+            } else if (interestLevel === 'medium' || interestLevel === 'moderate') {
+              leadUpdate.quality = 'warm';
+            } else if (interestLevel === 'low' || interestLevel === 'none' || interestLevel === 'not_interested') {
+              leadUpdate.quality = 'cold';
+            }
+            console.log(`Lead quality updated to ${leadUpdate.quality} based on interestLevel: ${interestLevel}`);
+          }
+
           await db.collection('leads').doc(callData.leadId).update(removeUndefined(leadUpdate));
-          console.log(`Lead ${callData.leadId} updated with call analysis:`, vapiCall.analysis?.structuredData);
+          console.log(`Lead ${callData.leadId} updated with call analysis:`, structuredData);
         }
 
         console.log(`Call ${call.id} completed. Outcome: ${updateData.outcome}`);
