@@ -52,10 +52,18 @@ export async function GET(request: NextRequest) {
         const logData = logsSnapshot.docs[0].data();
         try {
           const parsed = JSON.parse(logData.rawPayload);
+          const call = parsed?.message?.call;
           webhookLogs = {
-            hasAnalysis: !!parsed?.message?.call?.analysis,
-            analysisKeys: parsed?.message?.call?.analysis ? Object.keys(parsed.message.call.analysis) : [],
-            analysis: parsed?.message?.call?.analysis || null,
+            hasAnalysis: !!call?.analysis,
+            analysisKeys: call?.analysis ? Object.keys(call.analysis) : [],
+            analysis: call?.analysis || null,
+            // Show all top-level keys in the call object
+            callKeys: call ? Object.keys(call) : [],
+            // Check for artifact or other fields that might contain structured data
+            artifact: call?.artifact || null,
+            messages: call?.messages?.length || 0,
+            // Show the message type
+            messageType: parsed?.message?.type,
           };
         } catch {
           webhookLogs = { error: 'Failed to parse payload' };
