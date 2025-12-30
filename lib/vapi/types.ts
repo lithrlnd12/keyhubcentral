@@ -3,6 +3,7 @@
 export interface VapiCallRequest {
   assistantId?: string;
   assistant?: VapiAssistant;
+  assistantOverrides?: Partial<VapiAssistant>;
   phoneNumberId: string;
   customer: {
     number: string;
