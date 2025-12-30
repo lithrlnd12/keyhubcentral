@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Make the call - use firstName for more natural greeting
-        const customerName = lead.customer.firstName || lead.customer.name?.split(' ')[0] || 'there';
+        // Make the call - use full name for greeting
+        const customerName = lead.customer.name || `${lead.customer.firstName || ''} ${lead.customer.lastName || ''}`.trim() || 'there';
         const call = await createOutboundCall(
           lead.customer.phone,
           customerName,
@@ -199,8 +199,8 @@ export async function GET(request: NextRequest) {
       }
 
       try {
-        // Make the call - use firstName for more natural greeting
-        const customerName = lead.customer.firstName || lead.customer.name?.split(' ')[0] || 'there';
+        // Make the call - use full name for greeting
+        const customerName = lead.customer.name || `${lead.customer.firstName || ''} ${lead.customer.lastName || ''}`.trim() || 'there';
         const phoneNumber = lead.customer.phone;
 
         console.log(`=== VAPI CALL ATTEMPT ===`);
