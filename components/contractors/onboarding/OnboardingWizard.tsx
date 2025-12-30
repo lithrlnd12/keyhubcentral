@@ -9,7 +9,11 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { StepIndicator, Step } from './StepIndicator';
 import { BasicInfoStep, BasicInfoData } from './BasicInfoStep';
-import { DocumentsStep, DocumentsData } from './DocumentsStep';
+import {
+  DocumentsStepWithParsing,
+  DocumentsData,
+  ParsedContractorInfo,
+} from './DocumentsStepWithParsing';
 import { ServiceAreaStep, ServiceAreaData } from './ServiceAreaStep';
 import { ReviewStep } from './ReviewStep';
 import { createContractor } from '@/lib/firebase/contractors';
@@ -18,10 +22,10 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { Trade, Rating } from '@/types/contractor';
 
 const steps: Step[] = [
-  { id: 1, title: 'Basic Info' },
-  { id: 2, title: 'Documents' },
+  { id: 1, title: 'Documents' },
+  { id: 2, title: 'Review Info' },
   { id: 3, title: 'Service Area' },
-  { id: 4, title: 'Review' },
+  { id: 4, title: 'Confirm' },
 ];
 
 const initialBasicInfo: BasicInfoData = {
@@ -76,6 +80,38 @@ export function OnboardingWizard() {
     Partial<Record<keyof BasicInfoData, string>>
   >({});
   const [documentsErrors, setDocumentsErrors] = useState<Record<string, string>>({});
+  const [parsedFromDocuments, setParsedFromDocuments] = useState(false);
+
+  // Handle parsed data from W-9 document
+  const handleParsedInfo = (info: ParsedContractorInfo) => {
+    // Only auto-fill if we haven't already parsed or if fields are empty
+    const updates: Partial<BasicInfoData> = {};
+
+    if (info.businessName && !basicInfo.businessName) {
+      updates.businessName = info.businessName;
+    } else if (info.name && !basicInfo.businessName) {
+      // Use name as business name if no business name provided
+      updates.businessName = info.name;
+    }
+
+    if (info.street && !basicInfo.street) {
+      updates.street = info.street;
+    }
+    if (info.city && !basicInfo.city) {
+      updates.city = info.city;
+    }
+    if (info.state && !basicInfo.state) {
+      updates.state = info.state;
+    }
+    if (info.zip && !basicInfo.zip) {
+      updates.zip = info.zip;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      setBasicInfo((prev) => ({ ...prev, ...updates }));
+      setParsedFromDocuments(true);
+    }
+  };
 
   const validateBasicInfo = (): boolean => {
     const errors: Partial<Record<keyof BasicInfoData, string>> = {};
@@ -117,8 +153,8 @@ export function OnboardingWizard() {
   };
 
   const handleNext = () => {
-    if (currentStep === 1 && !validateBasicInfo()) return;
-    if (currentStep === 2 && !validateDocuments()) return;
+    if (currentStep === 1 && !validateDocuments()) return;
+    if (currentStep === 2 && !validateBasicInfo()) return;
 
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
@@ -220,19 +256,21 @@ export function OnboardingWizard() {
     switch (currentStep) {
       case 1:
         return (
-          <BasicInfoStep
-            data={basicInfo}
-            onChange={setBasicInfo}
-            errors={basicInfoErrors}
+          <DocumentsStepWithParsing
+            data={documents}
+            onChange={setDocuments}
+            onParsedInfoChange={handleParsedInfo}
+            userId="temp"
+            errors={documentsErrors}
           />
         );
       case 2:
         return (
-          <DocumentsStep
-            data={documents}
-            onChange={setDocuments}
-            userId="temp"
-            errors={documentsErrors}
+          <BasicInfoStep
+            data={basicInfo}
+            onChange={setBasicInfo}
+            errors={basicInfoErrors}
+            parsedFromDocuments={parsedFromDocuments}
           />
         );
       case 3:

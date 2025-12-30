@@ -21,6 +21,7 @@ interface BasicInfoStepProps {
   data: BasicInfoData;
   onChange: (data: BasicInfoData) => void;
   errors?: Partial<Record<keyof BasicInfoData, string>>;
+  parsedFromDocuments?: boolean;
 }
 
 const tradeOptions = [
@@ -38,7 +39,7 @@ const usStates = [
   'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
 ];
 
-export function BasicInfoStep({ data, onChange, errors }: BasicInfoStepProps) {
+export function BasicInfoStep({ data, onChange, errors, parsedFromDocuments }: BasicInfoStepProps) {
   const updateField = <K extends keyof BasicInfoData>(
     field: K,
     value: BasicInfoData[K]
@@ -49,10 +50,21 @@ export function BasicInfoStep({ data, onChange, errors }: BasicInfoStepProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-white mb-1">Basic Information</h3>
+        <h3 className="text-lg font-semibold text-white mb-1">
+          Review Information
+        </h3>
         <p className="text-sm text-gray-400">
-          Enter the contractor&apos;s business and contact details.
+          {parsedFromDocuments
+            ? 'Review the information extracted from documents. Edit any fields as needed.'
+            : 'Enter the contractor\'s business and contact details.'}
         </p>
+        {parsedFromDocuments && (
+          <div className="mt-2 p-3 bg-green-900/20 border border-green-800 rounded-lg">
+            <p className="text-sm text-green-400">
+              Some fields were auto-filled from uploaded documents. Please verify and complete the information.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
