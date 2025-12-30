@@ -95,6 +95,22 @@ export interface VapiWebhookPayload {
     summary?: string;
     recordingUrl?: string;
     messages?: VapiMessage[];
+    // Artifact contains structured outputs, recordings, etc.
+    artifact?: {
+      structuredOutputs?: Record<string, {
+        name?: string;
+        result?: Record<string, unknown>;
+      }>;
+      transcript?: string;
+      recordingUrl?: string;
+      stereoRecordingUrl?: string;
+      messages?: VapiMessage[];
+      [key: string]: unknown;
+    };
+    analysis?: {
+      summary?: string;
+      successEvaluation?: string;
+    };
   };
 }
 
