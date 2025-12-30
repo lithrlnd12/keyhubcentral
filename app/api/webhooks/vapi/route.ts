@@ -27,15 +27,6 @@ export async function POST(request: NextRequest) {
 
     const db = getAdminDb();
 
-    // Save raw webhook payload for debugging
-    await db.collection('webhookLogs').add({
-      type: 'vapi',
-      messageType: message.type,
-      callId: call.id,
-      rawPayload: JSON.stringify(rawPayload),
-      createdAt: FieldValue.serverTimestamp(),
-    });
-
     // Find the voice call record by Vapi call ID
     const callsSnapshot = await db
       .collection('voiceCalls')

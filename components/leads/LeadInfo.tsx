@@ -429,12 +429,8 @@ export function LeadInfo({ lead, className }: LeadInfoProps) {
             )}
 
             {/* Structured Data / Call Analysis */}
-            {lead.callAnalysis && Object.keys(lead.callAnalysis).length > 0 ? (
+            {lead.callAnalysis && Object.keys(lead.callAnalysis).length > 0 && (
               <CallAnalysisDisplay analysis={lead.callAnalysis} />
-            ) : (
-              <div className="text-xs text-gray-500 bg-gray-800/50 p-2 rounded">
-                <p>Debug: callAnalysis = {JSON.stringify(lead.callAnalysis)}</p>
-              </div>
             )}
 
             {/* Transcript */}
