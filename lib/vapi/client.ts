@@ -6,27 +6,38 @@ const VAPI_API_URL = 'https://api.vapi.ai';
 
 // Normalize phone number to E.164 format for US numbers
 function normalizePhoneNumber(phone: string): string {
-  // Remove all non-digit characters
-  const digits = phone.replace(/\D/g, '');
+  if (!phone) {
+    throw new Error('Phone number is required');
+  }
+
+  // Remove all non-digit characters except leading +
+  const cleaned = phone.trim();
+  const digits = cleaned.replace(/\D/g, '');
+
+  console.log(`Normalizing phone: "${phone}" -> digits: "${digits}" (${digits.length} digits)`);
 
   // If it's already 11 digits starting with 1, format it
   if (digits.length === 11 && digits.startsWith('1')) {
     return `+${digits}`;
   }
 
-  // If it's 10 digits, add +1 prefix
+  // If it's 10 digits, add +1 prefix (standard US number)
   if (digits.length === 10) {
     return `+1${digits}`;
   }
 
-  // If it already has a + prefix, return as-is
-  if (phone.startsWith('+')) {
-    return phone;
+  // If it's 7 digits (local number without area code), we can't process it
+  if (digits.length === 7) {
+    throw new Error(`Phone number "${phone}" is missing area code`);
   }
 
-  // Return original if we can't normalize
-  console.warn(`Could not normalize phone number: ${phone}`);
-  return phone;
+  // If it already has a + prefix and looks valid, return as-is
+  if (cleaned.startsWith('+') && digits.length >= 10) {
+    return cleaned.replace(/[^\d+]/g, '');
+  }
+
+  // Can't normalize - throw error instead of passing invalid number
+  throw new Error(`Cannot normalize phone number "${phone}" to E.164 format. Got ${digits.length} digits, expected 10 or 11.`);
 }
 
 function getApiKey(): string {
