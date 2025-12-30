@@ -7,12 +7,13 @@ import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/hooks';
 import { Button } from '@/components/ui';
 import { UserProfile, UserRole, UserStatus } from '@/types/user';
-import { Check, X, Clock, User, Database } from 'lucide-react';
+import { Check, X, Clock, User, Database, RefreshCw } from 'lucide-react';
 
 export default function AdminPage() {
   const { user } = useAuth();
   const [pendingUsers, setPendingUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     fetchPendingUsers();
@@ -33,12 +34,21 @@ export default function AdminPage() {
 
   const handleApprove = async (uid: string, role: UserRole) => {
     try {
+      // Update Firestore document
       await updateDoc(doc(db, 'users', uid), {
         status: 'active' as UserStatus,
         role,
         approvedAt: serverTimestamp(),
         approvedBy: user?.uid,
       });
+
+      // Set custom claims for Storage rules
+      await fetch('/api/admin/set-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid, role, callerUid: user?.uid }),
+      });
+
       fetchPendingUsers();
     } catch (error) {
       console.error('Error approving user:', error);
@@ -56,6 +66,29 @@ export default function AdminPage() {
     }
   };
 
+  const handleSyncClaims = async () => {
+    if (!user?.uid) return;
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/admin/sync-claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callerUid: user.uid }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Synced ${data.synced} users. ${data.failed} failed.`);
+      } else {
+        alert(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error syncing claims:', error);
+      alert('Failed to sync claims');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -63,12 +96,22 @@ export default function AdminPage() {
           <h2 className="text-xl font-bold text-white">Admin</h2>
           <p className="text-gray-400 mt-1">User management and settings</p>
         </div>
-        <Link href="/admin/seed">
-          <Button variant="outline">
-            <Database className="w-4 h-4 mr-2" />
-            Seed Test Data
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleSyncClaims}
+            disabled={syncing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync Permissions'}
           </Button>
-        </Link>
+          <Link href="/admin/seed">
+            <Button variant="outline">
+              <Database className="w-4 h-4 mr-2" />
+              Seed Test Data
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Pending Approvals */}

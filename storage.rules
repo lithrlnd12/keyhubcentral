@@ -18,14 +18,20 @@ service firebase.storage {
       return size < 10 * 1024 * 1024; // 10MB limit
     }
 
+    // Helper to check if user is admin (via custom claims)
+    function isAdmin() {
+      return request.auth.token.isAdmin == true;
+    }
+
     // Contractor documents (W-9, insurance, etc.)
     match /contractors/{userId}/documents/{document} {
-      // Authenticated users can read (admins viewing, contractors their own)
-      allow read: if isAuthenticated();
+      // Admins can read all, contractors can read their own
+      allow read: if isAuthenticated() &&
+        (isAdmin() || request.auth.uid == userId);
 
-      // Allow uploads from authenticated users (admins during onboarding, contractors their own)
-      // Page-level access control ensures only admins can access onboarding wizard
+      // Admins can upload for any contractor, contractors can upload their own
       allow write: if isAuthenticated() &&
+        (isAdmin() || request.auth.uid == userId) &&
         isValidFileType(request.resource.contentType) &&
         isUnderSizeLimit(request.resource.size);
     }
@@ -60,14 +66,15 @@ service firebase.storage {
         request.resource.size < 5 * 1024 * 1024; // 5MB for profile pics
     }
 
-    // Lead attachments (public upload for event capture forms)
+    // Lead attachments (for event capture forms)
     match /lead-attachments/{fileName} {
       // Authenticated users can read (admins viewing leads)
       allow read: if isAuthenticated();
 
-      // Allow public uploads with validation
+      // Public uploads allowed with strict validation
+      // Rate limiting should be handled at API/edge level
       allow write: if isValidFileType(request.resource.contentType) &&
-        isUnderSizeLimit(request.resource.size);
+        request.resource.size < 5 * 1024 * 1024; // 5MB limit for public uploads
     }
   }
 }
