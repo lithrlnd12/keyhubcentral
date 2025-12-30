@@ -36,6 +36,22 @@ export interface FacebookLeadData {
   createdTime: number;
 }
 
+// Structured data extracted from Vapi AI calls
+export interface CallAnalysis {
+  callOutcome?: 'answered' | 'voicemail' | 'no_answer' | 'busy' | 'failed' | string;
+  interestLevel?: 'high' | 'very_high' | 'medium' | 'moderate' | 'low' | 'none' | 'not_interested' | string;
+  projectType?: string;
+  propertyType?: 'personal_home' | 'rental_property' | 'commercial' | string;
+  timeline?: string;
+  projectDescription?: string;
+  additionalNotes?: string;
+  confirmedContactInfo?: boolean;
+  requestedCallback?: boolean;
+  removeFromList?: boolean;
+  // Allow additional fields
+  [key: string]: unknown;
+}
+
 export interface LeadCallData {
   lastCallAt?: Timestamp | null;
   lastCallId?: string | null;
@@ -43,7 +59,7 @@ export interface LeadCallData {
   lastCallSummary?: string | null;
   lastCallTranscript?: string | null;
   lastCallRecordingUrl?: string | null;
-  callAnalysis?: Record<string, unknown> | null;
+  callAnalysis?: CallAnalysis | null;
   scheduledCallAt?: Timestamp | null;
   callAttempts?: number;
   contactedAt?: Timestamp | null;

@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Lead } from '@/types/lead';
+import { Lead, CallAnalysis } from '@/types/lead';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { formatDateTime, formatPhone } from '@/lib/utils/formatters';
 import {
@@ -18,17 +18,183 @@ import {
   Download,
   ExternalLink,
   PhoneCall,
-  Play,
   CheckCircle,
   XCircle,
   Clock,
   Voicemail,
   PhoneMissed,
+  Home,
+  Building,
+  Wrench,
+  CalendarClock,
+  ThumbsUp,
+  ThumbsDown,
+  AlertCircle,
+  PhoneOff,
 } from 'lucide-react';
 
 interface LeadInfoProps {
   lead: Lead;
   className?: string;
+}
+
+// Helper to format timeline values
+function formatTimeline(timeline: string): string {
+  const timelineMap: Record<string, string> = {
+    'immediate': 'Immediate / ASAP',
+    'asap': 'Immediate / ASAP',
+    '1_week': 'Within 1 week',
+    '2_weeks': 'Within 2 weeks',
+    '1_month': 'Within 1 month',
+    '1_3_months': '1-3 months',
+    '3_6_months': '3-6 months',
+    '6_months_plus': '6+ months',
+    'not_sure': 'Not sure yet',
+    'just_browsing': 'Just browsing',
+  };
+  return timelineMap[timeline] || timeline.replace(/_/g, ' ');
+}
+
+// Helper to format property type
+function formatPropertyType(type: string): string {
+  const typeMap: Record<string, string> = {
+    'personal_home': 'Personal Home',
+    'rental_property': 'Rental Property',
+    'commercial': 'Commercial Property',
+    'investment': 'Investment Property',
+  };
+  return typeMap[type] || type.replace(/_/g, ' ');
+}
+
+// Helper to get interest level styling
+function getInterestLevelStyle(level: string): { bg: string; text: string; label: string } {
+  const levelLower = level.toLowerCase();
+  if (levelLower === 'high' || levelLower === 'very_high') {
+    return { bg: 'bg-green-500/20', text: 'text-green-400', label: 'High Interest' };
+  } else if (levelLower === 'medium' || levelLower === 'moderate') {
+    return { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Medium Interest' };
+  } else {
+    return { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Low Interest' };
+  }
+}
+
+// Call Analysis Display Component
+function CallAnalysisDisplay({ analysis }: { analysis: CallAnalysis }) {
+  const interestStyle = analysis.interestLevel
+    ? getInterestLevelStyle(analysis.interestLevel)
+    : null;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-400">Call Insights</p>
+
+      {/* Interest Level Badge */}
+      {interestStyle && (
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${interestStyle.bg} ${interestStyle.text}`}>
+            {interestStyle.label === 'High Interest' ? <ThumbsUp className="w-4 h-4" /> :
+             interestStyle.label === 'Low Interest' ? <ThumbsDown className="w-4 h-4" /> :
+             <AlertCircle className="w-4 h-4" />}
+            {interestStyle.label}
+          </span>
+        </div>
+      )}
+
+      {/* Main Info Grid */}
+      <div className="bg-brand-black rounded-lg p-4 border border-gray-700">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Project Type */}
+          {analysis.projectType && (
+            <div className="flex items-start gap-3">
+              <Wrench className="w-4 h-4 text-brand-gold mt-0.5" />
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Project Type</p>
+                <p className="text-white capitalize">{analysis.projectType.replace(/_/g, ' ')}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Property Type */}
+          {analysis.propertyType && (
+            <div className="flex items-start gap-3">
+              {analysis.propertyType === 'personal_home' ? (
+                <Home className="w-4 h-4 text-brand-gold mt-0.5" />
+              ) : (
+                <Building className="w-4 h-4 text-brand-gold mt-0.5" />
+              )}
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Property Type</p>
+                <p className="text-white">{formatPropertyType(analysis.propertyType)}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Timeline */}
+          {analysis.timeline && (
+            <div className="flex items-start gap-3">
+              <CalendarClock className="w-4 h-4 text-brand-gold mt-0.5" />
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Timeline</p>
+                <p className="text-white">{formatTimeline(analysis.timeline)}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Contact Confirmed */}
+          {analysis.confirmedContactInfo !== undefined && (
+            <div className="flex items-start gap-3">
+              {analysis.confirmedContactInfo ? (
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5" />
+              ) : (
+                <XCircle className="w-4 h-4 text-red-500 mt-0.5" />
+              )}
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Contact Info</p>
+                <p className="text-white">
+                  {analysis.confirmedContactInfo ? 'Confirmed' : 'Not confirmed'}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Project Description */}
+        {analysis.projectDescription && (
+          <div className="mt-4 pt-4 border-t border-gray-700">
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Project Description</p>
+            <p className="text-gray-300">{analysis.projectDescription}</p>
+          </div>
+        )}
+
+        {/* Additional Notes */}
+        {analysis.additionalNotes && (
+          <div className="mt-4 pt-4 border-t border-gray-700">
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Additional Notes</p>
+            <p className="text-gray-300">{analysis.additionalNotes}</p>
+          </div>
+        )}
+
+        {/* Flags */}
+        <div className="mt-4 pt-4 border-t border-gray-700 flex flex-wrap gap-2">
+          {analysis.requestedCallback && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400">
+              <Phone className="w-3 h-3" />
+              Callback Requested
+            </span>
+          )}
+          {analysis.removeFromList && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-red-500/20 text-red-400">
+              <PhoneOff className="w-3 h-3" />
+              Remove from List
+            </span>
+          )}
+          {!analysis.requestedCallback && !analysis.removeFromList && (
+            <span className="text-xs text-gray-500">No special flags</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function LeadInfo({ lead, className }: LeadInfoProps) {
@@ -264,23 +430,7 @@ export function LeadInfo({ lead, className }: LeadInfoProps) {
 
             {/* Structured Data / Call Analysis */}
             {lead.callAnalysis && Object.keys(lead.callAnalysis).length > 0 && (
-              <div>
-                <p className="text-sm text-gray-400 mb-2">Extracted Information</p>
-                <div className="bg-brand-black rounded-lg p-3 border border-gray-700 space-y-2">
-                  {Object.entries(lead.callAnalysis).map(([key, value]) => (
-                    <div key={key} className="flex justify-between items-start gap-4">
-                      <span className="text-gray-400 text-sm capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ')}
-                      </span>
-                      <span className="text-white text-sm text-right">
-                        {typeof value === 'boolean'
-                          ? (value ? 'Yes' : 'No')
-                          : String(value || '-')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <CallAnalysisDisplay analysis={lead.callAnalysis} />
             )}
 
             {/* Transcript */}

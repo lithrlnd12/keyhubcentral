@@ -33,6 +33,14 @@ export interface VapiAssistant {
     model?: string;
     language?: string;
   };
+  analysisPlan?: {
+    summaryPrompt?: string;
+    summaryRequestTimeoutSeconds?: number;
+    structuredDataPrompt?: string;
+    structuredDataSchema?: Record<string, unknown>;
+    successEvaluationPrompt?: string;
+    successEvaluationRubric?: 'NumericScale' | 'DescriptiveScale' | 'Checklist' | 'Matrix' | 'PercentageScale' | 'LikertScale' | 'AutomaticRubric' | 'PassFail';
+  };
   endCallPhrases?: string[];
   silenceTimeoutSeconds?: number;
   maxDurationSeconds?: number;

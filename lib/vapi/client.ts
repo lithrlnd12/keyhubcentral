@@ -101,6 +101,17 @@ Important: Be concise and conversational. The call should last 2-3 minutes maxim
     },
     firstMessage: `Hi, is this ${customerName}? Hey! This is Riley with Key Trade Solutions, calling on behalf of Key Renovations. I'm just following up on your recent inquiry about our renovation services. Do you have a quick minute to chat?`,
     endCallMessage: `Thank you so much for your time, ${customerName}! One of our renovation specialists will be reaching out soon to schedule your free consultation. Have a wonderful day!`,
+    analysisPlan: {
+      summaryPrompt: `Summarize this phone call with ${customerName}. Include:
+1. The customer's name (${customerName}) at the start
+2. What renovation project they're interested in (kitchen, bathroom, flooring, etc.)
+3. Whether it's for their personal home or rental property
+4. Their timeline for starting the project
+5. Any specific details about what they want done
+6. Next steps discussed
+
+Keep the summary concise (2-3 sentences) and professional.`,
+    },
     endCallPhrases: [
       'goodbye',
       'bye',
