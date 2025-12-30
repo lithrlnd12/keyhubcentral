@@ -321,16 +321,21 @@ export default function LeadCapturePage() {
             >
               Phone
             </label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full px-4 py-3 bg-brand-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold transition-colors"
-              placeholder="(555) 123-4567"
-              autoComplete="tel"
-            />
+            <div className="flex">
+              <span className="inline-flex items-center px-3 bg-gray-800 border border-r-0 border-gray-700 rounded-l-lg text-gray-400 text-sm">
+                +1
+              </span>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className="flex-1 px-4 py-3 bg-brand-black border border-gray-700 rounded-r-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold transition-colors"
+                placeholder="(555) 123-4567"
+                autoComplete="tel"
+              />
+            </div>
           </div>
 
           <div>
