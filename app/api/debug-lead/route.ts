@@ -21,8 +21,7 @@ export async function GET(request: NextRequest) {
     // Also check voiceCalls for this lead
     const voiceCallsSnapshot = await db.collection('voiceCalls')
       .where('leadId', '==', id)
-      .orderBy('createdAt', 'desc')
-      .limit(1)
+      .limit(5)
       .get();
 
     let voiceCallData = null;
