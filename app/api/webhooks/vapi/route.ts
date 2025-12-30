@@ -67,16 +67,43 @@ export async function POST(request: NextRequest) {
           cost: call.cost || 0,
           costBreakdown: call.costBreakdown || null,
           messages: call.messages || null,
-          // Capture structured data extracted by Vapi
-          structuredData: vapiCall.analysis?.structuredData || null,
-          analysis: vapiCall.analysis || null,
+          // Note: structuredData will be extracted and added after parsing
+          rawAnalysis: vapiCall.analysis || null,
           completedAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         };
 
-        const structuredData = vapiCall.analysis?.structuredData as Record<string, unknown> | undefined;
-        console.log('Vapi structured data:', JSON.stringify(structuredData, null, 2));
+        // Extract structured data - Vapi nests it in a UUID-keyed object with a 'result' field
+        let structuredData: Record<string, unknown> | undefined;
+        const rawStructuredData = vapiCall.analysis?.structuredData as Record<string, unknown> | undefined;
+
+        console.log('Vapi raw structured data:', JSON.stringify(rawStructuredData, null, 2));
         console.log('Vapi endedReason:', call.endedReason);
+
+        if (rawStructuredData) {
+          // Check if it's nested in a UUID-keyed object with 'result'
+          const firstKey = Object.keys(rawStructuredData)[0];
+          const firstValue = rawStructuredData[firstKey] as Record<string, unknown> | undefined;
+
+          if (firstValue?.result && typeof firstValue.result === 'object') {
+            // Extract the nested result
+            structuredData = firstValue.result as Record<string, unknown>;
+            console.log('Extracted nested structured data:', JSON.stringify(structuredData, null, 2));
+          } else if (rawStructuredData.timeline || rawStructuredData.projectType || rawStructuredData.callOutcome) {
+            // It's already flat
+            structuredData = rawStructuredData;
+          } else {
+            // Try to find result in any nested object
+            for (const key of Object.keys(rawStructuredData)) {
+              const value = rawStructuredData[key] as Record<string, unknown> | undefined;
+              if (value?.result && typeof value.result === 'object') {
+                structuredData = value.result as Record<string, unknown>;
+                console.log(`Extracted structured data from key ${key}:`, JSON.stringify(structuredData, null, 2));
+                break;
+              }
+            }
+          }
+        }
 
         // Determine call outcome - prefer structured data's callOutcome if available
         const vapiCallOutcome = structuredData?.callOutcome as string | undefined;
@@ -104,6 +131,11 @@ export async function POST(request: NextRequest) {
           updateData.outcome = 'answered';
         } else {
           updateData.outcome = 'failed';
+        }
+
+        // Add extracted structured data to the update
+        if (structuredData) {
+          updateData.structuredData = structuredData;
         }
 
         await callDoc.ref.update(removeUndefined(updateData));
