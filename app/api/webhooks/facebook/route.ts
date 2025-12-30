@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { verifyFacebookSignature } from '@/lib/auth/webhookSignature';
 
-// Facebook Webhook Verify Token - set this in your environment variables
-const VERIFY_TOKEN = process.env.FB_WEBHOOK_VERIFY_TOKEN || 'keyhub_fb_verify_token';
+// Facebook Webhook Verify Token - MUST be set in environment variables
+const VERIFY_TOKEN = process.env.FB_WEBHOOK_VERIFY_TOKEN;
+const APP_SECRET = process.env.FB_APP_SECRET;
 
 // GET - Facebook webhook verification
 export async function GET(request: NextRequest) {
+  if (!VERIFY_TOKEN) {
+    console.error('FB_WEBHOOK_VERIFY_TOKEN not configured');
+    return new NextResponse('Server configuration error', { status: 500 });
+  }
+
   const searchParams = request.nextUrl.searchParams;
 
   const mode = searchParams.get('hub.mode');
@@ -26,7 +33,22 @@ export async function GET(request: NextRequest) {
 // POST - Receive lead data from Facebook
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Get raw body for signature verification
+    const rawBody = await request.text();
+
+    // Verify webhook signature if APP_SECRET is configured
+    if (APP_SECRET) {
+      const signature = request.headers.get('X-Hub-Signature-256');
+
+      if (!verifyFacebookSignature(rawBody, signature, APP_SECRET)) {
+        console.error('Facebook webhook signature verification failed');
+        return new NextResponse('Invalid signature', { status: 401 });
+      }
+    } else {
+      console.warn('FB_APP_SECRET not configured - signature verification disabled');
+    }
+
+    const body = JSON.parse(rawBody);
 
     console.log('Facebook webhook received:', JSON.stringify(body, null, 2));
 

@@ -1,18 +1,36 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
+import { verifyFirebaseAuth, isAdmin } from '@/lib/auth/verifyRequest';
 
-// GET - Debug endpoint to check Vapi configuration
-export async function GET() {
+// GET - Debug endpoint to check Vapi configuration (ADMIN ONLY)
+export async function GET(request: NextRequest) {
+  // Verify authentication
+  const auth = await verifyFirebaseAuth(request);
+
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      { error: 'Unauthorized', details: auth.error },
+      { status: 401 }
+    );
+  }
+
+  if (!isAdmin(auth.role)) {
+    return NextResponse.json(
+      { error: 'Forbidden: Admin access required' },
+      { status: 403 }
+    );
+  }
+
   try {
     const db = getAdminDb();
     const now = Timestamp.now();
 
-    // Check environment variables
+    // Check environment variables (only show if set, not values)
     const config = {
-      VAPI_API_KEY: process.env.VAPI_API_KEY ? `${process.env.VAPI_API_KEY.slice(0, 8)}...` : 'NOT SET',
-      VAPI_PHONE_NUMBER_ID: process.env.VAPI_PHONE_NUMBER_ID || 'NOT SET',
-      VAPI_ASSISTANT_ID: process.env.VAPI_ASSISTANT_ID || 'NOT SET',
+      VAPI_API_KEY: process.env.VAPI_API_KEY ? 'SET' : 'NOT SET',
+      VAPI_PHONE_NUMBER_ID: process.env.VAPI_PHONE_NUMBER_ID ? 'SET' : 'NOT SET',
+      VAPI_ASSISTANT_ID: process.env.VAPI_ASSISTANT_ID ? 'SET' : 'NOT SET',
       CRON_SECRET: process.env.CRON_SECRET ? 'SET' : 'NOT SET',
     };
 
@@ -30,7 +48,8 @@ export async function GET() {
         id: doc.id,
         customer: {
           firstName: data.customer?.firstName,
-          phone: data.customer?.phone ? `${data.customer.phone.slice(0, 6)}...` : 'N/A',
+          // Mask phone numbers
+          phone: data.customer?.phone ? '***-***-' + data.customer.phone.slice(-4) : 'N/A',
         },
         scheduledCallAt: data.scheduledCallAt?.toDate?.() || data.scheduledCallAt,
         callAttempts: data.callAttempts || 0,
@@ -61,6 +80,7 @@ export async function GET() {
       leads,
       allScheduledLeads: allScheduled.length,
       allScheduled,
+      authenticatedAs: auth.user?.email,
     });
   } catch (error) {
     console.error('Debug error:', error);

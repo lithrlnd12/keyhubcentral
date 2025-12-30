@@ -2,9 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { createOutboundCall } from '@/lib/vapi/client';
 import { FieldValue } from 'firebase-admin/firestore';
+import { verifyFirebaseAuth, isInternal } from '@/lib/auth/verifyRequest';
 
 // POST - Trigger an outbound call to a lead
 export async function POST(request: NextRequest) {
+  // Verify authentication - only internal users can trigger calls
+  const auth = await verifyFirebaseAuth(request);
+
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      { error: 'Unauthorized', details: auth.error },
+      { status: 401 }
+    );
+  }
+
+  if (!isInternal(auth.role)) {
+    return NextResponse.json(
+      { error: 'Forbidden: Internal users only' },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { leadId, phoneNumber, customerName } = body;

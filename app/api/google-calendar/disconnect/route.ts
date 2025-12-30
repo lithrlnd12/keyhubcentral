@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { getAdminDb } from '@/lib/firebase/admin';
+import { verifyFirebaseAuth } from '@/lib/auth/verifyRequest';
 
 function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
@@ -16,12 +17,30 @@ function getOAuth2Client() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const auth = await verifyFirebaseAuth(request);
+
+    if (!auth.authenticated || !auth.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized: You must be logged in' },
+        { status: 401 }
+      );
+    }
+
     const { userId } = await request.json();
 
     if (!userId) {
       return NextResponse.json(
         { error: 'userId is required' },
         { status: 400 }
+      );
+    }
+
+    // SECURITY: Verify the authenticated user matches the requested userId
+    if (auth.user.uid !== userId) {
+      return NextResponse.json(
+        { error: 'Forbidden: You can only disconnect your own calendar' },
+        { status: 403 }
       );
     }
 

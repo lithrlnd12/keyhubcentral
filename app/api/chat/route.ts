@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { verifyFirebaseAuth, isInternal } from '@/lib/auth/verifyRequest';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -38,6 +39,23 @@ const SYSTEM_PROMPT = `You are an AI assistant for KeyHub Central, a business ma
 Keep responses concise and actionable. Use bullet points for clarity.`;
 
 export async function POST(request: NextRequest) {
+  // Verify authentication - only internal users can use chat
+  const auth = await verifyFirebaseAuth(request);
+
+  if (!auth.authenticated) {
+    return NextResponse.json(
+      { error: 'Unauthorized', details: auth.error },
+      { status: 401 }
+    );
+  }
+
+  if (!isInternal(auth.role)) {
+    return NextResponse.json(
+      { error: 'Forbidden: Internal users only' },
+      { status: 403 }
+    );
+  }
+
   try {
     const { messages, context } = await request.json();
 

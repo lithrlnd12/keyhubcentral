@@ -3,6 +3,9 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { VapiWebhookPayload, VapiCall } from '@/lib/vapi/types';
 import { FieldValue } from 'firebase-admin/firestore';
 
+// Vapi webhook secret for signature verification
+const VAPI_WEBHOOK_SECRET = process.env.VAPI_WEBHOOK_SECRET;
+
 // Helper to remove undefined values (Firestore doesn't accept undefined)
 function removeUndefined(obj: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
@@ -13,6 +16,19 @@ function removeUndefined(obj: Record<string, unknown>): Record<string, unknown> 
 // POST - Receive webhook events from Vapi
 export async function POST(request: NextRequest) {
   try {
+    // Verify webhook secret if configured
+    // Vapi can be configured to send a secret in headers
+    if (VAPI_WEBHOOK_SECRET) {
+      const webhookSecret = request.headers.get('x-vapi-secret');
+
+      if (webhookSecret !== VAPI_WEBHOOK_SECRET) {
+        console.error('Vapi webhook secret verification failed');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    } else {
+      console.warn('VAPI_WEBHOOK_SECRET not configured - verification disabled');
+    }
+
     const rawPayload = await request.json();
     const payload = rawPayload as VapiWebhookPayload;
 

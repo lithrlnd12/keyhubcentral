@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { verifyStateSignature } from '@/lib/auth/webhookSignature';
+
+// Same secret used in auth route
+const STATE_SECRET = process.env.OAUTH_STATE_SECRET || process.env.NEXTAUTH_SECRET || 'keyhub-oauth-state-secret';
 
 function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
@@ -42,17 +46,38 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Decode state
-    let stateData: { userId: string; returnUrl: string };
+    // Decode and verify signed state
+    let stateData: { payload: string; signature: string };
+    let payload: { userId: string; returnUrl: string; timestamp: number };
+
     try {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+
+      // Verify the signature to prevent tampering
+      if (!verifyStateSignature(stateData.payload, stateData.signature, STATE_SECRET)) {
+        console.error('OAuth state signature verification failed');
+        return NextResponse.redirect(
+          `${appUrl}/portal/settings?calendarError=invalid_signature`
+        );
+      }
+
+      payload = JSON.parse(stateData.payload);
+
+      // Check timestamp to prevent replay attacks (state valid for 10 minutes)
+      const stateAge = Date.now() - payload.timestamp;
+      if (stateAge > 10 * 60 * 1000) {
+        console.error('OAuth state expired');
+        return NextResponse.redirect(
+          `${appUrl}/portal/settings?calendarError=state_expired`
+        );
+      }
     } catch {
       return NextResponse.redirect(
         `${appUrl}/portal/settings?calendarError=invalid_state`
       );
     }
 
-    const { userId, returnUrl } = stateData;
+    const { userId, returnUrl } = payload;
 
     if (!userId) {
       return NextResponse.redirect(
