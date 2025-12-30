@@ -52,18 +52,23 @@ export async function GET(request: NextRequest) {
         const logData = logsSnapshot.docs[0].data();
         try {
           const parsed = JSON.parse(logData.rawPayload);
-          const call = parsed?.message?.call;
+          const msg = parsed?.message;
+          const call = msg?.call;
           webhookLogs = {
-            hasAnalysis: !!call?.analysis,
-            analysisKeys: call?.analysis ? Object.keys(call.analysis) : [],
-            analysis: call?.analysis || null,
-            // Show all top-level keys in the call object
+            // Check message-level fields (Vapi sometimes puts data here)
+            messageKeys: msg ? Object.keys(msg) : [],
+            messageSummary: msg?.summary || null,
+            messageTranscript: msg?.transcript ? 'yes' : null,
+            messageAnalysis: msg?.analysis || null,
+            messageArtifact: msg?.artifact || null,
+            // Check call-level fields
             callKeys: call ? Object.keys(call) : [],
-            // Check for artifact or other fields that might contain structured data
-            artifact: call?.artifact || null,
-            messages: call?.messages?.length || 0,
-            // Show the message type
-            messageType: parsed?.message?.type,
+            callAnalysis: call?.analysis || null,
+            callArtifact: call?.artifact || null,
+            callSummary: call?.summary || null,
+            callTranscript: call?.transcript ? 'yes' : null,
+            // Message type
+            messageType: msg?.type,
           };
         } catch {
           webhookLogs = { error: 'Failed to parse payload' };
