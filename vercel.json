@@ -3,6 +3,10 @@
     {
       "path": "/api/voice/process-scheduled",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/sms/process-scheduled",
+      "schedule": "* * * * *"
     }
   ]
 }

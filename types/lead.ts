@@ -12,6 +12,7 @@ export type LeadStatus =
   | 'lost'
   | 'returned';
 export type AssignedType = 'internal' | 'subscriber';
+export type ContactPreference = 'phone' | 'sms';
 
 export interface LeadAttachment {
   name: string;
@@ -65,7 +66,32 @@ export interface LeadCallData {
   contactedAt?: Timestamp | null;
 }
 
-export interface Lead extends LeadCallData {
+// Structured data extracted from SMS AI conversations (mirrors CallAnalysis)
+export interface SmsAnalysis {
+  conversationOutcome?: 'completed' | 'in_progress' | 'unresponsive' | 'opted_out' | string;
+  interestLevel?: 'high' | 'very_high' | 'medium' | 'moderate' | 'low' | 'none' | 'not_interested' | string;
+  projectType?: string;
+  propertyType?: 'personal_home' | 'rental_property' | 'commercial' | string;
+  timeline?: string;
+  projectDescription?: string;
+  additionalNotes?: string;
+  confirmedContactInfo?: boolean;
+  requestedCallback?: boolean;
+  removeFromList?: boolean;
+  [key: string]: unknown;
+}
+
+export interface LeadSmsData {
+  lastSmsAt?: Timestamp | null;
+  lastSmsConversationId?: string | null;
+  lastSmsOutcome?: 'completed' | 'in_progress' | 'unresponsive' | 'opted_out' | null;
+  smsAnalysis?: SmsAnalysis | null;
+  scheduledSmsAt?: Timestamp | null;
+  smsAttempts?: number;
+  smsMessageCount?: number;
+}
+
+export interface Lead extends LeadCallData, LeadSmsData {
   id: string;
   source: LeadSource;
   campaignId: string | null;
@@ -79,7 +105,9 @@ export interface Lead extends LeadCallData {
   returnReason: string | null;
   returnedAt: Timestamp | null;
   facebookData?: FacebookLeadData | null;
+  contactPreference?: ContactPreference;
   autoCallEnabled?: boolean;
+  autoSmsEnabled?: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

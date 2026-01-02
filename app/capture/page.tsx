@@ -2,11 +2,11 @@
 
 import { useState, useRef } from 'react';
 import Image from 'next/image';
-import { CheckCircle, Loader2, Paperclip, X, FileText, ImageIcon } from 'lucide-react';
+import { CheckCircle, Loader2, Paperclip, X, FileText, ImageIcon, Phone, MessageSquare } from 'lucide-react';
 import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
-import { LeadAttachment } from '@/types/lead';
+import { LeadAttachment, ContactPreference } from '@/types/lead';
 
 interface FormData {
   firstName: string;
@@ -16,6 +16,7 @@ interface FormData {
   address: string;
   isHomeowner: string;
   notes: string;
+  contactPreference: ContactPreference | '';
 }
 
 interface FilePreview {
@@ -35,6 +36,7 @@ export default function LeadCapturePage() {
     address: '',
     isHomeowner: '',
     notes: '',
+    contactPreference: '',
   });
   const [files, setFiles] = useState<FilePreview[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -149,13 +151,26 @@ export default function LeadCapturePage() {
       // Upload files first
       const attachments = files.length > 0 ? await uploadFiles() : [];
 
-      // Schedule auto-call immediately for testing (change to +10 minutes for production)
+      // Determine contact method based on preference
       const phoneNumber = formData.phone.trim();
+      const contactPreference = formData.contactPreference || 'phone'; // Default to phone
+
       let scheduledCallAt = null;
+      let scheduledSmsAt = null;
+      let autoCallEnabled = false;
+      let autoSmsEnabled = false;
+
       if (phoneNumber) {
-        const callTime = new Date();
-        // callTime.setMinutes(callTime.getMinutes() + 10); // Production: 10 min delay
-        scheduledCallAt = Timestamp.fromDate(callTime);
+        const contactTime = new Date();
+        // contactTime.setMinutes(contactTime.getMinutes() + 10); // Production: 10 min delay
+
+        if (contactPreference === 'sms') {
+          scheduledSmsAt = Timestamp.fromDate(contactTime);
+          autoSmsEnabled = true;
+        } else {
+          scheduledCallAt = Timestamp.fromDate(contactTime);
+          autoCallEnabled = true;
+        }
       }
 
       // Create lead directly in Firestore
@@ -181,10 +196,16 @@ export default function LeadCapturePage() {
         assignedType: null,
         returnReason: null,
         returnedAt: null,
+        // Contact preference
+        contactPreference: phoneNumber ? contactPreference : null,
         // Auto-call fields
         scheduledCallAt,
-        autoCallEnabled: !!phoneNumber,
+        autoCallEnabled,
         callAttempts: 0,
+        // Auto-SMS fields
+        scheduledSmsAt,
+        autoSmsEnabled,
+        smsAttempts: 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -219,7 +240,7 @@ export default function LeadCapturePage() {
           <button
             onClick={() => {
               setSubmitted(false);
-              setFormData({ firstName: '', lastName: '', phone: '', email: '', address: '', isHomeowner: '', notes: '' });
+              setFormData({ firstName: '', lastName: '', phone: '', email: '', address: '', isHomeowner: '', notes: '', contactPreference: '' });
               setFiles([]);
             }}
             className="text-brand-gold hover:text-brand-gold-light transition-colors"
@@ -337,6 +358,53 @@ export default function LeadCapturePage() {
               />
             </div>
           </div>
+
+          {/* Contact Preference - only show if phone is entered */}
+          {formData.phone.trim() && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                How would you like us to contact you?
+              </label>
+              <div className="flex gap-4">
+                <label
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border cursor-pointer transition-all ${
+                    formData.contactPreference === 'phone'
+                      ? 'bg-brand-gold/10 border-brand-gold text-brand-gold'
+                      : 'bg-brand-black border-gray-700 text-gray-400 hover:border-gray-500'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="contactPreference"
+                    value="phone"
+                    checked={formData.contactPreference === 'phone'}
+                    onChange={handleChange}
+                    className="sr-only"
+                  />
+                  <Phone className="w-5 h-5" />
+                  <span className="font-medium">Phone Call</span>
+                </label>
+                <label
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border cursor-pointer transition-all ${
+                    formData.contactPreference === 'sms'
+                      ? 'bg-brand-gold/10 border-brand-gold text-brand-gold'
+                      : 'bg-brand-black border-gray-700 text-gray-400 hover:border-gray-500'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="contactPreference"
+                    value="sms"
+                    checked={formData.contactPreference === 'sms'}
+                    onChange={handleChange}
+                    className="sr-only"
+                  />
+                  <MessageSquare className="w-5 h-5" />
+                  <span className="font-medium">Text Message</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           <div>
             <label
