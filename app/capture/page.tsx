@@ -210,6 +210,19 @@ export default function LeadCapturePage() {
         updatedAt: serverTimestamp(),
       });
 
+      // Send confirmation email (fire and forget - don't block submission)
+      if (formData.email.trim()) {
+        fetch('/api/email/lead-confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: formData.email.trim(),
+            customerName: `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim(),
+            contactPreference: contactPreference,
+          }),
+        }).catch((err) => console.error('Failed to send confirmation email:', err));
+      }
+
       setSubmitted(true);
     } catch (err) {
       console.error('Error submitting lead:', err);
