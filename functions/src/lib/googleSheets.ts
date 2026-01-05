@@ -1,14 +1,18 @@
-import { google, sheets_v4 } from 'googleapis';
+// Dynamic import to avoid deployment timeout
+import type { sheets_v4 } from 'googleapis';
 
 let sheetsClient: sheets_v4.Sheets | null = null;
 
 /**
- * Get authenticated Google Sheets client
+ * Get authenticated Google Sheets client (async to support dynamic import)
  */
-export function getSheetsClient(): sheets_v4.Sheets {
+export async function getSheetsClient(): Promise<sheets_v4.Sheets> {
   if (sheetsClient) {
     return sheetsClient;
   }
+
+  // Dynamic import to avoid deployment timeout
+  const { google } = await import('googleapis');
 
   const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (!serviceAccountKey) {
@@ -44,7 +48,7 @@ export function getSpreadsheetId(): string {
  * Get or create a sheet tab by name
  */
 export async function getOrCreateSheet(sheetName: string): Promise<number> {
-  const sheets = getSheetsClient();
+  const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
 
   // Get all sheets
@@ -83,7 +87,7 @@ export async function getOrCreateSheet(sheetName: string): Promise<number> {
  * Clear all data from a sheet
  */
 export async function clearSheet(sheetName: string): Promise<void> {
-  const sheets = getSheetsClient();
+  const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
 
   await sheets.spreadsheets.values.clear({
@@ -99,7 +103,7 @@ export async function writeToSheet(
   sheetName: string,
   data: (string | number | null)[][]
 ): Promise<void> {
-  const sheets = getSheetsClient();
+  const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
 
   // Ensure sheet exists
@@ -126,7 +130,7 @@ export async function appendToSheet(
   sheetName: string,
   row: (string | number | null)[]
 ): Promise<void> {
-  const sheets = getSheetsClient();
+  const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
 
   await sheets.spreadsheets.values.append({
@@ -145,7 +149,7 @@ export async function updateRowByInvoiceNumber(
   invoiceNumber: string,
   newRow: (string | number | null)[]
 ): Promise<boolean> {
-  const sheets = getSheetsClient();
+  const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
 
   // Get all data
@@ -179,7 +183,7 @@ export async function deleteRowByInvoiceNumber(
   sheetName: string,
   invoiceNumber: string
 ): Promise<boolean> {
-  const sheets = getSheetsClient();
+  const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
 
   // Get all data
@@ -224,7 +228,7 @@ export async function deleteRowByInvoiceNumber(
  * Format sheet with professional styling
  */
 export async function formatHeaderRow(sheetName: string): Promise<void> {
-  const sheets = getSheetsClient();
+  const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
   const sheetId = await getOrCreateSheet(sheetName);
 

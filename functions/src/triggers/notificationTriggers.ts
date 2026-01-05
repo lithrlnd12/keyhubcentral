@@ -1,8 +1,9 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 
-const db = admin.firestore();
-const messaging = admin.messaging();
+// Lazy initialization to avoid deployment issues
+const getDb = () => admin.firestore();
+const getMessaging = () => admin.messaging();
 
 // Types for notification preferences
 interface NotificationPreferences {
@@ -86,7 +87,7 @@ async function sendPushNotification(
 ): Promise<boolean> {
   try {
     // Get user document
-    const userDoc = await db.collection('users').doc(userId).get();
+    const userDoc = await getDb().collection('users').doc(userId).get();
     if (!userDoc.exists) {
       console.log(`User ${userId} not found`);
       return false;
@@ -115,7 +116,7 @@ async function sendPushNotification(
     }
 
     // Log notification to Firestore
-    const notificationRef = await db.collection('notifications').add({
+    const notificationRef = await getDb().collection('notifications').add({
       userId,
       type: notification.type,
       category: notification.category,
@@ -150,7 +151,7 @@ async function sendPushNotification(
       },
     };
 
-    const response = await messaging.sendEachForMulticast(message);
+    const response = await getMessaging().sendEachForMulticast(message);
 
     // Update notification status
     await notificationRef.update({
@@ -199,13 +200,13 @@ async function notifyAdmins(
   checkPreference?: (prefs: NotificationPreferences) => boolean
 ): Promise<void> {
   try {
-    const adminsSnapshot = await db
+    const adminsSnapshot = await getDb()
       .collection('users')
       .where('role', 'in', ['owner', 'admin'])
       .where('status', '==', 'active')
       .get();
 
-    const promises = adminsSnapshot.docs.map(async (doc) => {
+    const promises = adminsSnapshot.docs.map(async (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
       const prefs = doc.data().notificationPreferences as NotificationPreferences;
       if (checkPreference && prefs && !checkPreference(prefs)) {
         return;
@@ -231,7 +232,7 @@ export const dailyExpirationCheck = functions.pubsub
     const now = new Date();
 
     // Check contractors for expiring insurance
-    const contractorsSnapshot = await db
+    const contractorsSnapshot = await getDb()
       .collection('contractors')
       .where('status', '==', 'active')
       .get();
@@ -387,7 +388,7 @@ export const dailyExpirationCheck = functions.pubsub
     const dayAfterTomorrow = new Date(tomorrow);
     dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
 
-    const jobsSnapshot = await db
+    const jobsSnapshot = await getDb()
       .collection('jobs')
       .where('dates.scheduledStart', '>=', admin.firestore.Timestamp.fromDate(tomorrow))
       .where('dates.scheduledStart', '<', admin.firestore.Timestamp.fromDate(dayAfterTomorrow))
@@ -401,7 +402,7 @@ export const dailyExpirationCheck = functions.pubsub
       const crewIds = job.crewIds || [];
       for (const crewId of crewIds) {
         // Get contractor's userId
-        const contractorDoc = await db.collection('contractors').doc(crewId).get();
+        const contractorDoc = await getDb().collection('contractors').doc(crewId).get();
         if (contractorDoc.exists) {
           const userId = contractorDoc.data()?.userId;
           if (userId) {
@@ -424,7 +425,7 @@ export const dailyExpirationCheck = functions.pubsub
 
       // Notify PM
       if (job.pmId) {
-        const pmDoc = await db.collection('contractors').doc(job.pmId).get();
+        const pmDoc = await getDb().collection('contractors').doc(job.pmId).get();
         if (pmDoc.exists) {
           const userId = pmDoc.data()?.userId;
           if (userId) {
@@ -504,7 +505,7 @@ export const onJobAssigned = functions.firestore
     const newAssignees = afterCrew.filter((id: string) => !beforeCrew.has(id));
 
     for (const contractorId of newAssignees) {
-      const contractorDoc = await db.collection('contractors').doc(contractorId).get();
+      const contractorDoc = await getDb().collection('contractors').doc(contractorId).get();
       if (contractorDoc.exists) {
         const userId = contractorDoc.data()?.userId;
         if (userId) {
@@ -534,7 +535,7 @@ export const onJobAssigned = functions.firestore
     if (beforeStart && afterStart && beforeStart !== afterStart) {
       const allCrew = afterData.crewIds || [];
       for (const contractorId of allCrew) {
-        const contractorDoc = await db.collection('contractors').doc(contractorId).get();
+        const contractorDoc = await getDb().collection('contractors').doc(contractorId).get();
         if (contractorDoc.exists) {
           const userId = contractorDoc.data()?.userId;
           if (userId) {

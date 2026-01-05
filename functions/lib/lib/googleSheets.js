@@ -9,28 +9,29 @@ exports.appendToSheet = appendToSheet;
 exports.updateRowByInvoiceNumber = updateRowByInvoiceNumber;
 exports.deleteRowByInvoiceNumber = deleteRowByInvoiceNumber;
 exports.formatHeaderRow = formatHeaderRow;
-const googleapis_1 = require("googleapis");
 let sheetsClient = null;
 /**
- * Get authenticated Google Sheets client
+ * Get authenticated Google Sheets client (async to support dynamic import)
  */
-function getSheetsClient() {
+async function getSheetsClient() {
     if (sheetsClient) {
         return sheetsClient;
     }
+    // Dynamic import to avoid deployment timeout
+    const { google } = await Promise.resolve().then(() => require('googleapis'));
     const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
     if (!serviceAccountKey) {
         throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable is not set');
     }
     const credentials = JSON.parse(serviceAccountKey);
-    const auth = new googleapis_1.google.auth.GoogleAuth({
+    const auth = new google.auth.GoogleAuth({
         credentials,
         scopes: [
             'https://www.googleapis.com/auth/spreadsheets',
             'https://www.googleapis.com/auth/drive',
         ],
     });
-    sheetsClient = googleapis_1.google.sheets({ version: 'v4', auth });
+    sheetsClient = google.sheets({ version: 'v4', auth });
     return sheetsClient;
 }
 /**
@@ -48,7 +49,7 @@ function getSpreadsheetId() {
  */
 async function getOrCreateSheet(sheetName) {
     var _a, _b, _c, _d, _e, _f;
-    const sheets = getSheetsClient();
+    const sheets = await getSheetsClient();
     const spreadsheetId = getSpreadsheetId();
     // Get all sheets
     const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
@@ -79,7 +80,7 @@ async function getOrCreateSheet(sheetName) {
  * Clear all data from a sheet
  */
 async function clearSheet(sheetName) {
-    const sheets = getSheetsClient();
+    const sheets = await getSheetsClient();
     const spreadsheetId = getSpreadsheetId();
     await sheets.spreadsheets.values.clear({
         spreadsheetId,
@@ -90,7 +91,7 @@ async function clearSheet(sheetName) {
  * Write data to a sheet (replaces all existing data)
  */
 async function writeToSheet(sheetName, data) {
-    const sheets = getSheetsClient();
+    const sheets = await getSheetsClient();
     const spreadsheetId = getSpreadsheetId();
     // Ensure sheet exists
     await getOrCreateSheet(sheetName);
@@ -110,7 +111,7 @@ async function writeToSheet(sheetName, data) {
  * Append a row to a sheet
  */
 async function appendToSheet(sheetName, row) {
-    const sheets = getSheetsClient();
+    const sheets = await getSheetsClient();
     const spreadsheetId = getSpreadsheetId();
     await sheets.spreadsheets.values.append({
         spreadsheetId,
@@ -123,7 +124,7 @@ async function appendToSheet(sheetName, row) {
  * Find and update a row by invoice number
  */
 async function updateRowByInvoiceNumber(sheetName, invoiceNumber, newRow) {
-    const sheets = getSheetsClient();
+    const sheets = await getSheetsClient();
     const spreadsheetId = getSpreadsheetId();
     // Get all data
     const response = await sheets.spreadsheets.values.get({
@@ -148,7 +149,7 @@ async function updateRowByInvoiceNumber(sheetName, invoiceNumber, newRow) {
  * Delete a row by invoice number
  */
 async function deleteRowByInvoiceNumber(sheetName, invoiceNumber) {
-    const sheets = getSheetsClient();
+    const sheets = await getSheetsClient();
     const spreadsheetId = getSpreadsheetId();
     // Get all data
     const response = await sheets.spreadsheets.values.get({
@@ -186,7 +187,7 @@ async function deleteRowByInvoiceNumber(sheetName, invoiceNumber) {
  * Format sheet with professional styling
  */
 async function formatHeaderRow(sheetName) {
-    const sheets = getSheetsClient();
+    const sheets = await getSheetsClient();
     const spreadsheetId = getSpreadsheetId();
     const sheetId = await getOrCreateSheet(sheetName);
     // Column indices (0-based):

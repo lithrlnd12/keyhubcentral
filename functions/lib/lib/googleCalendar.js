@@ -9,7 +9,6 @@ exports.getCalendarEvents = getCalendarEvents;
 exports.isKeyHubEvent = isKeyHubEvent;
 exports.getEventDate = getEventDate;
 exports.isEventBusy = isEventBusy;
-const googleapis_1 = require("googleapis");
 const admin = require("firebase-admin");
 // Status titles for calendar events
 exports.CALENDAR_EVENT_TITLES = {
@@ -19,14 +18,15 @@ exports.CALENDAR_EVENT_TITLES = {
 };
 // Marker to identify our events
 exports.KEYHUB_EVENT_MARKER = 'Synced from KeyHub Central';
-// Get OAuth2 client with user's tokens
-function getOAuth2Client() {
+// Get OAuth2 client with user's tokens (async to support dynamic import)
+async function getOAuth2Client() {
+    const { google } = await Promise.resolve().then(() => require('googleapis'));
     const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
         throw new Error('Google Calendar OAuth credentials not configured');
     }
-    return new googleapis_1.google.auth.OAuth2(clientId, clientSecret);
+    return new google.auth.OAuth2(clientId, clientSecret);
 }
 // Get authenticated calendar client for a user
 async function getCalendarClient(userId) {
@@ -45,7 +45,7 @@ async function getCalendarClient(userId) {
     if (!integration || !integration.enabled) {
         return null;
     }
-    const oauth2Client = getOAuth2Client();
+    const oauth2Client = await getOAuth2Client();
     oauth2Client.setCredentials({
         access_token: integration.accessToken,
         refresh_token: integration.refreshToken,
@@ -74,7 +74,9 @@ async function getCalendarClient(userId) {
             console.error('Error updating tokens for user:', userId, error);
         }
     });
-    return googleapis_1.google.calendar({ version: 'v3', auth: oauth2Client });
+    // Dynamic import for calendar
+    const { google } = await Promise.resolve().then(() => require('googleapis'));
+    return google.calendar({ version: 'v3', auth: oauth2Client });
 }
 // Create an all-day event for availability status
 async function createAvailabilityEvent(calendar, calendarId, date, // YYYY-MM-DD format

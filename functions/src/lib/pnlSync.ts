@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin';
-import { google, sheets_v4 } from 'googleapis';
+// Dynamic import to avoid deployment timeout
+import type { sheets_v4 } from 'googleapis';
 
 let sheetsClient: sheets_v4.Sheets | null = null;
 
@@ -12,10 +13,13 @@ function getPnLSpreadsheetId(): string {
   return id;
 }
 
-function getSheetsClient(): sheets_v4.Sheets {
+async function getSheetsClient(): Promise<sheets_v4.Sheets> {
   if (sheetsClient) {
     return sheetsClient;
   }
+
+  // Dynamic import to avoid deployment timeout
+  const { google } = await import('googleapis');
 
   const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (!serviceAccountKey) {
@@ -185,7 +189,7 @@ function delay(ms: number): Promise<void> {
  */
 export async function rebuildPnLSheet(): Promise<void> {
   const db = admin.firestore();
-  const sheets = getSheetsClient();
+  const sheets = await getSheetsClient();
   const spreadsheetId = getPnLSpreadsheetId();
 
   console.log('Starting P&L sheet rebuild...');

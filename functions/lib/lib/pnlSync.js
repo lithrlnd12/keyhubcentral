@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.rebuildPnLSheet = rebuildPnLSheet;
 const admin = require("firebase-admin");
-const googleapis_1 = require("googleapis");
 let sheetsClient = null;
 // P&L Spreadsheet ID (separate from invoices)
 function getPnLSpreadsheetId() {
@@ -12,23 +11,25 @@ function getPnLSpreadsheetId() {
     }
     return id;
 }
-function getSheetsClient() {
+async function getSheetsClient() {
     if (sheetsClient) {
         return sheetsClient;
     }
+    // Dynamic import to avoid deployment timeout
+    const { google } = await Promise.resolve().then(() => require('googleapis'));
     const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
     if (!serviceAccountKey) {
         throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable is not set');
     }
     const credentials = JSON.parse(serviceAccountKey);
-    const auth = new googleapis_1.google.auth.GoogleAuth({
+    const auth = new google.auth.GoogleAuth({
         credentials,
         scopes: [
             'https://www.googleapis.com/auth/spreadsheets',
             'https://www.googleapis.com/auth/drive',
         ],
     });
-    sheetsClient = googleapis_1.google.sheets({ version: 'v4', auth });
+    sheetsClient = google.sheets({ version: 'v4', auth });
     return sheetsClient;
 }
 // Get entity full name
@@ -134,7 +135,7 @@ function delay(ms) {
  */
 async function rebuildPnLSheet() {
     const db = admin.firestore();
-    const sheets = getSheetsClient();
+    const sheets = await getSheetsClient();
     const spreadsheetId = getPnLSpreadsheetId();
     console.log('Starting P&L sheet rebuild...');
     // Fetch all invoices and jobs

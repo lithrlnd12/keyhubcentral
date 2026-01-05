@@ -1,4 +1,5 @@
-import { google, calendar_v3 } from 'googleapis';
+// Dynamic import to avoid deployment timeout
+import type { calendar_v3 } from 'googleapis';
 import * as admin from 'firebase-admin';
 
 // Status titles for calendar events
@@ -11,8 +12,10 @@ export const CALENDAR_EVENT_TITLES: Record<string, string> = {
 // Marker to identify our events
 export const KEYHUB_EVENT_MARKER = 'Synced from KeyHub Central';
 
-// Get OAuth2 client with user's tokens
-function getOAuth2Client() {
+// Get OAuth2 client with user's tokens (async to support dynamic import)
+async function getOAuth2Client() {
+  const { google } = await import('googleapis');
+
   const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
 
@@ -44,7 +47,7 @@ export async function getCalendarClient(
     return null;
   }
 
-  const oauth2Client = getOAuth2Client();
+  const oauth2Client = await getOAuth2Client();
 
   oauth2Client.setCredentials({
     access_token: integration.accessToken,
@@ -79,6 +82,8 @@ export async function getCalendarClient(
     }
   });
 
+  // Dynamic import for calendar
+  const { google } = await import('googleapis');
   return google.calendar({ version: 'v3', auth: oauth2Client });
 }
 
