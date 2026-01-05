@@ -19,6 +19,13 @@ const config: Config = {
           black: '#1A1A1A',
           charcoal: '#2D2D2D',
         },
+        // Dark theme colors
+        dark: {
+          100: '#3D3D3D',
+          200: '#2D2D2D',
+          300: '#1A1A1A',
+          400: '#121212',
+        },
         // Semantic colors
         primary: {
           50: '#FDF9F0',
@@ -35,6 +42,15 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      animation: {
+        'slide-up': 'slideUp 0.3s ease-out',
+      },
+      keyframes: {
+        slideUp: {
+          '0%': { transform: 'translateY(100%)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
       },
     },
   },

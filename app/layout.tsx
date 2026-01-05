@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/lib/hooks';
 import { ToastProvider } from '@/components/ui/Toast';
+import { PWAInstallPrompt } from '@/components/ui';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -50,7 +51,10 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <AuthProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            {children}
+            <PWAInstallPrompt />
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>
