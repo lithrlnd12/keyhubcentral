@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { GoogleCalendarConnect } from '@/components/integrations';
+import { NotificationSettings } from '@/components/settings';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/lib/hooks';
 
@@ -51,16 +52,6 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* Integrations Section */}
-      {canUseCalendarSync && (
-        <section>
-          <h2 className="text-lg font-semibold text-white mb-4">Integrations</h2>
-          <div className="space-y-4">
-            <GoogleCalendarConnect returnUrl="/settings" />
-          </div>
-        </section>
-      )}
-
       {/* Account Info */}
       <section>
         <h2 className="text-lg font-semibold text-white mb-4">Account</h2>
@@ -83,6 +74,22 @@ export default function SettingsPage() {
           </div>
         </Card>
       </section>
+
+      {/* Notifications Section */}
+      <section>
+        <h2 className="text-lg font-semibold text-white mb-4">Notifications</h2>
+        <NotificationSettings />
+      </section>
+
+      {/* Integrations Section */}
+      {canUseCalendarSync && (
+        <section>
+          <h2 className="text-lg font-semibold text-white mb-4">Integrations</h2>
+          <div className="space-y-4">
+            <GoogleCalendarConnect returnUrl="/settings" />
+          </div>
+        </section>
+      )}
 
       {/* How It Works Section - Only show if they can use calendar sync */}
       {canUseCalendarSync && (

@@ -21,12 +21,23 @@ export {
 
 // Email triggers
 export { sendInvoiceEmail } from './triggers/emailTriggers';
+export { onLeadCreated } from './triggers/leadEmailTriggers';
 
 // Availability & Calendar sync triggers
 export { onAvailabilityChange } from './triggers/availabilityTriggers';
 
 // Calendar sync scheduled tasks
 export { syncCalendarToApp, manualCalendarSync } from './scheduled/calendarSync';
+
+// Notification triggers
+export {
+  dailyExpirationCheck,
+  onLeadAssigned,
+  onJobAssigned,
+  onUserPendingApproval,
+  onInvoiceOverdue,
+  testNotification,
+} from './triggers/notificationTriggers';
 
 admin.initializeApp();
 
@@ -35,15 +46,16 @@ const ADMIN_EMAILS = [
   'aaron@innovativeaiconsulting.com',
 ];
 
-// Configure email transporter
-// For production, use Gmail OAuth2 or a service like SendGrid/Resend
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD, // Use App Password, not regular password
-  },
-});
+// Configure email transporter (lazy initialization to avoid deployment timeout)
+function getTransporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+}
 
 // Trigger when a new user document is created in Firestore
 export const onUserCreated = functions.firestore
@@ -104,7 +116,7 @@ export const onUserCreated = functions.firestore
     };
 
     try {
-      await transporter.sendMail(mailOptions);
+      await getTransporter().sendMail(mailOptions);
       console.log(`Notification email sent for new user: ${userData.email}`);
       return null;
     } catch (error) {
@@ -165,7 +177,7 @@ export const onUserApproved = functions.firestore
       };
 
       try {
-        await transporter.sendMail(mailOptions);
+        await getTransporter().sendMail(mailOptions);
         console.log(`Approval email sent to: ${afterData.email}`);
       } catch (error) {
         console.error('Error sending approval email:', error);

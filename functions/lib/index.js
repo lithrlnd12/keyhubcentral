@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onUserApproved = exports.onUserCreated = exports.manualCalendarSync = exports.syncCalendarToApp = exports.onAvailabilityChange = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
+exports.onUserApproved = exports.onUserCreated = exports.testNotification = exports.onInvoiceOverdue = exports.onUserPendingApproval = exports.onJobAssigned = exports.onLeadAssigned = exports.dailyExpirationCheck = exports.manualCalendarSync = exports.syncCalendarToApp = exports.onAvailabilityChange = exports.onLeadCreated = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -20,6 +20,8 @@ Object.defineProperty(exports, "triggerPnLRebuild", { enumerable: true, get: fun
 // Email triggers
 var emailTriggers_1 = require("./triggers/emailTriggers");
 Object.defineProperty(exports, "sendInvoiceEmail", { enumerable: true, get: function () { return emailTriggers_1.sendInvoiceEmail; } });
+var leadEmailTriggers_1 = require("./triggers/leadEmailTriggers");
+Object.defineProperty(exports, "onLeadCreated", { enumerable: true, get: function () { return leadEmailTriggers_1.onLeadCreated; } });
 // Availability & Calendar sync triggers
 var availabilityTriggers_1 = require("./triggers/availabilityTriggers");
 Object.defineProperty(exports, "onAvailabilityChange", { enumerable: true, get: function () { return availabilityTriggers_1.onAvailabilityChange; } });
@@ -27,20 +29,29 @@ Object.defineProperty(exports, "onAvailabilityChange", { enumerable: true, get: 
 var calendarSync_1 = require("./scheduled/calendarSync");
 Object.defineProperty(exports, "syncCalendarToApp", { enumerable: true, get: function () { return calendarSync_1.syncCalendarToApp; } });
 Object.defineProperty(exports, "manualCalendarSync", { enumerable: true, get: function () { return calendarSync_1.manualCalendarSync; } });
+// Notification triggers
+var notificationTriggers_1 = require("./triggers/notificationTriggers");
+Object.defineProperty(exports, "dailyExpirationCheck", { enumerable: true, get: function () { return notificationTriggers_1.dailyExpirationCheck; } });
+Object.defineProperty(exports, "onLeadAssigned", { enumerable: true, get: function () { return notificationTriggers_1.onLeadAssigned; } });
+Object.defineProperty(exports, "onJobAssigned", { enumerable: true, get: function () { return notificationTriggers_1.onJobAssigned; } });
+Object.defineProperty(exports, "onUserPendingApproval", { enumerable: true, get: function () { return notificationTriggers_1.onUserPendingApproval; } });
+Object.defineProperty(exports, "onInvoiceOverdue", { enumerable: true, get: function () { return notificationTriggers_1.onInvoiceOverdue; } });
+Object.defineProperty(exports, "testNotification", { enumerable: true, get: function () { return notificationTriggers_1.testNotification; } });
 admin.initializeApp();
 // Admin emails to notify when new users sign up
 const ADMIN_EMAILS = [
     'aaron@innovativeaiconsulting.com',
 ];
-// Configure email transporter
-// For production, use Gmail OAuth2 or a service like SendGrid/Resend
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD, // Use App Password, not regular password
-    },
-});
+// Configure email transporter (lazy initialization to avoid deployment timeout)
+function getTransporter() {
+    return nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.GMAIL_USER,
+            pass: process.env.GMAIL_APP_PASSWORD,
+        },
+    });
+}
 // Trigger when a new user document is created in Firestore
 exports.onUserCreated = functions.firestore
     .document('users/{userId}')
@@ -97,7 +108,7 @@ exports.onUserCreated = functions.firestore
       `,
     };
     try {
-        await transporter.sendMail(mailOptions);
+        await getTransporter().sendMail(mailOptions);
         console.log(`Notification email sent for new user: ${userData.email}`);
         return null;
     }
@@ -157,7 +168,7 @@ exports.onUserApproved = functions.firestore
         `,
         };
         try {
-            await transporter.sendMail(mailOptions);
+            await getTransporter().sendMail(mailOptions);
             console.log(`Approval email sent to: ${afterData.email}`);
         }
         catch (error) {

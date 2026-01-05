@@ -16,22 +16,124 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Priority-based notification settings
+const NOTIFICATION_CONFIG = {
+  urgent: { requireInteraction: true, silent: false },
+  high: { requireInteraction: true, silent: false },
+  medium: { requireInteraction: false, silent: false },
+  low: { requireInteraction: false, silent: true },
+};
+
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
-  const notificationTitle = payload.notification?.title || 'KeyHub Central';
+  const data = payload.data || {};
+  const priority = data.priority || 'medium';
+  const config = NOTIFICATION_CONFIG[priority] || NOTIFICATION_CONFIG.medium;
+
+  const notificationTitle = payload.notification?.title || data.title || 'KeyHub Central';
   const notificationOptions = {
-    body: payload.notification?.body || '',
+    body: payload.notification?.body || data.body || '',
     icon: '/logo.svg',
     badge: '/logo.svg',
-    data: payload.data,
-    tag: payload.data?.type || 'default',
-    requireInteraction: true,
+    data: data,
+    tag: data.type || 'default',
+    requireInteraction: config.requireInteraction,
+    silent: config.silent,
+    actions: getNotificationActions(data.type),
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
+
+// Get actions based on notification type
+function getNotificationActions(type) {
+  switch (type) {
+    case 'lead_assigned':
+    case 'lead_hot':
+      return [
+        { action: 'view', title: 'View Lead' },
+        { action: 'dismiss', title: 'Dismiss' },
+      ];
+    case 'job_assigned':
+    case 'job_schedule_changed':
+      return [
+        { action: 'view', title: 'View Job' },
+        { action: 'dismiss', title: 'Dismiss' },
+      ];
+    case 'insurance_expiring_7':
+    case 'insurance_expired':
+      return [
+        { action: 'upload', title: 'Upload Now' },
+        { action: 'remind', title: 'Remind Later' },
+      ];
+    case 'user_pending_approval':
+      return [
+        { action: 'review', title: 'Review' },
+        { action: 'dismiss', title: 'Dismiss' },
+      ];
+    default:
+      return [
+        { action: 'view', title: 'View' },
+        { action: 'dismiss', title: 'Dismiss' },
+      ];
+  }
+}
+
+// Get URL based on notification type and data
+function getNotificationUrl(data) {
+  const type = data.type || '';
+
+  switch (type) {
+    // Compliance
+    case 'insurance_expiring_30':
+    case 'insurance_expiring_7':
+    case 'insurance_expired':
+    case 'license_expiring':
+    case 'w9_needed':
+      return data.actionUrl || '/portal/documents';
+    case 'background_check_complete':
+    case 'background_check_flagged':
+      return data.applicantId ? `/recruiting/applicants/${data.applicantId}` : '/admin';
+
+    // Jobs
+    case 'job_assigned':
+    case 'job_schedule_changed':
+    case 'job_starting_tomorrow':
+    case 'job_status_updated':
+    case 'job_completed':
+      return data.jobId ? `/kr/${data.jobId}` : '/kr';
+    case 'service_ticket_created':
+      return data.ticketId ? `/kr/service/${data.ticketId}` : '/kr';
+
+    // Leads
+    case 'lead_assigned':
+    case 'lead_hot':
+    case 'lead_not_contacted':
+    case 'lead_replacement_ready':
+      return data.leadId ? `/kd/leads/${data.leadId}` : '/kd';
+
+    // Financial
+    case 'payment_received':
+    case 'commission_earned':
+      return '/financials/earnings';
+    case 'invoice_overdue':
+      return data.invoiceId ? `/financials/invoices/${data.invoiceId}` : '/financials/invoices';
+    case 'subscription_renewal':
+    case 'subscription_payment_failed':
+      return '/subscriber/subscription';
+
+    // Admin
+    case 'user_pending_approval':
+      return '/admin';
+    case 'new_applicant':
+      return data.applicantId ? `/recruiting/applicants/${data.applicantId}` : '/recruiting';
+
+    default:
+      return data.actionUrl || '/overview';
+  }
+}
 
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
@@ -39,29 +141,20 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   const data = event.notification.data || {};
-  let url = '/overview';
+  const action = event.action;
 
-  // Navigate based on notification type
-  switch (data.type) {
-    case 'new_lead':
-      url = data.leadId ? `/kd/leads/${data.leadId}` : '/kd';
-      break;
-    case 'job_update':
-      url = data.jobId ? `/kr/${data.jobId}` : '/kr';
-      break;
-    case 'invoice_paid':
-    case 'invoice_overdue':
-      url = data.invoiceId ? `/financials/invoices/${data.invoiceId}` : '/financials';
-      break;
-    case 'contractor_approved':
-      url = '/portal';
-      break;
-    case 'assignment':
-      url = data.jobId ? `/portal/jobs` : '/portal';
-      break;
-    default:
-      url = '/overview';
+  // Handle specific actions
+  if (action === 'dismiss') {
+    return;
   }
+
+  if (action === 'remind') {
+    // Could schedule a reminder, for now just dismiss
+    return;
+  }
+
+  // Get URL based on notification type
+  const url = getNotificationUrl(data);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
