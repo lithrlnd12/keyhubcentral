@@ -288,7 +288,7 @@ export default function ReceiptDetailPage() {
           <h3 className="text-purple-400 font-medium mb-2">Review & Categorize Items</h3>
           <p className="text-gray-400 text-sm">
             Link each item to existing inventory or assign a category (Material/Tool).
-            Click "Verify & Save" when done.
+            Click &quot;Verify &amp; Save&quot; when done.
           </p>
         </div>
       )}
