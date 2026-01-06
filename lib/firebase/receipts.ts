@@ -172,6 +172,18 @@ export async function updateReceiptVendor(
   await updateDoc(docRef, updateData);
 }
 
+export async function updateReceiptLocation(
+  id: string,
+  locationId: string,
+  locationName: string
+): Promise<void> {
+  const docRef = doc(db, COLLECTION, id);
+  await updateDoc(docRef, {
+    locationId,
+    locationName,
+  });
+}
+
 export async function verifyReceipt(
   id: string,
   verifiedBy: string

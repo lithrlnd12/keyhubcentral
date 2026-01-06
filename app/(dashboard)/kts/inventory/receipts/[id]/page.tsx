@@ -19,12 +19,13 @@ import {
   Plus,
   X,
 } from 'lucide-react';
-import { getReceipt, verifyReceipt, linkReceiptItemToInventory } from '@/lib/firebase/receipts';
+import { getReceipt, verifyReceipt, linkReceiptItemToInventory, updateReceiptLocation } from '@/lib/firebase/receipts';
 import { addStockFromReceipt } from '@/lib/firebase/inventoryStock';
+import { createInventoryItem } from '@/lib/firebase/inventory';
 import { Receipt as ReceiptType, ReceiptItem, getReceiptStatusLabel, getReceiptStatusColor, InventoryItem, InventoryCategory } from '@/types/inventory';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
-import { useAuth, useInventoryItems } from '@/lib/hooks';
+import { useAuth, useInventoryItems, useInventoryLocations } from '@/lib/hooks';
 
 interface ItemLinkState {
   itemIndex: number;
@@ -50,6 +51,9 @@ export default function ReceiptDetailPage() {
 
   // Fetch inventory items for linking
   const { items: inventoryItems } = useInventoryItems({ realtime: true });
+
+  // Fetch locations for stock assignment
+  const { locations } = useInventoryLocations({ realtime: true });
 
   useEffect(() => {
     const fetchReceipt = async () => {
@@ -100,32 +104,54 @@ export default function ReceiptDetailPage() {
 
       // Save all item links and update inventory stock
       for (const [index, link] of linkEntries) {
-        if (link.inventoryItemId && link.inventoryItemName) {
-          // Link receipt item to inventory
+        const receiptItem = receiptItems[index];
+        if (!receiptItem) continue;
+
+        let inventoryItemId = link.inventoryItemId;
+        let inventoryItemName = link.inventoryItemName;
+        let parLevel = 0;
+
+        // If this is a new item (has category but no inventory link), create it
+        if (link.isNew && link.category && !link.inventoryItemId) {
+          const newItemId = await createInventoryItem({
+            name: receiptItem.description,
+            category: link.category,
+            unitOfMeasure: 'each',
+            parLevel: receiptItem.quantity, // Set par level to initial quantity
+            cost: receiptItem.unitPrice || undefined,
+            createdBy: user.uid,
+          });
+
+          inventoryItemId = newItemId;
+          inventoryItemName = receiptItem.description;
+          parLevel = receiptItem.quantity;
+        } else if (link.inventoryItemId) {
+          // Get par level from existing inventory item
+          const invItem = inventoryItems.find(i => i.id === link.inventoryItemId);
+          parLevel = invItem?.parLevel || 0;
+        }
+
+        // Link receipt item to inventory if we have an ID
+        if (inventoryItemId && inventoryItemName) {
           await linkReceiptItemToInventory(
             receiptId,
             index,
-            link.inventoryItemId,
-            link.inventoryItemName
+            inventoryItemId,
+            inventoryItemName
           );
 
           // If receipt has a location, add stock
           if (receipt.locationId && receipt.locationName) {
-            const receiptItem = receiptItems[index];
-            const invItem = inventoryItems.find(i => i.id === link.inventoryItemId);
-
-            if (receiptItem && invItem) {
-              await addStockFromReceipt(
-                link.inventoryItemId,
-                receipt.locationId,
-                receiptItem.quantity,
-                link.inventoryItemName,
-                receipt.locationName,
-                invItem.parLevel,
-                user.uid,
-                user.displayName || 'Unknown'
-              );
-            }
+            await addStockFromReceipt(
+              inventoryItemId,
+              receipt.locationId,
+              receiptItem.quantity,
+              inventoryItemName,
+              receipt.locationName,
+              parLevel,
+              user.uid,
+              user.displayName || 'Unknown'
+            );
           }
         }
       }
@@ -318,6 +344,17 @@ export default function ReceiptDetailPage() {
         </div>
       )}
 
+      {/* Warning if no location selected */}
+      {receipt.status === 'parsed' && !receipt.locationId && (
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
+          <h3 className="text-yellow-400 font-medium mb-2">No Location Selected</h3>
+          <p className="text-gray-400 text-sm">
+            Select a location in the Summary section to add items to inventory stock.
+            Without a location, items will be created but stock levels won&apos;t be tracked.
+          </p>
+        </div>
+      )}
+
       {/* Error Message */}
       {receipt.status === 'error' && receipt.errorMessage && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
@@ -384,12 +421,31 @@ export default function ReceiptDetailPage() {
                     (receipt.purchaseDate ? receipt.purchaseDate.toDate().toLocaleDateString() : '-')}
                 </span>
               </div>
-              {receipt.locationName && (
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Location</span>
-                  <span className="text-white">{receipt.locationName}</span>
-                </div>
-              )}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Location</span>
+                {canEdit ? (
+                  <select
+                    value={receipt.locationId || ''}
+                    onChange={async (e) => {
+                      const loc = locations.find(l => l.id === e.target.value);
+                      if (loc) {
+                        await updateReceiptLocation(receiptId, loc.id, loc.name);
+                        setReceipt({ ...receipt, locationId: loc.id, locationName: loc.name });
+                      }
+                    }}
+                    className="px-3 py-1 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-gold"
+                  >
+                    <option value="">Select location...</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-white">{receipt.locationName || '-'}</span>
+                )}
+              </div>
               <hr className="border-gray-700" />
               <div className="flex justify-between">
                 <span className="text-gray-400">Subtotal</span>
