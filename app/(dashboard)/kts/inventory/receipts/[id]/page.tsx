@@ -100,6 +100,57 @@ export default function ReceiptDetailPage() {
     fetchReceipt();
   }, [receiptId]);
 
+  // Auto-match receipt items to existing inventory when both are loaded
+  useEffect(() => {
+    if (!receipt || inventoryItems.length === 0 || receipt.status !== 'parsed') return;
+
+    const parsedItems = receipt.parsedData?.items || [];
+    const newLinks = new Map(itemLinks);
+    let hasChanges = false;
+
+    parsedItems.forEach((item, index) => {
+      // Skip if already linked
+      if (newLinks.has(index) && newLinks.get(index)?.inventoryItemId) return;
+
+      // Try to find a match
+      const descLower = item.description.toLowerCase();
+      const words = descLower.split(/\s+/).filter(w => w.length > 2);
+
+      // Find the best matching inventory item
+      const scoredItems = inventoryItems.map(invItem => {
+        const nameLower = invItem.name.toLowerCase();
+        let score = 0;
+
+        if (nameLower === descLower) score = 100;
+        else if (descLower.includes(nameLower) || nameLower.includes(descLower)) score = 50;
+        else {
+          words.forEach(word => {
+            if (nameLower.includes(word)) score += 10;
+          });
+        }
+
+        return { item: invItem, score };
+      });
+
+      const bestMatch = scoredItems.filter(s => s.score > 20).sort((a, b) => b.score - a.score)[0];
+
+      // If we found a good match (score > 20), auto-link it
+      if (bestMatch) {
+        newLinks.set(index, {
+          itemIndex: index,
+          inventoryItemId: bestMatch.item.id,
+          inventoryItemName: bestMatch.item.name,
+          category: bestMatch.item.category,
+        });
+        hasChanges = true;
+      }
+    });
+
+    if (hasChanges) {
+      setItemLinks(newLinks);
+    }
+  }, [receipt, inventoryItems]);
+
   const handleVerify = async () => {
     if (!receipt || !user) return;
     setVerifying(true);
@@ -270,6 +321,42 @@ export default function ReceiptDetailPage() {
       newLinks.delete(itemIndex);
       return newLinks;
     });
+  };
+
+  // Find matching inventory items based on description similarity
+  const findMatchingItems = (description: string) => {
+    if (!description || inventoryItems.length === 0) return { matches: [], others: inventoryItems };
+
+    const descLower = description.toLowerCase();
+    const words = descLower.split(/\s+/).filter(w => w.length > 2);
+
+    const scored = inventoryItems.map(item => {
+      const nameLower = item.name.toLowerCase();
+      let score = 0;
+
+      // Exact match
+      if (nameLower === descLower) score += 100;
+      // Contains full name
+      else if (descLower.includes(nameLower) || nameLower.includes(descLower)) score += 50;
+      // Word matches
+      else {
+        words.forEach(word => {
+          if (nameLower.includes(word)) score += 10;
+        });
+        // Also check if item name words match description
+        const itemWords = nameLower.split(/\s+/).filter(w => w.length > 2);
+        itemWords.forEach(word => {
+          if (descLower.includes(word)) score += 10;
+        });
+      }
+
+      return { item, score };
+    });
+
+    const matches = scored.filter(s => s.score > 0).sort((a, b) => b.score - a.score).map(s => s.item);
+    const others = scored.filter(s => s.score === 0).map(s => s.item);
+
+    return { matches, others };
   };
 
   if (loading) {
@@ -639,29 +726,67 @@ export default function ReceiptDetailPage() {
                                   <X className="h-4 w-4" />
                                 </button>
                               </div>
-                              <div className="max-h-40 overflow-y-auto space-y-1">
-                                {inventoryItems.map((invItem) => (
-                                  <button
-                                    key={invItem.id}
-                                    onClick={() => handleLinkItem(index, invItem)}
-                                    className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-sm rounded hover:bg-gray-800 transition-colors"
-                                  >
-                                    {invItem.category === 'material' ? (
-                                      <Package className="h-4 w-4 text-gold" />
-                                    ) : (
-                                      <Wrench className="h-4 w-4 text-blue-400" />
-                                    )}
-                                    <span className="text-white">{invItem.name}</span>
-                                    <span className="text-gray-500 text-xs ml-auto capitalize">
-                                      {invItem.category}
-                                    </span>
-                                  </button>
-                                ))}
-                                {inventoryItems.length === 0 && (
-                                  <p className="text-gray-500 text-sm py-2 text-center">
-                                    No inventory items yet
-                                  </p>
-                                )}
+                              <div className="max-h-48 overflow-y-auto space-y-1">
+                                {(() => {
+                                  const { matches, others } = findMatchingItems(item.description);
+                                  return (
+                                    <>
+                                      {matches.length > 0 && (
+                                        <>
+                                          <p className="text-green-400 text-xs font-medium px-2 py-1 bg-green-500/10 rounded">
+                                            Suggested matches:
+                                          </p>
+                                          {matches.map((invItem) => (
+                                            <button
+                                              key={invItem.id}
+                                              onClick={() => handleLinkItem(index, invItem)}
+                                              className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-sm rounded bg-green-500/5 hover:bg-green-500/20 border border-green-500/20 transition-colors"
+                                            >
+                                              {invItem.category === 'material' ? (
+                                                <Package className="h-4 w-4 text-gold" />
+                                              ) : (
+                                                <Wrench className="h-4 w-4 text-blue-400" />
+                                              )}
+                                              <span className="text-white">{invItem.name}</span>
+                                              <span className="text-green-400 text-xs ml-auto">
+                                                + Add to count
+                                              </span>
+                                            </button>
+                                          ))}
+                                        </>
+                                      )}
+                                      {others.length > 0 && (
+                                        <>
+                                          {matches.length > 0 && (
+                                            <p className="text-gray-500 text-xs px-2 pt-2">Other items:</p>
+                                          )}
+                                          {others.map((invItem) => (
+                                            <button
+                                              key={invItem.id}
+                                              onClick={() => handleLinkItem(index, invItem)}
+                                              className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-sm rounded hover:bg-gray-800 transition-colors"
+                                            >
+                                              {invItem.category === 'material' ? (
+                                                <Package className="h-4 w-4 text-gold" />
+                                              ) : (
+                                                <Wrench className="h-4 w-4 text-blue-400" />
+                                              )}
+                                              <span className="text-white">{invItem.name}</span>
+                                              <span className="text-gray-500 text-xs ml-auto capitalize">
+                                                {invItem.category}
+                                              </span>
+                                            </button>
+                                          ))}
+                                        </>
+                                      )}
+                                      {inventoryItems.length === 0 && (
+                                        <p className="text-gray-500 text-sm py-2 text-center">
+                                          No inventory items yet
+                                        </p>
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </div>
                               <div className="flex gap-2 pt-2 border-t border-gray-800">
                                 <span className="text-gray-400 text-xs">Or set as new:</span>
