@@ -7,6 +7,7 @@ export type UserRole =
   | 'contractor'
   | 'pm'
   | 'subscriber'
+  | 'partner'
   | 'pending';
 
 export type UserStatus = 'pending' | 'active' | 'inactive' | 'suspended';
@@ -18,6 +19,7 @@ export interface UserProfile {
   phone: string | null;
   role: UserRole;
   status: UserStatus;
+  partnerId?: string | null; // For partner role users - links to partner company
   createdAt: Timestamp;
   approvedAt: Timestamp | null;
   approvedBy: string | null;
@@ -37,6 +39,7 @@ export interface AuthContextType {
 // Permission helpers
 export const ADMIN_ROLES: UserRole[] = ['owner', 'admin'];
 export const INTERNAL_ROLES: UserRole[] = ['owner', 'admin', 'sales_rep', 'contractor', 'pm'];
+export const EXTERNAL_ROLES: UserRole[] = ['subscriber', 'partner'];
 
 export function canAccessDashboard(role: UserRole): boolean {
   return INTERNAL_ROLES.includes(role);
@@ -59,5 +62,13 @@ export function canViewFinancials(role: UserRole): boolean {
 }
 
 export function canManageCampaigns(role: UserRole): boolean {
+  return ADMIN_ROLES.includes(role);
+}
+
+export function isPartner(role: UserRole): boolean {
+  return role === 'partner';
+}
+
+export function canManagePartnerRequests(role: UserRole): boolean {
   return ADMIN_ROLES.includes(role);
 }

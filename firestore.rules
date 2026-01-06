@@ -31,6 +31,15 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function isPartner() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'partner';
+    }
+
+    function getUserPartnerId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.partnerId;
+    }
+
     // Users collection
     match /users/{userId} {
       // Anyone can create their own user document (signup)
@@ -165,6 +174,57 @@ service cloud.firestore {
       allow read: if isInternalUser();
 
       allow create, update: if isAdmin();
+      allow delete: if isOwner();
+    }
+
+    // Partners collection - External partner companies
+    match /partners/{partnerId} {
+      // Admins can read all partners
+      allow read: if isAdmin();
+
+      // Partners can read their own partner record
+      allow read: if isPartner() && getUserPartnerId() == partnerId;
+
+      // Only admins can create/update partners
+      allow create, update: if isAdmin();
+      allow delete: if isOwner();
+    }
+
+    // Labor Requests collection - Partner work requests
+    match /laborRequests/{requestId} {
+      // Admins can read all labor requests
+      allow read: if isAdmin();
+
+      // Partners can read their own company's requests
+      allow read: if isPartner() && resource.data.partnerId == getUserPartnerId();
+
+      // Partners can create requests for their own company
+      allow create: if isPartner() &&
+        isActiveUser() &&
+        request.resource.data.partnerId == getUserPartnerId() &&
+        request.resource.data.status == 'new';
+
+      // Only admins can update (assign, change status)
+      allow update: if isAdmin();
+      allow delete: if isOwner();
+    }
+
+    // Partner Service Tickets collection
+    match /partnerServiceTickets/{ticketId} {
+      // Admins can read all partner tickets
+      allow read: if isAdmin();
+
+      // Partners can read their own company's tickets
+      allow read: if isPartner() && resource.data.partnerId == getUserPartnerId();
+
+      // Partners can create tickets for their own company
+      allow create: if isPartner() &&
+        isActiveUser() &&
+        request.resource.data.partnerId == getUserPartnerId() &&
+        request.resource.data.status == 'new';
+
+      // Only admins can update (assign, change status)
+      allow update: if isAdmin();
       allow delete: if isOwner();
     }
   }

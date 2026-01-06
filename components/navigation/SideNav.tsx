@@ -19,7 +19,7 @@ import {
 import { Logo } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
-import { canManageUsers, canViewFinancials, canManageCampaigns, UserRole } from '@/types/user';
+import { canManageUsers, canViewFinancials, canManageCampaigns, canManagePartnerRequests, isPartner, UserRole } from '@/types/user';
 
 // Contractor can access portal
 const isContractor = (role: UserRole): boolean => role === 'contractor';
@@ -44,11 +44,14 @@ const canAccessSettings = (role: UserRole): boolean =>
 const navItems: NavItem[] = [
   { label: 'Overview', href: '/overview', icon: LayoutDashboard, permission: isInternalStaff },
   { label: 'Portal', href: '/portal', icon: UserCircle, permission: isContractor },
+  { label: 'Partner Portal', href: '/partner', icon: Briefcase, permission: isPartner },
   { label: 'My Leads', href: '/subscriber', icon: Users, permission: isSubscriber },
   { label: 'KTS', href: '/kts', icon: Wrench, permission: isInternalStaff },
   { label: 'Key Renovations', href: '/kr', icon: Building2, permission: isInternalStaff },
   { label: 'Keynote Digital', href: '/kd', icon: Target, permission: canManageCampaigns },
   { label: 'Financials', href: '/financials', icon: FileText, permission: canViewFinancials },
+  { label: 'Partners', href: '/admin/partners', icon: Briefcase, permission: canManagePartnerRequests },
+  { label: 'Partner Requests', href: '/admin/partner-requests', icon: Users, permission: canManagePartnerRequests },
   { label: 'Admin', href: '/admin', icon: Settings, permission: canManageUsers },
   { label: 'Settings', href: '/settings', icon: Cog, permission: canAccessSettings },
 ];

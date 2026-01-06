@@ -11,6 +11,8 @@ import {
   UserCircle,
   Users,
   CreditCard,
+  ClipboardList,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks';
@@ -46,18 +48,29 @@ const subscriberNavItems: NavItem[] = [
   { label: 'Profile', href: '/profile', icon: User },
 ];
 
+// Partner nav items
+const partnerNavItems: NavItem[] = [
+  { label: 'Home', href: '/partner', icon: LayoutDashboard },
+  { label: 'Labor', href: '/partner/labor-requests', icon: Wrench },
+  { label: 'Service', href: '/partner/service-tickets', icon: ClipboardList },
+  { label: 'History', href: '/partner/history', icon: History },
+];
+
 export function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
 
   const isContractor = user?.role === 'contractor';
   const isSubscriber = user?.role === 'subscriber';
+  const isPartner = user?.role === 'partner';
 
   // Get appropriate nav items based on role
   const baseItems = isContractor
     ? contractorNavItems
     : isSubscriber
     ? subscriberNavItems
+    : isPartner
+    ? partnerNavItems
     : internalNavItems;
 
   // Filter items based on user role for mobile
@@ -68,6 +81,8 @@ export function BottomNav() {
     if (isContractor) return true;
     // For subscribers, show all subscriber items
     if (isSubscriber) return true;
+    // For partners, show all partner items
+    if (isPartner) return true;
     // KD only for admin roles
     if (item.href === '/kd') {
       return user?.role && ['owner', 'admin'].includes(user.role);

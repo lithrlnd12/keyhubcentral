@@ -4,7 +4,7 @@ import { getAdminAuth, getAdminDb } from '@/lib/firebase/admin';
 // POST - Set user role as custom claim (for Storage rules)
 export async function POST(request: NextRequest) {
   try {
-    const { uid, role, callerUid } = await request.json();
+    const { uid, role, callerUid, partnerId } = await request.json();
 
     if (!uid || !role || !callerUid) {
       return NextResponse.json(
@@ -28,10 +28,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate role
-    const validRoles = ['owner', 'admin', 'sales_rep', 'contractor', 'pm', 'subscriber', 'pending'];
+    const validRoles = ['owner', 'admin', 'sales_rep', 'contractor', 'pm', 'subscriber', 'partner', 'pending'];
     if (!validRoles.includes(role)) {
       return NextResponse.json(
         { error: 'Invalid role' },
+        { status: 400 }
+      );
+    }
+
+    // Validate partnerId is provided for partner role
+    if (role === 'partner' && !partnerId) {
+      return NextResponse.json(
+        { error: 'partnerId is required for partner role' },
         { status: 400 }
       );
     }
@@ -41,6 +49,8 @@ export async function POST(request: NextRequest) {
       role,
       isAdmin: ['owner', 'admin'].includes(role),
       isInternal: ['owner', 'admin', 'sales_rep', 'contractor', 'pm'].includes(role),
+      isPartner: role === 'partner',
+      partnerId: role === 'partner' ? partnerId : null,
     });
 
     console.log(`Custom claims set for user ${uid}: role=${role}`);

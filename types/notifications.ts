@@ -42,7 +42,12 @@ export type NotificationType =
   // Admin
   | 'user_pending_approval'
   | 'new_applicant'
-  | 'system_alert';
+  | 'system_alert'
+  // Partner
+  | 'partner_labor_request_new'
+  | 'partner_labor_request_status_changed'
+  | 'partner_ticket_new'
+  | 'partner_ticket_status_changed';
 
 // Map notification types to categories
 export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCategory> = {
@@ -76,6 +81,11 @@ export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCateg
   user_pending_approval: 'admin',
   new_applicant: 'admin',
   system_alert: 'admin',
+  // Partner
+  partner_labor_request_new: 'admin',
+  partner_labor_request_status_changed: 'admin',
+  partner_ticket_new: 'admin',
+  partner_ticket_status_changed: 'admin',
 };
 
 // Map notification types to priorities
@@ -110,6 +120,11 @@ export const NOTIFICATION_PRIORITIES: Record<NotificationType, NotificationPrior
   user_pending_approval: 'high',
   new_applicant: 'medium',
   system_alert: 'medium',
+  // Partner
+  partner_labor_request_new: 'high',
+  partner_labor_request_status_changed: 'medium',
+  partner_ticket_new: 'high',
+  partner_ticket_status_changed: 'medium',
 };
 
 // Quiet hours configuration
@@ -152,6 +167,7 @@ export interface AdminPreferences {
   userApprovals: boolean;
   newApplicants: boolean;
   systemAlerts: boolean;
+  partnerRequests: boolean;
 }
 
 // Complete notification preferences
@@ -252,6 +268,7 @@ export function getDefaultPreferences(role: string): NotificationPreferences {
       userApprovals: false,
       newApplicants: false,
       systemAlerts: false,
+      partnerRequests: false,
     },
   };
 
@@ -273,6 +290,7 @@ export function getDefaultPreferences(role: string): NotificationPreferences {
           userApprovals: true,
           newApplicants: true,
           systemAlerts: true,
+          partnerRequests: true,
         },
       };
 
@@ -322,6 +340,30 @@ export function getDefaultPreferences(role: string): NotificationPreferences {
           scheduleChanges: false,
           dayBeforeReminders: false,
           statusUpdates: false,
+        },
+      };
+
+    case 'partner':
+      return {
+        ...basePreferences,
+        pushEnabled: true,
+        compliance: {
+          insuranceExpiring: false,
+          licenseExpiring: false,
+          w9Reminders: false,
+          backgroundCheckUpdates: false,
+        },
+        jobs: {
+          newAssignments: false,
+          scheduleChanges: false,
+          dayBeforeReminders: false,
+          statusUpdates: true, // Partners want status updates on their requests
+        },
+        leads: {
+          newLeads: false,
+          hotLeadsOnly: false,
+          inactivityReminders: false,
+          leadReplacements: false,
         },
       };
 
@@ -476,6 +518,28 @@ export function getNotificationTemplate(
       body: data.body || 'A system event requires your attention.',
       actionUrl: data.actionUrl || '/overview',
     },
+
+    // Partner
+    partner_labor_request_new: {
+      title: 'New Labor Request',
+      body: `${data.partnerName} submitted a ${data.workType} labor request for ${data.crewSize} crew member(s).`,
+      actionUrl: data.requestId ? `/admin/partner-requests/labor/${data.requestId}` : '/admin/partner-requests',
+    },
+    partner_labor_request_status_changed: {
+      title: 'Labor Request Updated',
+      body: `Your labor request ${data.requestNumber} status changed to ${data.status}.`,
+      actionUrl: data.requestId ? `/partner/labor-requests/${data.requestId}` : '/partner/labor-requests',
+    },
+    partner_ticket_new: {
+      title: 'New Partner Service Ticket',
+      body: `${data.partnerName} submitted a ${data.urgency} priority service ticket: ${data.issue}.`,
+      actionUrl: data.ticketId ? `/admin/partner-requests/tickets/${data.ticketId}` : '/admin/partner-requests',
+    },
+    partner_ticket_status_changed: {
+      title: 'Service Ticket Updated',
+      body: `Your service ticket ${data.ticketNumber} status changed to ${data.status}.`,
+      actionUrl: data.ticketId ? `/partner/service-tickets/${data.ticketId}` : '/partner/service-tickets',
+    },
   };
 
   return templates[type];
@@ -557,6 +621,11 @@ export function isNotificationEnabled(
           return preferences.admin.newApplicants;
         case 'system_alert':
           return preferences.admin.systemAlerts;
+        case 'partner_labor_request_new':
+        case 'partner_labor_request_status_changed':
+        case 'partner_ticket_new':
+        case 'partner_ticket_status_changed':
+          return preferences.admin.partnerRequests;
       }
       break;
   }

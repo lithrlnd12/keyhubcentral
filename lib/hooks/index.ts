@@ -16,3 +16,6 @@ export { useSubscription } from './useSubscription';
 export { useInvoices } from './useInvoices';
 export { useInvoice } from './useInvoice';
 export { useNotifications } from './useNotifications';
+export { usePartners, usePartner } from './usePartners';
+export { useLaborRequests, useLaborRequest } from './useLaborRequests';
+export { usePartnerTickets, usePartnerTicket } from './usePartnerTickets';
