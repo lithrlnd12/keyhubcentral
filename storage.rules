@@ -76,5 +76,17 @@ service firebase.storage {
       allow write: if isValidFileType(request.resource.contentType) &&
         request.resource.size < 5 * 1024 * 1024; // 5MB limit for public uploads
     }
+
+    // Receipt uploads (images and PDFs for inventory)
+    match /receipts/{userId}/{fileName} {
+      // Authenticated users can read receipts (needed for AI parsing)
+      allow read: if isAuthenticated();
+
+      // Users can upload their own receipts
+      allow write: if isAuthenticated() &&
+        request.auth.uid == userId &&
+        isValidFileType(request.resource.contentType) &&
+        isUnderSizeLimit(request.resource.size);
+    }
   }
 }
