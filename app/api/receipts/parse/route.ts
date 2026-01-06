@@ -7,7 +7,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const RECEIPT_PARSING_PROMPT = `Analyze this receipt image and extract the following information:
+const RECEIPT_PARSING_PROMPT = `Analyze this receipt/invoice/document and extract the following information:
 
 1. Vendor/Store name
 2. Date of purchase (format as YYYY-MM-DD)
@@ -37,8 +37,8 @@ Return ONLY a valid JSON object in this exact format (no markdown, no explanatio
   "total": 0.00
 }
 
-If a value cannot be determined from the receipt, use null for that field.
-If the image is not a receipt or is unreadable, return:
+If a value cannot be determined from the document, use null for that field.
+If the document is not a receipt/invoice or is unreadable, return:
 {
   "error": "Description of the problem"
 }`;
@@ -106,47 +106,73 @@ export async function POST(request: NextRequest) {
     // Update status to parsing
     await updateReceiptStatus(receiptId, 'parsing');
 
-    // Fetch the image and convert to base64
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      await updateReceiptStatus(receiptId, 'error', 'Failed to fetch receipt image');
+    // Fetch the file and convert to base64
+    const fileResponse = await fetch(imageUrl);
+    if (!fileResponse.ok) {
+      await updateReceiptStatus(receiptId, 'error', 'Failed to fetch document');
       return NextResponse.json(
-        { error: 'Failed to fetch receipt image' },
+        { error: 'Failed to fetch document' },
         { status: 400 }
       );
     }
 
-    const imageBuffer = await imageResponse.arrayBuffer();
-    const base64Image = Buffer.from(imageBuffer).toString('base64');
+    const fileBuffer = await fileResponse.arrayBuffer();
+    const base64Data = Buffer.from(fileBuffer).toString('base64');
 
     // Determine media type from URL or response
-    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
-    const mediaType = contentType.includes('png') ? 'image/png'
-      : contentType.includes('gif') ? 'image/gif'
-      : contentType.includes('webp') ? 'image/webp'
-      : 'image/jpeg';
+    const contentType = fileResponse.headers.get('content-type') || 'image/jpeg';
+    const isPdf = contentType.includes('pdf') || imageUrl.toLowerCase().endsWith('.pdf');
 
-    // Call Claude API with the image
+    // Build the content array based on file type
+    let content: Anthropic.MessageCreateParams['messages'][0]['content'];
+
+    if (isPdf) {
+      // Use document type for PDFs
+      content = [
+        {
+          type: 'document',
+          source: {
+            type: 'base64',
+            media_type: 'application/pdf',
+            data: base64Data,
+          },
+        },
+        {
+          type: 'text',
+          text: RECEIPT_PARSING_PROMPT,
+        },
+      ];
+    } else {
+      // Use image type for images
+      const mediaType = contentType.includes('png') ? 'image/png'
+        : contentType.includes('gif') ? 'image/gif'
+        : contentType.includes('webp') ? 'image/webp'
+        : 'image/jpeg';
+
+      content = [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+            data: base64Data,
+          },
+        },
+        {
+          type: 'text',
+          text: RECEIPT_PARSING_PROMPT,
+        },
+      ];
+    }
+
+    // Call Claude API with the document/image
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
+      max_tokens: 4096,
       messages: [
         {
           role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-                data: base64Image,
-              },
-            },
-            {
-              type: 'text',
-              text: RECEIPT_PARSING_PROMPT,
-            },
-          ],
+          content,
         },
       ],
     });

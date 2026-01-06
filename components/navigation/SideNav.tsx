@@ -16,6 +16,7 @@ import {
   Target,
   UserCircle,
   Package,
+  Receipt,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
@@ -49,6 +50,7 @@ const navItems: NavItem[] = [
   { label: 'My Leads', href: '/subscriber', icon: Users, permission: isSubscriber },
   { label: 'KTS', href: '/kts', icon: Wrench, permission: isInternalStaff },
   { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: canViewInventory },
+  { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: canViewInventory },
   { label: 'Key Renovations', href: '/kr', icon: Building2, permission: isInternalStaff },
   { label: 'Keynote Digital', href: '/kd', icon: Target, permission: canManageCampaigns },
   { label: 'Financials', href: '/financials', icon: FileText, permission: canViewFinancials },
