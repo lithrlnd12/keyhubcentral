@@ -312,3 +312,39 @@ export async function getTotalStockForItem(itemId: string): Promise<{
     locations: stock,
   };
 }
+
+// Add stock from a receipt (increases quantity by the specified amount)
+export async function addStockFromReceipt(
+  itemId: string,
+  locationId: string,
+  quantityToAdd: number,
+  itemName: string,
+  locationName: string,
+  parLevel: number,
+  addedBy: string,
+  addedByName: string
+): Promise<void> {
+  const stockId = getStockId(itemId, locationId);
+  const docRef = doc(db, STOCK_COLLECTION, stockId);
+  const docSnap = await getDoc(docRef);
+
+  let newQuantity = quantityToAdd;
+
+  if (docSnap.exists()) {
+    // Add to existing quantity
+    const existingStock = docSnap.data() as InventoryStock;
+    newQuantity = existingStock.quantity + quantityToAdd;
+  }
+
+  await setDoc(docRef, {
+    itemId,
+    itemName,
+    locationId,
+    locationName,
+    quantity: newQuantity,
+    parLevel,
+    lastCounted: serverTimestamp(),
+    countedBy: addedBy,
+    countedByName: addedByName,
+  });
+}

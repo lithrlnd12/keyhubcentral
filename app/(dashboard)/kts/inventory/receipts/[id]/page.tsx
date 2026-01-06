@@ -20,6 +20,7 @@ import {
   X,
 } from 'lucide-react';
 import { getReceipt, verifyReceipt, linkReceiptItemToInventory } from '@/lib/firebase/receipts';
+import { addStockFromReceipt } from '@/lib/firebase/inventoryStock';
 import { Receipt as ReceiptType, ReceiptItem, getReceiptStatusLabel, getReceiptStatusColor, InventoryItem, InventoryCategory } from '@/types/inventory';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
@@ -94,18 +95,41 @@ export default function ReceiptDetailPage() {
     if (!receipt || !user) return;
     setVerifying(true);
     try {
-      // Save all item links before verifying
+      const receiptItems = receipt.parsedData?.items || receipt.items || [];
       const linkEntries = Array.from(itemLinks.entries());
+
+      // Save all item links and update inventory stock
       for (const [index, link] of linkEntries) {
         if (link.inventoryItemId && link.inventoryItemName) {
+          // Link receipt item to inventory
           await linkReceiptItemToInventory(
             receiptId,
             index,
             link.inventoryItemId,
             link.inventoryItemName
           );
+
+          // If receipt has a location, add stock
+          if (receipt.locationId && receipt.locationName) {
+            const receiptItem = receiptItems[index];
+            const invItem = inventoryItems.find(i => i.id === link.inventoryItemId);
+
+            if (receiptItem && invItem) {
+              await addStockFromReceipt(
+                link.inventoryItemId,
+                receipt.locationId,
+                receiptItem.quantity,
+                link.inventoryItemName,
+                receipt.locationName,
+                invItem.parLevel,
+                user.uid,
+                user.displayName || 'Unknown'
+              );
+            }
+          }
         }
       }
+
       await verifyReceipt(receiptId, user.uid);
       setReceipt({ ...receipt, status: 'verified', verifiedBy: user.uid });
     } catch (err) {
