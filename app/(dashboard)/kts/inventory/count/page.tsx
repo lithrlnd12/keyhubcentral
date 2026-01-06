@@ -213,7 +213,7 @@ export default function InventoryCountPage() {
         <button
           onClick={handleSubmit}
           disabled={submitting}
-          className="flex items-center gap-2 px-4 py-2 bg-gold text-black rounded-lg font-medium hover:bg-gold/90 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
         >
           {submitting ? (
             <>

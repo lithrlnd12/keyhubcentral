@@ -9,6 +9,8 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Shorthand for brand gold (primary action color)
+        gold: '#D4A84B',
         // KeyHub brand colors from logo
         brand: {
           gold: {

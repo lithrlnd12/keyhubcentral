@@ -48,7 +48,7 @@ export default function InventoryItemsPage() {
         </div>
         <Link
           href="/kts/inventory/items/new"
-          className="flex items-center gap-2 px-4 py-2 bg-gold text-black rounded-lg font-medium hover:bg-gold/90 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
         >
           <Plus className="h-4 w-4" />
           Add Item
@@ -127,7 +127,7 @@ export default function InventoryItemsPage() {
           </p>
           <Link
             href="/kts/inventory/items/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gold text-black rounded-lg font-medium hover:bg-gold/90 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
             Add Item

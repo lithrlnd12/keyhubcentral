@@ -132,7 +132,7 @@ export function ReceiptUploader({
           <button
             onClick={handleUpload}
             disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gold text-black rounded-lg font-medium hover:bg-gold/90 transition-colors disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
           >
             {loading ? (
               <>

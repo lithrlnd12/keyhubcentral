@@ -299,7 +299,7 @@ export default function ReceiptDetailPage() {
             </button>
           )}
           {receipt.status === 'verified' && (
-            <button className="flex items-center gap-2 px-4 py-2 bg-gold text-black rounded-lg font-medium hover:bg-gold/90 transition-colors">
+            <button className="flex items-center gap-2 px-4 py-2 bg-gold text-brand-black rounded-lg font-medium hover:bg-gold/90 transition-colors">
               <DollarSign className="h-4 w-4" />
               Add to P&L
             </button>
