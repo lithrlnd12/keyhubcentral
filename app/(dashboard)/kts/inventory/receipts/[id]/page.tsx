@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getAuth } from 'firebase/auth';
 import {
   ArrowLeft,
   Receipt,
@@ -68,9 +69,20 @@ export default function ReceiptDetailPage() {
     if (!receipt) return;
     setReparsing(true);
     try {
+      // Get auth token
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('Not authenticated');
+      }
+      const token = await currentUser.getIdToken();
+
       const response = await fetch('/api/receipts/parse', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           receiptId: receipt.id,
           imageUrl: receipt.imageUrl,

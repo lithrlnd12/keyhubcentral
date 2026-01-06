@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { getAuth } from 'firebase/auth';
 import {
   Receipt,
   ReceiptFilters,
@@ -214,10 +215,19 @@ export function useReceiptMutations(): UseReceiptMutationsReturn {
       setLoading(true);
       setError(null);
 
+      // Get auth token for API authentication
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+      const token = await user.getIdToken();
+
       const response = await fetch('/api/receipts/parse', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ receiptId, imageUrl }),
       });
