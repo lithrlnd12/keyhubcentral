@@ -48,3 +48,4 @@ export {
   usePendingReceiptsCount,
   useReceiptsNeedingVerification,
 } from './useReceipts';
+export { useExpenses, useExpenseMutations } from './useExpenses';

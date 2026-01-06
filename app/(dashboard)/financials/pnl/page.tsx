@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Spinner } from '@/components/ui/Spinner';
 import { useInvoices } from '@/lib/hooks/useInvoices';
 import { useJobs } from '@/lib/hooks/useJobs';
+import { useExpenses } from '@/lib/hooks/useExpenses';
 import {
   calculateCombinedPnL,
   calculateEntityPnL,
@@ -28,12 +29,13 @@ import { cn } from '@/lib/utils';
 export default function PnLPage() {
   const { invoices, loading: invoicesLoading } = useInvoices({ realtime: true });
   const { jobs, loading: jobsLoading } = useJobs({ realtime: true });
+  const { expenses, loading: expensesLoading } = useExpenses({ realtime: true });
 
   const datePresets = getDateRangePresets();
   const [selectedPreset, setSelectedPreset] = useState(0); // This Month by default
   const [selectedEntity, setSelectedEntity] = useState<'all' | 'kd' | 'kts' | 'kr'>('all');
 
-  const loading = invoicesLoading || jobsLoading;
+  const loading = invoicesLoading || jobsLoading || expensesLoading;
 
   // Filter invoices by date range
   const filteredInvoices = useMemo(() => {
@@ -41,10 +43,19 @@ export default function PnLPage() {
     return filterInvoicesByDateRange(invoices, preset.start, preset.end);
   }, [invoices, selectedPreset, datePresets]);
 
+  // Filter expenses by date range
+  const filteredExpenses = useMemo(() => {
+    const preset = datePresets[selectedPreset];
+    return expenses.filter((exp) => {
+      const expenseDate = exp.date.toMillis();
+      return expenseDate >= preset.start.getTime() && expenseDate <= preset.end.getTime();
+    });
+  }, [expenses, selectedPreset, datePresets]);
+
   // Calculate P&L
   const pnlData = useMemo(() => {
-    return calculateCombinedPnL(filteredInvoices, jobs);
-  }, [filteredInvoices, jobs]);
+    return calculateCombinedPnL(filteredInvoices, jobs, filteredExpenses);
+  }, [filteredInvoices, jobs, filteredExpenses]);
 
   // Get selected entity P&L
   const selectedPnL = useMemo(() => {

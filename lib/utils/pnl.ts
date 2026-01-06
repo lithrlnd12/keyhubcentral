@@ -1,5 +1,6 @@
 import { Invoice, InvoiceEntity } from '@/types/invoice';
 import { Job } from '@/types/job';
+import { Expense } from '@/types/expense';
 import { Timestamp } from 'firebase/firestore';
 
 export interface PnLEntry {
@@ -48,7 +49,8 @@ export function getEntityFullName(entity: InvoiceEntity['entity']): string {
 export function calculateEntityPnL(
   entity: InvoiceEntity['entity'],
   invoices: Invoice[],
-  jobs?: Job[]
+  jobs?: Job[],
+  directExpenses?: Expense[]
 ): EntityPnL {
   const entries: PnLEntry[] = [];
   let revenue = 0;
@@ -102,6 +104,20 @@ export function calculateEntityPnL(
     });
   }
 
+  // Add direct expenses (from receipts, etc.)
+  if (directExpenses) {
+    const entityExpenses = directExpenses.filter((exp) => exp.entity === entity);
+    entityExpenses.forEach((exp) => {
+      const category = exp.category.charAt(0).toUpperCase() + exp.category.slice(1);
+      entries.push({
+        category,
+        amount: exp.amount,
+        type: 'expense',
+      });
+      expenses += exp.amount;
+    });
+  }
+
   return {
     entity,
     entityName: getEntityFullName(entity),
@@ -113,13 +129,22 @@ export function calculateEntityPnL(
 }
 
 // Calculate combined P&L
-export function calculateCombinedPnL(invoices: Invoice[], jobs?: Job[]): CombinedPnL {
+export function calculateCombinedPnL(
+  invoices: Invoice[],
+  jobs?: Job[],
+  directExpenses?: Expense[]
+): CombinedPnL {
   const entities: EntityPnL[] = [];
   const internalEntities: InvoiceEntity['entity'][] = ['kd', 'kts', 'kr'];
 
   // Calculate P&L for each internal entity
   internalEntities.forEach((entity) => {
-    const entityPnL = calculateEntityPnL(entity, invoices, entity === 'kr' ? jobs : undefined);
+    const entityPnL = calculateEntityPnL(
+      entity,
+      invoices,
+      entity === 'kr' ? jobs : undefined,
+      directExpenses
+    );
     entities.push(entityPnL);
   });
 

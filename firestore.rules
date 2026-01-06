@@ -306,5 +306,17 @@ service cloud.firestore {
 
       allow delete: if isOwner();
     }
+
+    // Expenses collection - Direct expenses from receipts for P&L
+    match /expenses/{expenseId} {
+      // Internal users can read expenses (needed for P&L)
+      allow read: if isInternalUser();
+
+      // Admins can create/update expenses
+      allow create, update: if isAdmin();
+
+      // Only owner can delete expenses
+      allow delete: if isOwner();
+    }
   }
 }

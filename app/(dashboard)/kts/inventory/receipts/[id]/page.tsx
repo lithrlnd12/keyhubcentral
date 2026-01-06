@@ -19,9 +19,10 @@ import {
   Plus,
   X,
 } from 'lucide-react';
-import { getReceipt, verifyReceipt, linkReceiptItemToInventory, updateReceiptLocation } from '@/lib/firebase/receipts';
+import { getReceipt, verifyReceipt, linkReceiptItemToInventory, updateReceiptLocation, addReceiptToPL } from '@/lib/firebase/receipts';
 import { addStockFromReceipt } from '@/lib/firebase/inventoryStock';
 import { createInventoryItem } from '@/lib/firebase/inventory';
+import { createExpenseFromReceipt } from '@/lib/firebase/expenses';
 import { Receipt as ReceiptType, ReceiptItem, getReceiptStatusLabel, getReceiptStatusColor, InventoryItem, InventoryCategory } from '@/types/inventory';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,7 @@ export default function ReceiptDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [reparsing, setReparsing] = useState(false);
+  const [addingToPL, setAddingToPL] = useState(false);
   const [linkingItem, setLinkingItem] = useState<number | null>(null);
   const [itemLinks, setItemLinks] = useState<Map<number, ItemLinkState>>(new Map());
 
@@ -199,6 +201,38 @@ export default function ReceiptDetailPage() {
     }
   };
 
+  const handleAddToPL = async () => {
+    if (!receipt || !user) return;
+    setAddingToPL(true);
+    try {
+      // Create expense from receipt
+      const expenseDate = receipt.purchaseDate
+        ? receipt.purchaseDate.toDate()
+        : receipt.uploadedAt.toDate();
+
+      const expenseId = await createExpenseFromReceipt(
+        receipt.id,
+        'kts', // Inventory expenses go to KTS
+        'inventory',
+        `Receipt from ${receipt.vendor || 'Unknown Vendor'}`,
+        receipt.vendor,
+        receipt.total || 0,
+        expenseDate,
+        receipt.imageUrl,
+        user.uid,
+        user.displayName || 'Unknown'
+      );
+
+      // Update receipt status to added_to_pl
+      await addReceiptToPL(receipt.id, expenseId);
+      setReceipt({ ...receipt, status: 'added_to_pl', plExpenseId: expenseId });
+    } catch (err) {
+      console.error('Add to P&L error:', err);
+    } finally {
+      setAddingToPL(false);
+    }
+  };
+
   const handleLinkItem = (itemIndex: number, inventoryItem: InventoryItem) => {
     setItemLinks(prev => {
       const newLinks = new Map(prev);
@@ -325,10 +359,24 @@ export default function ReceiptDetailPage() {
             </button>
           )}
           {receipt.status === 'verified' && (
-            <button className="flex items-center gap-2 px-4 py-2 bg-gold text-brand-black rounded-lg font-medium hover:bg-gold/90 transition-colors">
-              <DollarSign className="h-4 w-4" />
+            <button
+              onClick={handleAddToPL}
+              disabled={addingToPL}
+              className="flex items-center gap-2 px-4 py-2 bg-gold text-brand-black rounded-lg font-medium hover:bg-gold/90 transition-colors disabled:opacity-50"
+            >
+              {addingToPL ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <DollarSign className="h-4 w-4" />
+              )}
               Add to P&L
             </button>
+          )}
+          {receipt.status === 'added_to_pl' && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-medium">
+              <CheckCircle className="h-4 w-4" />
+              Added to P&L
+            </div>
           )}
         </div>
       </div>
