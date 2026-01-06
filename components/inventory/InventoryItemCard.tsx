@@ -117,9 +117,16 @@ export function InventoryItemCard({
       {stock !== undefined && (
         <div className="mt-3 pt-3 border-t border-gray-800">
           <div className="flex items-center justify-between">
-            <span className="text-gray-400 text-sm">
-              {stock.locationName || 'Stock'}
-            </span>
+            <div>
+              <span className="text-gray-400 text-sm">
+                {stock.locationName || 'Stock'}
+              </span>
+              {item.parLevel > 0 && (
+                <p className="text-gray-500 text-xs">
+                  Par: {item.parLevel}
+                </p>
+              )}
+            </div>
             <StockLevelBadge
               quantity={stock.quantity}
               parLevel={item.parLevel}

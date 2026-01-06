@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Plus, Search, Package, Wrench } from 'lucide-react';
-import { useInventoryItems, useInventoryMutations } from '@/lib/hooks';
+import { useInventoryItems, useInventoryMutations, useInventoryStock } from '@/lib/hooks';
 import { InventoryCategory } from '@/types/inventory';
 import { Spinner } from '@/components/ui/Spinner';
 import { InventoryItemCard } from '@/components/inventory';
@@ -17,9 +17,20 @@ export default function InventoryItemsPage() {
     category: initialCategory || undefined,
     realtime: true,
   });
+  const { stock, loading: stockLoading } = useInventoryStock({ realtime: true });
   const { deleteItem, loading: deleting } = useInventoryMutations();
 
   const [searchInput, setSearchInput] = useState(filters.search || '');
+
+  // Aggregate stock by item ID (total across all locations)
+  const stockByItem = useMemo(() => {
+    const totals = new Map<string, number>();
+    stock.forEach((s) => {
+      const current = totals.get(s.itemId) || 0;
+      totals.set(s.itemId, current + s.quantity);
+    });
+    return totals;
+  }, [stock]);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -108,11 +119,11 @@ export default function InventoryItemsPage() {
 
       {/* Results count */}
       <p className="text-gray-400 text-sm">
-        {loading ? 'Loading...' : `${items.length} item${items.length !== 1 ? 's' : ''}`}
+        {loading || stockLoading ? 'Loading...' : `${items.length} item${items.length !== 1 ? 's' : ''}`}
       </p>
 
       {/* Items Grid */}
-      {loading ? (
+      {loading || stockLoading ? (
         <div className="flex justify-center py-12">
           <Spinner size="lg" />
         </div>
@@ -135,10 +146,13 @@ export default function InventoryItemsPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => (
+          {items.map((item) => {
+            const totalQuantity = stockByItem.get(item.id) || 0;
+            return (
             <div key={item.id} className="relative">
               <InventoryItemCard
                 item={item}
+                stock={{ quantity: totalQuantity, locationName: 'Total Stock' }}
                 href={`/kts/inventory/items/${item.id}`}
                 showActions
                 onEdit={() => {
@@ -176,7 +190,8 @@ export default function InventoryItemsPage() {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
