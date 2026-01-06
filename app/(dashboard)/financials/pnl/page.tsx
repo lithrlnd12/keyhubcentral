@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Building2 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Building2, ExternalLink } from 'lucide-react';
 
 // Dynamic import for PDF button (SSR disabled for @react-pdf/renderer)
 const PnLPDFButton = dynamic(
@@ -25,6 +25,7 @@ import {
 } from '@/lib/utils/pnl';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { cn } from '@/lib/utils';
+import { EXPENSE_CATEGORIES } from '@/types/expense';
 
 export default function PnLPage() {
   const { invoices, loading: invoicesLoading } = useInvoices({ realtime: true });
@@ -292,7 +293,16 @@ export default function PnLPage() {
         {/* Expense Breakdown */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-red-400">Expenses</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-red-400">Expenses</CardTitle>
+              <Link
+                href={`/financials/expenses${selectedEntity !== 'all' ? `?entity=${selectedEntity}` : ''}`}
+                className="text-xs text-gray-400 hover:text-brand-gold flex items-center gap-1"
+              >
+                View All
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             {Object.entries(groupedEntries).filter(([_, v]) => v.expense > 0).length === 0 ? (
@@ -301,14 +311,37 @@ export default function PnLPage() {
               <div className="space-y-3">
                 {Object.entries(groupedEntries)
                   .filter(([_, v]) => v.expense > 0)
-                  .map(([category, values]) => (
-                    <div key={category} className="flex items-center justify-between">
-                      <span className="text-gray-400">{category}</span>
-                      <span className="text-red-400 font-medium">
-                        {formatCurrency(values.expense)}
-                      </span>
-                    </div>
-                  ))}
+                  .map(([category, values]) => {
+                    // Check if this is an expense category that can be drilled down
+                    const expenseCategoryMatch = EXPENSE_CATEGORIES.find(
+                      (ec) => ec.label.toLowerCase() === category.toLowerCase()
+                    );
+                    const isClickable = expenseCategoryMatch !== undefined;
+                    const categoryParam = expenseCategoryMatch?.value || '';
+                    const entityParam = selectedEntity !== 'all' ? `&entity=${selectedEntity}` : '';
+                    const href = isClickable
+                      ? `/financials/expenses?category=${categoryParam}${entityParam}`
+                      : undefined;
+
+                    return (
+                      <div key={category} className="flex items-center justify-between">
+                        {isClickable ? (
+                          <Link
+                            href={href!}
+                            className="text-gray-400 hover:text-brand-gold transition-colors flex items-center gap-1"
+                          >
+                            {category}
+                            <ExternalLink className="w-3 h-3 opacity-50" />
+                          </Link>
+                        ) : (
+                          <span className="text-gray-400">{category}</span>
+                        )}
+                        <span className="text-red-400 font-medium">
+                          {formatCurrency(values.expense)}
+                        </span>
+                      </div>
+                    );
+                  })}
                 <div className="border-t border-gray-800 pt-3 flex items-center justify-between">
                   <span className="text-white font-medium">Total Expenses</span>
                   <span className="text-red-400 font-bold">

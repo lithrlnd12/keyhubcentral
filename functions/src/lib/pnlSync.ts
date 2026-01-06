@@ -60,6 +60,20 @@ interface Job {
   };
 }
 
+// Expense interface (matches Firestore)
+interface Expense {
+  id?: string;
+  entity: string;
+  category: string;
+  description: string;
+  vendor?: string;
+  amount: number;
+  date: admin.firestore.Timestamp;
+  receiptId?: string;
+  receiptImageUrl?: string;
+  createdByName: string;
+}
+
 interface EntityPnL {
   entity: string;
   entityName: string;
@@ -84,7 +98,8 @@ function getEntityFullName(entity: string): string {
 function calculateEntityPnL(
   entity: string,
   invoices: Invoice[],
-  jobs?: Job[]
+  jobs?: Job[],
+  directExpenses?: Expense[]
 ): EntityPnL {
   let revenue = 0;
   let expenses = 0;
@@ -111,6 +126,15 @@ function calculateEntityPnL(
         if (job.costs?.materialActual > 0) {
           expenses += job.costs.materialActual;
         }
+      });
+  }
+
+  // Add direct expenses (from receipts, etc.)
+  if (directExpenses) {
+    directExpenses
+      .filter((exp) => exp.entity === entity)
+      .forEach((exp) => {
+        expenses += exp.amount;
       });
   }
 
@@ -194,16 +218,18 @@ export async function rebuildPnLSheet(): Promise<void> {
 
   console.log('Starting P&L sheet rebuild...');
 
-  // Fetch all invoices and jobs
-  const [invoicesSnapshot, jobsSnapshot] = await Promise.all([
+  // Fetch all invoices, jobs, and expenses
+  const [invoicesSnapshot, jobsSnapshot, expensesSnapshot] = await Promise.all([
     db.collection('invoices').get(),
     db.collection('jobs').get(),
+    db.collection('expenses').get(),
   ]);
 
   const invoices = invoicesSnapshot.docs.map((doc) => doc.data() as Invoice);
   const jobs = jobsSnapshot.docs.map((doc) => doc.data() as Job);
+  const expenses = expensesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Expense));
 
-  console.log(`Loaded ${invoices.length} invoices and ${jobs.length} jobs`);
+  console.log(`Loaded ${invoices.length} invoices, ${jobs.length} jobs, and ${expenses.length} expenses`);
 
   const dateRanges = getDateRanges();
   const entities = ['kd', 'kts', 'kr'];
@@ -217,12 +243,16 @@ export async function rebuildPnLSheet(): Promise<void> {
 
   for (const range of dateRanges) {
     const filtered = filterByDateRange(invoices, range.start, range.end);
+    const filteredExpenses = expenses.filter((exp) => {
+      const expDate = exp.date.toDate();
+      return expDate >= range.start && expDate <= range.end;
+    });
     let totalRevenue = 0;
     let totalExpenses = 0;
     let intercompany = 0;
 
     for (const entity of entities) {
-      const pnl = calculateEntityPnL(entity, filtered, entity === 'kr' ? jobs : undefined);
+      const pnl = calculateEntityPnL(entity, filtered, entity === 'kr' ? jobs : undefined, filteredExpenses);
       totalRevenue += pnl.revenue;
       totalExpenses += pnl.expenses;
     }
@@ -261,9 +291,13 @@ export async function rebuildPnLSheet(): Promise<void> {
 
   for (const range of dateRanges) {
     const filtered = filterByDateRange(invoices, range.start, range.end);
+    const filteredExpenses = expenses.filter((exp) => {
+      const expDate = exp.date.toDate();
+      return expDate >= range.start && expDate <= range.end;
+    });
 
     for (const entity of entities) {
-      const pnl = calculateEntityPnL(entity, filtered, entity === 'kr' ? jobs : undefined);
+      const pnl = calculateEntityPnL(entity, filtered, entity === 'kr' ? jobs : undefined, filteredExpenses);
       const margin = pnl.revenue > 0 ? ((pnl.netIncome / pnl.revenue) * 100).toFixed(1) : '0.0';
 
       entityData.push([
@@ -291,9 +325,13 @@ export async function rebuildPnLSheet(): Promise<void> {
     const monthLabel = monthStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
     const filtered = filterByDateRange(invoices, monthStart, monthEnd);
-    const kdPnL = calculateEntityPnL('kd', filtered);
-    const ktsPnL = calculateEntityPnL('kts', filtered);
-    const krPnL = calculateEntityPnL('kr', filtered, jobs);
+    const monthExpenses = expenses.filter((exp) => {
+      const expDate = exp.date.toDate();
+      return expDate >= monthStart && expDate <= monthEnd;
+    });
+    const kdPnL = calculateEntityPnL('kd', filtered, undefined, monthExpenses);
+    const ktsPnL = calculateEntityPnL('kts', filtered, undefined, monthExpenses);
+    const krPnL = calculateEntityPnL('kr', filtered, jobs, monthExpenses);
 
     // Calculate intercompany
     let intercompany = 0;
@@ -316,6 +354,30 @@ export async function rebuildPnLSheet(): Promise<void> {
     ]);
   }
 
+  // Build Materials & Expenses detail sheet
+  const expensesData: (string | number)[][] = [
+    ['Materials & Expenses Detail', '', '', '', '', '', '', 'Last Updated:', new Date().toLocaleString()],
+    [],
+    ['Date', 'Entity', 'Category', 'Vendor', 'Description', 'Amount', 'Added By', 'Receipt Link'],
+  ];
+
+  // Sort expenses by date descending
+  const sortedExpenses = [...expenses].sort((a, b) => b.date.toMillis() - a.date.toMillis());
+
+  for (const exp of sortedExpenses) {
+    const categoryLabel = exp.category.charAt(0).toUpperCase() + exp.category.slice(1);
+    expensesData.push([
+      exp.date.toDate().toLocaleDateString('en-US'),
+      getEntityFullName(exp.entity),
+      categoryLabel,
+      exp.vendor || '',
+      exp.description,
+      exp.amount,
+      exp.createdByName,
+      exp.receiptImageUrl || '',
+    ]);
+  }
+
   // Write all sheets
   console.log('Writing Summary sheet...');
   await writeSheet(sheets, spreadsheetId, 'Summary', summaryData);
@@ -327,6 +389,10 @@ export async function rebuildPnLSheet(): Promise<void> {
 
   console.log('Writing Monthly Trend sheet...');
   await writeSheet(sheets, spreadsheetId, 'Monthly Trend', trendData);
+  await delay(1000);
+
+  console.log('Writing Materials & Expenses sheet...');
+  await writeSheet(sheets, spreadsheetId, 'Materials & Expenses', expensesData);
   await delay(1000);
 
   // Format sheets
@@ -637,6 +703,47 @@ async function formatPnLSheets(
             },
           },
           fields: 'userEnteredFormat.textFormat',
+        },
+      });
+    }
+
+    if (sheetTitle === 'Materials & Expenses') {
+      // Amount column (F) - currency format, red color
+      requests.push({
+        repeatCell: {
+          range: { sheetId, startColumnIndex: 5, endColumnIndex: 6, startRowIndex: 3 },
+          cell: {
+            userEnteredFormat: {
+              numberFormat: { type: 'CURRENCY', pattern: '"$"#,##0.00' },
+              textFormat: { foregroundColor: { red: 0.9, green: 0.3, blue: 0.3 } },
+            },
+          },
+          fields: 'userEnteredFormat(numberFormat,textFormat)',
+        },
+      });
+      // Receipt Link column (H) - make it a hyperlink if URL present
+      requests.push({
+        repeatCell: {
+          range: { sheetId, startColumnIndex: 7, endColumnIndex: 8, startRowIndex: 3 },
+          cell: {
+            userEnteredFormat: {
+              textFormat: { foregroundColor: { red: 0.2, green: 0.4, blue: 0.8 }, underline: true },
+            },
+          },
+          fields: 'userEnteredFormat.textFormat',
+        },
+      });
+      // Alternating row colors for readability
+      requests.push({
+        addConditionalFormatRule: {
+          rule: {
+            ranges: [{ sheetId, startRowIndex: 3 }],
+            booleanRule: {
+              condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: '=MOD(ROW(),2)=0' }] },
+              format: { backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 } },
+            },
+          },
+          index: 0,
         },
       });
     }
