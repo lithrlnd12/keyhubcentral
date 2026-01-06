@@ -129,6 +129,7 @@ export interface Receipt {
   locationName?: string;
   parsedData?: {
     vendor?: string;
+    storeLocation?: string;
     date?: string;
     items?: Array<{
       description: string;

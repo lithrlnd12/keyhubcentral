@@ -19,7 +19,7 @@ import {
   Plus,
   X,
 } from 'lucide-react';
-import { getReceipt, verifyReceipt, linkReceiptItemToInventory, updateReceiptLocation, addReceiptToPL } from '@/lib/firebase/receipts';
+import { getReceipt, verifyReceipt, linkReceiptItemToInventory, updateReceiptLocation, updateReceiptVendor, addReceiptToPL } from '@/lib/firebase/receipts';
 import { addStockFromReceipt } from '@/lib/firebase/inventoryStock';
 import { createInventoryItem } from '@/lib/firebase/inventory';
 import { createExpenseFromReceipt } from '@/lib/firebase/expenses';
@@ -50,6 +50,9 @@ export default function ReceiptDetailPage() {
   const [addingToPL, setAddingToPL] = useState(false);
   const [linkingItem, setLinkingItem] = useState<number | null>(null);
   const [itemLinks, setItemLinks] = useState<Map<number, ItemLinkState>>(new Map());
+  const [editingVendor, setEditingVendor] = useState(false);
+  const [vendorInput, setVendorInput] = useState('');
+  const [customLocation, setCustomLocation] = useState('');
 
   // Fetch inventory items for linking
   const { items: inventoryItems } = useInventoryItems({ realtime: true });
@@ -458,10 +461,61 @@ export default function ReceiptDetailPage() {
           <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-4">
             <h2 className="text-lg font-medium text-white mb-4">Summary</h2>
             <div className="space-y-3">
-              <div className="flex justify-between">
+              {/* Vendor - Editable */}
+              <div className="flex justify-between items-center">
                 <span className="text-gray-400">Vendor</span>
-                <span className="text-white">{parsedData?.vendor || receipt.vendor || '-'}</span>
+                {canEdit && editingVendor ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={vendorInput}
+                      onChange={(e) => setVendorInput(e.target.value)}
+                      placeholder="Enter vendor name"
+                      className="px-3 py-1 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-gold w-40"
+                      autoFocus
+                    />
+                    <button
+                      onClick={async () => {
+                        if (vendorInput.trim()) {
+                          await updateReceiptVendor(receiptId, vendorInput.trim());
+                          setReceipt({ ...receipt, vendor: vendorInput.trim() });
+                        }
+                        setEditingVendor(false);
+                      }}
+                      className="text-green-400 hover:text-green-300"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setEditingVendor(false)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setVendorInput(parsedData?.vendor || receipt.vendor || '');
+                      setEditingVendor(true);
+                    }}
+                    className={cn(
+                      "text-white hover:text-gold transition-colors",
+                      canEdit && "cursor-pointer"
+                    )}
+                    disabled={!canEdit}
+                  >
+                    {parsedData?.vendor || receipt.vendor || (canEdit ? 'Click to add...' : '-')}
+                  </button>
+                )}
               </div>
+              {/* Store Location (from AI parsing) */}
+              {parsedData?.storeLocation && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Store Address</span>
+                  <span className="text-white text-sm">{parsedData.storeLocation}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-gray-400">Date</span>
                 <span className="text-white">
@@ -469,27 +523,54 @@ export default function ReceiptDetailPage() {
                     (receipt.purchaseDate ? receipt.purchaseDate.toDate().toLocaleDateString() : '-')}
                 </span>
               </div>
+              {/* Inventory Location - Dropdown + Custom Option */}
               <div className="flex justify-between items-center">
-                <span className="text-gray-400">Location</span>
+                <span className="text-gray-400">Stock Location</span>
                 {canEdit ? (
-                  <select
-                    value={receipt.locationId || ''}
-                    onChange={async (e) => {
-                      const loc = locations.find(l => l.id === e.target.value);
-                      if (loc) {
-                        await updateReceiptLocation(receiptId, loc.id, loc.name);
-                        setReceipt({ ...receipt, locationId: loc.id, locationName: loc.name });
-                      }
-                    }}
-                    className="px-3 py-1 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-gold"
-                  >
-                    <option value="">Select location...</option>
-                    {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex flex-col items-end gap-2">
+                    <select
+                      value={receipt.locationId || 'custom'}
+                      onChange={async (e) => {
+                        if (e.target.value === 'custom') {
+                          // Clear location, user will type custom
+                          setCustomLocation('');
+                          setReceipt({ ...receipt, locationId: undefined, locationName: undefined });
+                        } else {
+                          const loc = locations.find(l => l.id === e.target.value);
+                          if (loc) {
+                            await updateReceiptLocation(receiptId, loc.id, loc.name);
+                            setReceipt({ ...receipt, locationId: loc.id, locationName: loc.name });
+                            setCustomLocation('');
+                          }
+                        }
+                      }}
+                      className="px-3 py-1 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-gold"
+                    >
+                      <option value="">Select location...</option>
+                      {locations.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name}
+                        </option>
+                      ))}
+                      <option value="custom">+ Custom location...</option>
+                    </select>
+                    {(!receipt.locationId || customLocation) && (
+                      <input
+                        type="text"
+                        value={customLocation}
+                        onChange={(e) => setCustomLocation(e.target.value)}
+                        onBlur={async () => {
+                          if (customLocation.trim()) {
+                            // Save as custom location name without an ID
+                            await updateReceiptLocation(receiptId, 'custom', customLocation.trim());
+                            setReceipt({ ...receipt, locationId: 'custom', locationName: customLocation.trim() });
+                          }
+                        }}
+                        placeholder="e.g., My Truck, Job Site #123"
+                        className="px-3 py-1 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-gold w-48"
+                      />
+                    )}
+                  </div>
                 ) : (
                   <span className="text-white">{receipt.locationName || '-'}</span>
                 )}

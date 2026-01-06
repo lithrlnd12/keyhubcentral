@@ -56,9 +56,10 @@ const anthropic = new Anthropic({
 
 const RECEIPT_PARSING_PROMPT = `Analyze this receipt/invoice/document and extract the following information:
 
-1. Vendor/Store name
-2. Date of purchase (format as YYYY-MM-DD)
-3. Line items with:
+1. Vendor/Store name (e.g., "Home Depot", "Lowe's", "Ace Hardware")
+2. Store location/address if visible (city, state, or full address)
+3. Date of purchase (format as YYYY-MM-DD)
+4. Line items with:
    - Description
    - Quantity (default to 1 if not shown)
    - Unit price
@@ -66,13 +67,14 @@ const RECEIPT_PARSING_PROMPT = `Analyze this receipt/invoice/document and extrac
    - Category: "material" or "tool"
      * "material" = consumable supplies (screws, nails, lumber, wire, pipe, paint, tape, glue, caulk, sandpaper, filters, etc.)
      * "tool" = reusable equipment (drills, saws, hammers, wrenches, meters, ladders, etc.)
-4. Subtotal (before tax)
-5. Tax amount
-6. Grand total
+5. Subtotal (before tax)
+6. Tax amount
+7. Grand total
 
 Return ONLY a valid JSON object in this exact format (no markdown, no explanation, just JSON):
 {
   "vendor": "Store Name",
+  "storeLocation": "City, State or full address",
   "date": "YYYY-MM-DD",
   "items": [
     {
@@ -96,6 +98,7 @@ If the document is not a receipt/invoice or is unreadable, return:
 
 interface ParsedReceiptData {
   vendor?: string;
+  storeLocation?: string;
   date?: string;
   items?: Array<{
     description: string;
