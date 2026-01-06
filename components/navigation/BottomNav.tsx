@@ -13,6 +13,7 @@ import {
   CreditCard,
   ClipboardList,
   History,
+  Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks';
@@ -36,7 +37,7 @@ const internalNavItems: NavItem[] = [
 const contractorNavItems: NavItem[] = [
   { label: 'Portal', href: '/portal', icon: UserCircle },
   { label: 'Jobs', href: '/portal/jobs', icon: Wrench },
-  { label: 'Calendar', href: '/portal/availability', icon: LayoutDashboard },
+  { label: 'Inventory', href: '/portal/inventory', icon: Package },
   { label: 'Profile', href: '/profile', icon: User },
 ];
 

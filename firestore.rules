@@ -227,5 +227,84 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if isOwner();
     }
+
+    // ========================================
+    // INVENTORY MANAGEMENT COLLECTIONS
+    // ========================================
+
+    // Inventory Items collection - Materials and tools tracked
+    match /inventoryItems/{itemId} {
+      // Internal users can read inventory items
+      allow read: if isInternalUser();
+
+      // Only admins can create/update/delete items
+      allow create, update: if isAdmin();
+      allow delete: if isOwner();
+    }
+
+    // Inventory Locations collection - Warehouses and contractor trucks
+    match /inventoryLocations/{locationId} {
+      // Internal users can read locations
+      allow read: if isInternalUser();
+
+      // Only admins can create/update/delete locations
+      allow create, update: if isAdmin();
+      allow delete: if isOwner();
+    }
+
+    // Inventory Stock collection - Current stock levels per location
+    match /inventoryStock/{stockId} {
+      // Internal users can read stock levels
+      allow read: if isInternalUser();
+
+      // Admins can update any stock
+      allow create, update: if isAdmin();
+
+      // Contractors can only update stock for their own truck location
+      allow create, update: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        get(/databases/$(database)/documents/inventoryLocations/$(request.resource.data.locationId)).data.contractorId == request.auth.uid;
+
+      allow delete: if isOwner();
+    }
+
+    // Inventory Counts collection - Count session records
+    match /inventoryCounts/{countId} {
+      // Internal users can read count history
+      allow read: if isInternalUser();
+
+      // Admins can create counts for any location
+      allow create: if isAdmin();
+
+      // Contractors can create counts for their own truck
+      allow create: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        get(/databases/$(database)/documents/inventoryLocations/$(request.resource.data.locationId)).data.contractorId == request.auth.uid;
+
+      // Only admins can update/delete counts
+      allow update, delete: if isAdmin();
+    }
+
+    // Receipts collection - Uploaded receipts with parsed data
+    match /receipts/{receiptId} {
+      // Admins can read all receipts
+      allow read: if isAdmin();
+
+      // Users can read their own receipts
+      allow read: if isActiveUser() && resource.data.uploadedBy == request.auth.uid;
+
+      // Internal users can create receipts
+      allow create: if isInternalUser() && isActiveUser();
+
+      // Only admins can update receipts (verify, add to P&L)
+      allow update: if isAdmin();
+
+      // Users can update their own pending receipts (edit parsed data)
+      allow update: if isActiveUser() &&
+        resource.data.uploadedBy == request.auth.uid &&
+        resource.data.status in ['pending', 'parsing', 'parsed'];
+
+      allow delete: if isOwner();
+    }
   }
 }

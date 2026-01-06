@@ -19,3 +19,32 @@ export { useNotifications } from './useNotifications';
 export { usePartners, usePartner } from './usePartners';
 export { useLaborRequests, useLaborRequest } from './useLaborRequests';
 export { usePartnerTickets, usePartnerTicket } from './usePartnerTickets';
+
+// Inventory hooks
+export {
+  useInventoryItems,
+  useInventoryItem,
+  useInventoryMutations,
+} from './useInventory';
+export {
+  useInventoryStock,
+  useLowStockAlerts,
+  useLowStockCount,
+  useInventoryCounts,
+  useSubmitCount,
+} from './useInventoryStock';
+export {
+  useInventoryLocations,
+  useInventoryLocation,
+  useContractorLocation,
+  useWarehouseLocations,
+  useTruckLocations,
+  useLocationMutations,
+} from './useInventoryLocations';
+export {
+  useReceipts,
+  useReceipt,
+  useReceiptMutations,
+  usePendingReceiptsCount,
+  useReceiptsNeedingVerification,
+} from './useReceipts';

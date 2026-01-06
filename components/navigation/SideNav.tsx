@@ -15,11 +15,12 @@ import {
   Wrench,
   Target,
   UserCircle,
+  Package,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
-import { canManageUsers, canViewFinancials, canManageCampaigns, canManagePartnerRequests, isPartner, UserRole } from '@/types/user';
+import { canManageUsers, canViewFinancials, canManageCampaigns, canManagePartnerRequests, isPartner, canViewInventory, UserRole } from '@/types/user';
 
 // Contractor can access portal
 const isContractor = (role: UserRole): boolean => role === 'contractor';
@@ -47,6 +48,7 @@ const navItems: NavItem[] = [
   { label: 'Partner Portal', href: '/partner', icon: Briefcase, permission: isPartner },
   { label: 'My Leads', href: '/subscriber', icon: Users, permission: isSubscriber },
   { label: 'KTS', href: '/kts', icon: Wrench, permission: isInternalStaff },
+  { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: canViewInventory },
   { label: 'Key Renovations', href: '/kr', icon: Building2, permission: isInternalStaff },
   { label: 'Keynote Digital', href: '/kd', icon: Target, permission: canManageCampaigns },
   { label: 'Financials', href: '/financials', icon: FileText, permission: canViewFinancials },

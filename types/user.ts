@@ -72,3 +72,28 @@ export function isPartner(role: UserRole): boolean {
 export function canManagePartnerRequests(role: UserRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
+
+// Inventory permissions
+export function canManageInventory(role: UserRole): boolean {
+  return ADMIN_ROLES.includes(role);
+}
+
+export function canViewInventory(role: UserRole): boolean {
+  return ['owner', 'admin', 'pm', 'contractor'].includes(role);
+}
+
+export function canCountInventory(role: UserRole): boolean {
+  return ['owner', 'admin', 'pm', 'contractor'].includes(role);
+}
+
+export function canUploadReceipts(role: UserRole): boolean {
+  return ['owner', 'admin', 'pm', 'contractor'].includes(role);
+}
+
+export function canVerifyReceipts(role: UserRole): boolean {
+  return ADMIN_ROLES.includes(role);
+}
+
+export function canAddReceiptsToPL(role: UserRole): boolean {
+  return ADMIN_ROLES.includes(role);
+}
