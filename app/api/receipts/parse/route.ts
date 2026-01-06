@@ -1,7 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { Timestamp } from 'firebase-admin/firestore';
 import { verifyFirebaseAuth, isInternal } from '@/lib/auth/verifyRequest';
-import { updateReceiptParsedData, updateReceiptStatus, getReceipt } from '@/lib/firebase/receipts';
+import { getAdminDb } from '@/lib/firebase/admin';
+
+// Server-side receipt functions using Admin SDK
+async function getReceiptAdmin(id: string) {
+  const db = getAdminDb();
+  const doc = await db.collection('receipts').doc(id).get();
+  if (doc.exists) {
+    return { id: doc.id, ...doc.data() };
+  }
+  return null;
+}
+
+async function updateReceiptStatusAdmin(
+  id: string,
+  status: string,
+  errorMessage?: string
+) {
+  const db = getAdminDb();
+  const updateData: Record<string, unknown> = { status };
+  if (errorMessage) {
+    updateData.errorMessage = errorMessage;
+  }
+  await db.collection('receipts').doc(id).update(updateData);
+}
+
+async function updateReceiptParsedDataAdmin(
+  id: string,
+  parsedData: ParsedReceiptData
+) {
+  const db = getAdminDb();
+  await db.collection('receipts').doc(id).update({
+    parsedData,
+    vendor: parsedData?.vendor || null,
+    purchaseDate: parsedData?.date ? Timestamp.fromDate(new Date(parsedData.date)) : null,
+    subtotal: parsedData?.subtotal || null,
+    tax: parsedData?.tax || null,
+    total: parsedData?.total || null,
+    items: parsedData?.items?.map((item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      total: item.total,
+    })) || [],
+    status: 'parsed',
+  });
+}
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -95,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify receipt exists
-    const receipt = await getReceipt(receiptId);
+    const receipt = await getReceiptAdmin(receiptId);
     if (!receipt) {
       return NextResponse.json(
         { error: 'Receipt not found' },
@@ -104,12 +150,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Update status to parsing
-    await updateReceiptStatus(receiptId, 'parsing');
+    await updateReceiptStatusAdmin(receiptId, 'parsing');
 
     // Fetch the file and convert to base64
     const fileResponse = await fetch(imageUrl);
     if (!fileResponse.ok) {
-      await updateReceiptStatus(receiptId, 'error', 'Failed to fetch document');
+      await updateReceiptStatusAdmin(receiptId, 'error', 'Failed to fetch document');
       return NextResponse.json(
         { error: 'Failed to fetch document' },
         { status: 400 }
@@ -180,7 +226,7 @@ export async function POST(request: NextRequest) {
     // Extract the text response
     const textContent = response.content.find(c => c.type === 'text');
     if (!textContent || textContent.type !== 'text') {
-      await updateReceiptStatus(receiptId, 'error', 'No text response from AI');
+      await updateReceiptStatusAdmin(receiptId, 'error', 'No text response from AI');
       return NextResponse.json(
         { error: 'Unexpected response type from AI' },
         { status: 500 }
@@ -210,7 +256,7 @@ export async function POST(request: NextRequest) {
 
     // Check for parsing errors
     if (parsedData.error) {
-      await updateReceiptStatus(receiptId, 'error', parsedData.error);
+      await updateReceiptStatusAdmin(receiptId, 'error', parsedData.error);
       return NextResponse.json({
         success: false,
         error: parsedData.error,
@@ -219,7 +265,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the receipt with parsed data
-    await updateReceiptParsedData(receiptId, parsedData);
+    await updateReceiptParsedDataAdmin(receiptId, parsedData);
 
     return NextResponse.json({
       success: true,
@@ -232,7 +278,7 @@ export async function POST(request: NextRequest) {
     try {
       const body = await request.clone().json();
       if (body.receiptId) {
-        await updateReceiptStatus(body.receiptId, 'error', 'Failed to process receipt');
+        await updateReceiptStatusAdmin(body.receiptId, 'error', 'Failed to process receipt');
       }
     } catch {
       // Ignore errors during error handling
