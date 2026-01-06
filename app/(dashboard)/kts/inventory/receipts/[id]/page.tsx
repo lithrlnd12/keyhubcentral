@@ -95,7 +95,8 @@ export default function ReceiptDetailPage() {
     setVerifying(true);
     try {
       // Save all item links before verifying
-      for (const [index, link] of itemLinks) {
+      const linkEntries = Array.from(itemLinks.entries());
+      for (const [index, link] of linkEntries) {
         if (link.inventoryItemId && link.inventoryItemName) {
           await linkReceiptItemToInventory(
             receiptId,
