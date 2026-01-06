@@ -56,7 +56,7 @@ export default function ReceiptDetailPage() {
         const data = await getReceipt(receiptId);
         if (data) {
           setReceipt(data);
-          // Initialize item links from existing data
+          // Initialize item links from existing data or AI-suggested categories
           const links = new Map<number, ItemLinkState>();
           data.items?.forEach((item, index) => {
             if (item.inventoryItemId) {
@@ -64,6 +64,14 @@ export default function ReceiptDetailPage() {
                 itemIndex: index,
                 inventoryItemId: item.inventoryItemId,
                 inventoryItemName: item.inventoryItemName,
+                category: item.category,
+              });
+            } else if (item.category) {
+              // Pre-fill with AI-suggested category
+              links.set(index, {
+                itemIndex: index,
+                category: item.category,
+                isNew: true,
               });
             }
           });
@@ -472,17 +480,19 @@ export default function ReceiptDetailPage() {
                           ) : link ? (
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                {link.category === 'material' || (!link.category && link.inventoryItemId) ? (
+                                {link.category === 'material' ? (
                                   <Package className="h-4 w-4 text-gold" />
-                                ) : (
+                                ) : link.category === 'tool' ? (
                                   <Wrench className="h-4 w-4 text-blue-400" />
+                                ) : (
+                                  <Package className="h-4 w-4 text-gray-400" />
                                 )}
                                 <span className="text-sm text-white">
-                                  {link.inventoryItemName || (link.isNew ? `New ${link.category}` : '')}
+                                  {link.inventoryItemName || (link.isNew ? `${link.category === 'material' ? 'Material' : 'Tool'}` : '')}
                                 </span>
-                                {link.isNew && (
-                                  <span className="text-xs px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded">
-                                    New
+                                {link.isNew && !link.inventoryItemId && (
+                                  <span className="text-xs px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded">
+                                    AI Suggested
                                   </span>
                                 )}
                               </div>
@@ -490,7 +500,7 @@ export default function ReceiptDetailPage() {
                                 onClick={() => handleUnlinkItem(index)}
                                 className="text-gray-500 hover:text-red-400 text-xs"
                               >
-                                Remove
+                                Change
                               </button>
                             </div>
                           ) : (

@@ -106,6 +106,7 @@ export interface ReceiptItem {
   quantity: number;
   unitPrice: number;
   total: number;
+  category?: InventoryCategory; // AI-suggested category
   inventoryItemId?: string; // Link to inventory if matched
   inventoryItemName?: string;
 }

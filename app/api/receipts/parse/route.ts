@@ -44,6 +44,7 @@ async function updateReceiptParsedDataAdmin(
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       total: item.total,
+      category: item.category || null,
     })) || [],
     status: 'parsed',
   });
@@ -62,6 +63,9 @@ const RECEIPT_PARSING_PROMPT = `Analyze this receipt/invoice/document and extrac
    - Quantity (default to 1 if not shown)
    - Unit price
    - Total for the item
+   - Category: "material" or "tool"
+     * "material" = consumable supplies (screws, nails, lumber, wire, pipe, paint, tape, glue, caulk, sandpaper, filters, etc.)
+     * "tool" = reusable equipment (drills, saws, hammers, wrenches, meters, ladders, etc.)
 4. Subtotal (before tax)
 5. Tax amount
 6. Grand total
@@ -75,7 +79,8 @@ Return ONLY a valid JSON object in this exact format (no markdown, no explanatio
       "description": "Item description",
       "quantity": 1,
       "unitPrice": 0.00,
-      "total": 0.00
+      "total": 0.00,
+      "category": "material"
     }
   ],
   "subtotal": 0.00,
@@ -97,6 +102,7 @@ interface ParsedReceiptData {
     quantity: number;
     unitPrice: number;
     total: number;
+    category?: 'material' | 'tool';
   }>;
   subtotal?: number;
   tax?: number;
