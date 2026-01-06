@@ -313,7 +313,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const receipt = await getReceipt(receiptId);
+    const receipt = await getReceiptAdmin(receiptId) as { status: string; parsedData?: unknown; errorMessage?: string } | null;
 
     if (!receipt) {
       return NextResponse.json(
