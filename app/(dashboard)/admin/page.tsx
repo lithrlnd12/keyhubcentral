@@ -45,10 +45,13 @@ export default function AdminPage() {
 
   const fetchPartners = async () => {
     try {
-      const q = query(collection(db, 'partners'), where('status', '==', 'active'), orderBy('companyName', 'asc'));
+      const q = query(collection(db, 'partners'), where('status', '==', 'active'));
       const snapshot = await getDocs(q);
-      const partnerList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Partner));
+      const partnerList = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() } as Partner))
+        .sort((a, b) => a.companyName.localeCompare(b.companyName));
       setPartners(partnerList);
+      console.log('Fetched partners:', partnerList.length);
     } catch (error) {
       console.error('Error fetching partners:', error);
     }
