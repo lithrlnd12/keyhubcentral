@@ -457,6 +457,13 @@ export function NotificationSettings() {
               onChange={(v) => handleToggle('admin', 'systemAlerts', v)}
               disabled={saving || !preferences.pushEnabled}
             />
+            <SettingRow
+              label="Partner requests"
+              description="When partners submit labor requests or service tickets"
+              enabled={preferences.admin.partnerRequests}
+              onChange={(v) => handleToggle('admin', 'partnerRequests', v)}
+              disabled={saving || !preferences.pushEnabled}
+            />
           </div>
         </Card>
       )}
