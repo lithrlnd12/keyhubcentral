@@ -94,10 +94,10 @@ export default function PartnerDetailPage() {
         contactEmail: formData.contactEmail.trim(),
         contactPhone: formData.contactPhone.trim(),
         address: {
-          street: formData.street.trim() || undefined,
-          city: formData.city.trim() || undefined,
-          state: formData.state || undefined,
-          zip: formData.zip.trim() || undefined,
+          street: formData.street.trim(),
+          city: formData.city.trim(),
+          state: formData.state,
+          zip: formData.zip.trim(),
         },
         notes: formData.notes.trim() || null,
       });

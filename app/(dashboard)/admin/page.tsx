@@ -2,21 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/hooks';
 import { Button } from '@/components/ui';
 import { UserProfile, UserRole, UserStatus } from '@/types/user';
+import { Partner } from '@/types/partner';
 import { Check, X, Clock, User, Database, RefreshCw } from 'lucide-react';
 
 export default function AdminPage() {
   const { user } = useAuth();
   const [pendingUsers, setPendingUsers] = useState<UserProfile[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<Record<string, UserRole>>({});
+  const [selectedPartners, setSelectedPartners] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     fetchPendingUsers();
+    fetchPartners();
   }, []);
 
   const fetchPendingUsers = async () => {
@@ -25,6 +30,12 @@ export default function AdminPage() {
       const snapshot = await getDocs(q);
       const users = snapshot.docs.map((doc) => doc.data() as UserProfile);
       setPendingUsers(users);
+      // Initialize default roles
+      const defaultRoles: Record<string, UserRole> = {};
+      users.forEach((u) => {
+        defaultRoles[u.uid] = 'contractor';
+      });
+      setSelectedRoles((prev) => ({ ...defaultRoles, ...prev }));
     } catch (error) {
       console.error('Error fetching pending users:', error);
     } finally {
@@ -32,15 +43,41 @@ export default function AdminPage() {
     }
   };
 
-  const handleApprove = async (uid: string, role: UserRole) => {
+  const fetchPartners = async () => {
+    try {
+      const q = query(collection(db, 'partners'), where('status', '==', 'active'), orderBy('companyName', 'asc'));
+      const snapshot = await getDocs(q);
+      const partnerList = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Partner));
+      setPartners(partnerList);
+    } catch (error) {
+      console.error('Error fetching partners:', error);
+    }
+  };
+
+  const handleApprove = async (uid: string) => {
+    const role = selectedRoles[uid] || 'contractor';
+    const partnerId = role === 'partner' ? selectedPartners[uid] : null;
+
+    // Validate partner selection
+    if (role === 'partner' && !partnerId) {
+      alert('Please select a partner company for this user');
+      return;
+    }
+
     try {
       // Update Firestore document
-      await updateDoc(doc(db, 'users', uid), {
+      const updateData: Record<string, unknown> = {
         status: 'active' as UserStatus,
         role,
         approvedAt: serverTimestamp(),
         approvedBy: user?.uid,
-      });
+      };
+
+      if (role === 'partner' && partnerId) {
+        updateData.partnerId = partnerId;
+      }
+
+      await updateDoc(doc(db, 'users', uid), updateData);
 
       // Set custom claims for Storage rules
       await fetch('/api/admin/set-role', {
@@ -151,20 +188,30 @@ export default function AdminPage() {
                 <div className="flex items-center gap-2">
                   <select
                     className="bg-brand-black border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white"
-                    defaultValue="contractor"
-                    id={`role-${pendingUser.uid}`}
+                    value={selectedRoles[pendingUser.uid] || 'contractor'}
+                    onChange={(e) => setSelectedRoles((prev) => ({ ...prev, [pendingUser.uid]: e.target.value as UserRole }))}
                   >
                     <option value="contractor">Contractor</option>
                     <option value="sales_rep">Sales Rep</option>
                     <option value="pm">Project Manager</option>
+                    <option value="partner">Partner</option>
                     <option value="admin">Admin</option>
                   </select>
+                  {selectedRoles[pendingUser.uid] === 'partner' && (
+                    <select
+                      className="bg-brand-black border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white"
+                      value={selectedPartners[pendingUser.uid] || ''}
+                      onChange={(e) => setSelectedPartners((prev) => ({ ...prev, [pendingUser.uid]: e.target.value }))}
+                    >
+                      <option value="">Select Company...</option>
+                      {partners.map((p) => (
+                        <option key={p.id} value={p.id}>{p.companyName}</option>
+                      ))}
+                    </select>
+                  )}
                   <Button
                     size="sm"
-                    onClick={() => {
-                      const select = document.getElementById(`role-${pendingUser.uid}`) as HTMLSelectElement;
-                      handleApprove(pendingUser.uid, select.value as UserRole);
-                    }}
+                    onClick={() => handleApprove(pendingUser.uid)}
                   >
                     <Check className="w-4 h-4" />
                   </Button>
