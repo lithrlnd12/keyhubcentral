@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.testNotification = exports.onInvoiceOverdue = exports.onUserPendingApproval = exports.onJobAssigned = exports.onLeadAssigned = exports.dailyExpirationCheck = void 0;
+exports.testNotification = exports.onPartnerServiceTicket = exports.onPartnerLaborRequest = exports.onInvoiceOverdue = exports.onUserPendingApproval = exports.onJobAssigned = exports.onLeadAssigned = exports.dailyExpirationCheck = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 // Lazy initialization to avoid deployment issues
@@ -458,6 +458,51 @@ exports.onInvoiceOverdue = functions.firestore
             },
         }, (prefs) => { var _a, _b; return (_b = (_a = prefs.financial) === null || _a === void 0 ? void 0 : _a.invoiceOverdue) !== null && _b !== void 0 ? _b : false; });
     }
+    return null;
+});
+// When a new labor request is created by a partner
+exports.onPartnerLaborRequest = functions.firestore
+    .document('laborRequests/{requestId}')
+    .onCreate(async (snapshot, context) => {
+    const requestData = snapshot.data();
+    const requestId = context.params.requestId;
+    await notifyAdmins({
+        type: 'partner_labor_request_new',
+        category: 'admin',
+        priority: 'high',
+        title: 'New Labor Request',
+        body: `${requestData.partnerCompany || 'A partner'} submitted a ${requestData.workType} labor request for ${requestData.crewSize} crew member(s).`,
+        data: {
+            actionUrl: `/admin/partner-requests`,
+            requestId,
+            partnerName: requestData.partnerCompany || '',
+            workType: requestData.workType || '',
+            crewSize: String(requestData.crewSize || 1),
+        },
+    }, (prefs) => { var _a, _b; return (_b = (_a = prefs.admin) === null || _a === void 0 ? void 0 : _a.partnerRequests) !== null && _b !== void 0 ? _b : false; });
+    return null;
+});
+// When a new partner service ticket is created
+exports.onPartnerServiceTicket = functions.firestore
+    .document('partnerTickets/{ticketId}')
+    .onCreate(async (snapshot, context) => {
+    var _a, _b;
+    const ticketData = snapshot.data();
+    const ticketId = context.params.ticketId;
+    await notifyAdmins({
+        type: 'partner_ticket_new',
+        category: 'admin',
+        priority: ticketData.urgency === 'emergency' ? 'urgent' : 'high',
+        title: 'New Partner Service Ticket',
+        body: `${ticketData.partnerCompany || 'A partner'} submitted a ${ticketData.urgency} priority service ticket: ${((_a = ticketData.issueDescription) === null || _a === void 0 ? void 0 : _a.substring(0, 50)) || 'Service request'}...`,
+        data: {
+            actionUrl: `/admin/partner-requests`,
+            ticketId,
+            partnerName: ticketData.partnerCompany || '',
+            urgency: ticketData.urgency || 'medium',
+            issue: ((_b = ticketData.issueDescription) === null || _b === void 0 ? void 0 : _b.substring(0, 50)) || '',
+        },
+    }, (prefs) => { var _a, _b; return (_b = (_a = prefs.admin) === null || _a === void 0 ? void 0 : _a.partnerRequests) !== null && _b !== void 0 ? _b : false; });
     return null;
 });
 // Export a callable function for testing

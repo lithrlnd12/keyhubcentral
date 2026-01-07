@@ -42,6 +42,7 @@ interface NotificationPreferences {
     userApprovals: boolean;
     newApplicants: boolean;
     systemAlerts: boolean;
+    partnerRequests: boolean;
   };
 }
 
@@ -615,6 +616,62 @@ export const onInvoiceOverdue = functions.firestore
         (prefs) => prefs.financial?.invoiceOverdue ?? false
       );
     }
+
+    return null;
+  });
+
+// When a new labor request is created by a partner
+export const onPartnerLaborRequest = functions.firestore
+  .document('laborRequests/{requestId}')
+  .onCreate(async (snapshot, context) => {
+    const requestData = snapshot.data();
+    const requestId = context.params.requestId;
+
+    await notifyAdmins(
+      {
+        type: 'partner_labor_request_new',
+        category: 'admin',
+        priority: 'high',
+        title: 'New Labor Request',
+        body: `${requestData.partnerCompany || 'A partner'} submitted a ${requestData.workType} labor request for ${requestData.crewSize} crew member(s).`,
+        data: {
+          actionUrl: `/admin/partner-requests`,
+          requestId,
+          partnerName: requestData.partnerCompany || '',
+          workType: requestData.workType || '',
+          crewSize: String(requestData.crewSize || 1),
+        },
+      },
+      (prefs) => prefs.admin?.partnerRequests ?? false
+    );
+
+    return null;
+  });
+
+// When a new partner service ticket is created
+export const onPartnerServiceTicket = functions.firestore
+  .document('partnerTickets/{ticketId}')
+  .onCreate(async (snapshot, context) => {
+    const ticketData = snapshot.data();
+    const ticketId = context.params.ticketId;
+
+    await notifyAdmins(
+      {
+        type: 'partner_ticket_new',
+        category: 'admin',
+        priority: ticketData.urgency === 'emergency' ? 'urgent' : 'high',
+        title: 'New Partner Service Ticket',
+        body: `${ticketData.partnerCompany || 'A partner'} submitted a ${ticketData.urgency} priority service ticket: ${ticketData.issueDescription?.substring(0, 50) || 'Service request'}...`,
+        data: {
+          actionUrl: `/admin/partner-requests`,
+          ticketId,
+          partnerName: ticketData.partnerCompany || '',
+          urgency: ticketData.urgency || 'medium',
+          issue: ticketData.issueDescription?.substring(0, 50) || '',
+        },
+      },
+      (prefs) => prefs.admin?.partnerRequests ?? false
+    );
 
     return null;
   });

@@ -36,6 +36,8 @@ export {
   onJobAssigned,
   onUserPendingApproval,
   onInvoiceOverdue,
+  onPartnerLaborRequest,
+  onPartnerServiceTicket,
   testNotification,
 } from './triggers/notificationTriggers';
 

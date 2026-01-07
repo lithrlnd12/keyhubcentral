@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onUserApproved = exports.onUserCreated = exports.testNotification = exports.onInvoiceOverdue = exports.onUserPendingApproval = exports.onJobAssigned = exports.onLeadAssigned = exports.dailyExpirationCheck = exports.manualCalendarSync = exports.syncCalendarToApp = exports.onAvailabilityChange = exports.onLeadCreated = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
+exports.onUserApproved = exports.onUserCreated = exports.testNotification = exports.onPartnerServiceTicket = exports.onPartnerLaborRequest = exports.onInvoiceOverdue = exports.onUserPendingApproval = exports.onJobAssigned = exports.onLeadAssigned = exports.dailyExpirationCheck = exports.manualCalendarSync = exports.syncCalendarToApp = exports.onAvailabilityChange = exports.onLeadCreated = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -36,6 +36,8 @@ Object.defineProperty(exports, "onLeadAssigned", { enumerable: true, get: functi
 Object.defineProperty(exports, "onJobAssigned", { enumerable: true, get: function () { return notificationTriggers_1.onJobAssigned; } });
 Object.defineProperty(exports, "onUserPendingApproval", { enumerable: true, get: function () { return notificationTriggers_1.onUserPendingApproval; } });
 Object.defineProperty(exports, "onInvoiceOverdue", { enumerable: true, get: function () { return notificationTriggers_1.onInvoiceOverdue; } });
+Object.defineProperty(exports, "onPartnerLaborRequest", { enumerable: true, get: function () { return notificationTriggers_1.onPartnerLaborRequest; } });
+Object.defineProperty(exports, "onPartnerServiceTicket", { enumerable: true, get: function () { return notificationTriggers_1.onPartnerServiceTicket; } });
 Object.defineProperty(exports, "testNotification", { enumerable: true, get: function () { return notificationTriggers_1.testNotification; } });
 admin.initializeApp();
 // Admin emails to notify when new users sign up
