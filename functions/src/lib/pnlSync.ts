@@ -378,6 +378,41 @@ export async function rebuildPnLSheet(): Promise<void> {
     ]);
   }
 
+  // Build Inventory sheet (inventory purchases for the current year)
+  const currentYear = now.getFullYear();
+  const yearStart = new Date(currentYear, 0, 1);
+  const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59);
+
+  const inventoryData: (string | number)[][] = [
+    [`Inventory Purchases - ${currentYear}`, '', '', '', '', '', 'Last Updated:', new Date().toLocaleString()],
+    [],
+    ['Date', 'Entity', 'Vendor', 'Description', 'Amount', 'Added By', 'Receipt Link'],
+  ];
+
+  // Filter for inventory category expenses within the current year
+  const inventoryExpenses = sortedExpenses.filter((exp) => {
+    const expDate = exp.date.toDate();
+    return exp.category === 'inventory' && expDate >= yearStart && expDate <= yearEnd;
+  });
+
+  let inventoryTotal = 0;
+  for (const exp of inventoryExpenses) {
+    inventoryTotal += exp.amount;
+    inventoryData.push([
+      exp.date.toDate().toLocaleDateString('en-US'),
+      getEntityFullName(exp.entity),
+      exp.vendor || '',
+      exp.description,
+      exp.amount,
+      exp.createdByName,
+      exp.receiptImageUrl || '',
+    ]);
+  }
+
+  // Add total row
+  inventoryData.push([]);
+  inventoryData.push(['', '', '', 'TOTAL', inventoryTotal, '', '']);
+
   // Write all sheets
   console.log('Writing Summary sheet...');
   await writeSheet(sheets, spreadsheetId, 'Summary', summaryData);
@@ -393,6 +428,10 @@ export async function rebuildPnLSheet(): Promise<void> {
 
   console.log('Writing Materials & Expenses sheet...');
   await writeSheet(sheets, spreadsheetId, 'Materials & Expenses', expensesData);
+  await delay(1000);
+
+  console.log('Writing Inventory sheet...');
+  await writeSheet(sheets, spreadsheetId, 'Inventory', inventoryData);
   await delay(1000);
 
   // Format sheets
@@ -725,6 +764,47 @@ async function formatPnLSheets(
       requests.push({
         repeatCell: {
           range: { sheetId, startColumnIndex: 7, endColumnIndex: 8, startRowIndex: 3 },
+          cell: {
+            userEnteredFormat: {
+              textFormat: { foregroundColor: { red: 0.2, green: 0.4, blue: 0.8 }, underline: true },
+            },
+          },
+          fields: 'userEnteredFormat.textFormat',
+        },
+      });
+      // Alternating row colors for readability
+      requests.push({
+        addConditionalFormatRule: {
+          rule: {
+            ranges: [{ sheetId, startRowIndex: 3 }],
+            booleanRule: {
+              condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: '=MOD(ROW(),2)=0' }] },
+              format: { backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 } },
+            },
+          },
+          index: 0,
+        },
+      });
+    }
+
+    if (sheetTitle === 'Inventory') {
+      // Amount column (E) - currency format, red color
+      requests.push({
+        repeatCell: {
+          range: { sheetId, startColumnIndex: 4, endColumnIndex: 5, startRowIndex: 3 },
+          cell: {
+            userEnteredFormat: {
+              numberFormat: { type: 'CURRENCY', pattern: '"$"#,##0.00' },
+              textFormat: { foregroundColor: { red: 0.9, green: 0.3, blue: 0.3 } },
+            },
+          },
+          fields: 'userEnteredFormat(numberFormat,textFormat)',
+        },
+      });
+      // Receipt Link column (G) - make it a hyperlink if URL present
+      requests.push({
+        repeatCell: {
+          range: { sheetId, startColumnIndex: 6, endColumnIndex: 7, startRowIndex: 3 },
           cell: {
             userEnteredFormat: {
               textFormat: { foregroundColor: { red: 0.2, green: 0.4, blue: 0.8 }, underline: true },

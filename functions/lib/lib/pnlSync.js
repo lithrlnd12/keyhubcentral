@@ -44,7 +44,7 @@ function getEntityFullName(entity) {
     }
 }
 // Calculate P&L for an entity
-function calculateEntityPnL(entity, invoices, jobs) {
+function calculateEntityPnL(entity, invoices, jobs, directExpenses) {
     let revenue = 0;
     let expenses = 0;
     // Revenue: Invoices FROM this entity that are paid
@@ -68,6 +68,14 @@ function calculateEntityPnL(entity, invoices, jobs) {
             if (((_a = job.costs) === null || _a === void 0 ? void 0 : _a.materialActual) > 0) {
                 expenses += job.costs.materialActual;
             }
+        });
+    }
+    // Add direct expenses (from receipts, etc.)
+    if (directExpenses) {
+        directExpenses
+            .filter((exp) => exp.entity === entity)
+            .forEach((exp) => {
+            expenses += exp.amount;
         });
     }
     return {
@@ -138,14 +146,16 @@ async function rebuildPnLSheet() {
     const sheets = await getSheetsClient();
     const spreadsheetId = getPnLSpreadsheetId();
     console.log('Starting P&L sheet rebuild...');
-    // Fetch all invoices and jobs
-    const [invoicesSnapshot, jobsSnapshot] = await Promise.all([
+    // Fetch all invoices, jobs, and expenses
+    const [invoicesSnapshot, jobsSnapshot, expensesSnapshot] = await Promise.all([
         db.collection('invoices').get(),
         db.collection('jobs').get(),
+        db.collection('expenses').get(),
     ]);
     const invoices = invoicesSnapshot.docs.map((doc) => doc.data());
     const jobs = jobsSnapshot.docs.map((doc) => doc.data());
-    console.log(`Loaded ${invoices.length} invoices and ${jobs.length} jobs`);
+    const expenses = expensesSnapshot.docs.map((doc) => (Object.assign({ id: doc.id }, doc.data())));
+    console.log(`Loaded ${invoices.length} invoices, ${jobs.length} jobs, and ${expenses.length} expenses`);
     const dateRanges = getDateRanges();
     const entities = ['kd', 'kts', 'kr'];
     // Build Summary sheet data
@@ -156,11 +166,15 @@ async function rebuildPnLSheet() {
     ];
     for (const range of dateRanges) {
         const filtered = filterByDateRange(invoices, range.start, range.end);
+        const filteredExpenses = expenses.filter((exp) => {
+            const expDate = exp.date.toDate();
+            return expDate >= range.start && expDate <= range.end;
+        });
         let totalRevenue = 0;
         let totalExpenses = 0;
         let intercompany = 0;
         for (const entity of entities) {
-            const pnl = calculateEntityPnL(entity, filtered, entity === 'kr' ? jobs : undefined);
+            const pnl = calculateEntityPnL(entity, filtered, entity === 'kr' ? jobs : undefined, filteredExpenses);
             totalRevenue += pnl.revenue;
             totalExpenses += pnl.expenses;
         }
@@ -194,8 +208,12 @@ async function rebuildPnLSheet() {
     ];
     for (const range of dateRanges) {
         const filtered = filterByDateRange(invoices, range.start, range.end);
+        const filteredExpenses = expenses.filter((exp) => {
+            const expDate = exp.date.toDate();
+            return expDate >= range.start && expDate <= range.end;
+        });
         for (const entity of entities) {
-            const pnl = calculateEntityPnL(entity, filtered, entity === 'kr' ? jobs : undefined);
+            const pnl = calculateEntityPnL(entity, filtered, entity === 'kr' ? jobs : undefined, filteredExpenses);
             const margin = pnl.revenue > 0 ? ((pnl.netIncome / pnl.revenue) * 100).toFixed(1) : '0.0';
             entityData.push([
                 range.label,
@@ -219,9 +237,13 @@ async function rebuildPnLSheet() {
         const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
         const monthLabel = monthStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         const filtered = filterByDateRange(invoices, monthStart, monthEnd);
-        const kdPnL = calculateEntityPnL('kd', filtered);
-        const ktsPnL = calculateEntityPnL('kts', filtered);
-        const krPnL = calculateEntityPnL('kr', filtered, jobs);
+        const monthExpenses = expenses.filter((exp) => {
+            const expDate = exp.date.toDate();
+            return expDate >= monthStart && expDate <= monthEnd;
+        });
+        const kdPnL = calculateEntityPnL('kd', filtered, undefined, monthExpenses);
+        const ktsPnL = calculateEntityPnL('kts', filtered, undefined, monthExpenses);
+        const krPnL = calculateEntityPnL('kr', filtered, jobs, monthExpenses);
         // Calculate intercompany
         let intercompany = 0;
         filtered
@@ -240,6 +262,57 @@ async function rebuildPnLSheet() {
             combinedNet,
         ]);
     }
+    // Build Materials & Expenses detail sheet
+    const expensesData = [
+        ['Materials & Expenses Detail', '', '', '', '', '', '', 'Last Updated:', new Date().toLocaleString()],
+        [],
+        ['Date', 'Entity', 'Category', 'Vendor', 'Description', 'Amount', 'Added By', 'Receipt Link'],
+    ];
+    // Sort expenses by date descending
+    const sortedExpenses = [...expenses].sort((a, b) => b.date.toMillis() - a.date.toMillis());
+    for (const exp of sortedExpenses) {
+        const categoryLabel = exp.category.charAt(0).toUpperCase() + exp.category.slice(1);
+        expensesData.push([
+            exp.date.toDate().toLocaleDateString('en-US'),
+            getEntityFullName(exp.entity),
+            categoryLabel,
+            exp.vendor || '',
+            exp.description,
+            exp.amount,
+            exp.createdByName,
+            exp.receiptImageUrl || '',
+        ]);
+    }
+    // Build Inventory sheet (inventory purchases for the current year)
+    const currentYear = now.getFullYear();
+    const yearStart = new Date(currentYear, 0, 1);
+    const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59);
+    const inventoryData = [
+        [`Inventory Purchases - ${currentYear}`, '', '', '', '', '', 'Last Updated:', new Date().toLocaleString()],
+        [],
+        ['Date', 'Entity', 'Vendor', 'Description', 'Amount', 'Added By', 'Receipt Link'],
+    ];
+    // Filter for inventory category expenses within the current year
+    const inventoryExpenses = sortedExpenses.filter((exp) => {
+        const expDate = exp.date.toDate();
+        return exp.category === 'inventory' && expDate >= yearStart && expDate <= yearEnd;
+    });
+    let inventoryTotal = 0;
+    for (const exp of inventoryExpenses) {
+        inventoryTotal += exp.amount;
+        inventoryData.push([
+            exp.date.toDate().toLocaleDateString('en-US'),
+            getEntityFullName(exp.entity),
+            exp.vendor || '',
+            exp.description,
+            exp.amount,
+            exp.createdByName,
+            exp.receiptImageUrl || '',
+        ]);
+    }
+    // Add total row
+    inventoryData.push([]);
+    inventoryData.push(['', '', '', 'TOTAL', inventoryTotal, '', '']);
     // Write all sheets
     console.log('Writing Summary sheet...');
     await writeSheet(sheets, spreadsheetId, 'Summary', summaryData);
@@ -249,6 +322,12 @@ async function rebuildPnLSheet() {
     await delay(1000);
     console.log('Writing Monthly Trend sheet...');
     await writeSheet(sheets, spreadsheetId, 'Monthly Trend', trendData);
+    await delay(1000);
+    console.log('Writing Materials & Expenses sheet...');
+    await writeSheet(sheets, spreadsheetId, 'Materials & Expenses', expensesData);
+    await delay(1000);
+    console.log('Writing Inventory sheet...');
+    await writeSheet(sheets, spreadsheetId, 'Inventory', inventoryData);
     await delay(1000);
     // Format sheets
     console.log('Formatting sheets...');
@@ -540,6 +619,86 @@ async function formatPnLSheets(sheets, spreadsheetId) {
                         },
                     },
                     fields: 'userEnteredFormat.textFormat',
+                },
+            });
+        }
+        if (sheetTitle === 'Materials & Expenses') {
+            // Amount column (F) - currency format, red color
+            requests.push({
+                repeatCell: {
+                    range: { sheetId, startColumnIndex: 5, endColumnIndex: 6, startRowIndex: 3 },
+                    cell: {
+                        userEnteredFormat: {
+                            numberFormat: { type: 'CURRENCY', pattern: '"$"#,##0.00' },
+                            textFormat: { foregroundColor: { red: 0.9, green: 0.3, blue: 0.3 } },
+                        },
+                    },
+                    fields: 'userEnteredFormat(numberFormat,textFormat)',
+                },
+            });
+            // Receipt Link column (H) - make it a hyperlink if URL present
+            requests.push({
+                repeatCell: {
+                    range: { sheetId, startColumnIndex: 7, endColumnIndex: 8, startRowIndex: 3 },
+                    cell: {
+                        userEnteredFormat: {
+                            textFormat: { foregroundColor: { red: 0.2, green: 0.4, blue: 0.8 }, underline: true },
+                        },
+                    },
+                    fields: 'userEnteredFormat.textFormat',
+                },
+            });
+            // Alternating row colors for readability
+            requests.push({
+                addConditionalFormatRule: {
+                    rule: {
+                        ranges: [{ sheetId, startRowIndex: 3 }],
+                        booleanRule: {
+                            condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: '=MOD(ROW(),2)=0' }] },
+                            format: { backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 } },
+                        },
+                    },
+                    index: 0,
+                },
+            });
+        }
+        if (sheetTitle === 'Inventory') {
+            // Amount column (E) - currency format, red color
+            requests.push({
+                repeatCell: {
+                    range: { sheetId, startColumnIndex: 4, endColumnIndex: 5, startRowIndex: 3 },
+                    cell: {
+                        userEnteredFormat: {
+                            numberFormat: { type: 'CURRENCY', pattern: '"$"#,##0.00' },
+                            textFormat: { foregroundColor: { red: 0.9, green: 0.3, blue: 0.3 } },
+                        },
+                    },
+                    fields: 'userEnteredFormat(numberFormat,textFormat)',
+                },
+            });
+            // Receipt Link column (G) - make it a hyperlink if URL present
+            requests.push({
+                repeatCell: {
+                    range: { sheetId, startColumnIndex: 6, endColumnIndex: 7, startRowIndex: 3 },
+                    cell: {
+                        userEnteredFormat: {
+                            textFormat: { foregroundColor: { red: 0.2, green: 0.4, blue: 0.8 }, underline: true },
+                        },
+                    },
+                    fields: 'userEnteredFormat.textFormat',
+                },
+            });
+            // Alternating row colors for readability
+            requests.push({
+                addConditionalFormatRule: {
+                    rule: {
+                        ranges: [{ sheetId, startRowIndex: 3 }],
+                        booleanRule: {
+                            condition: { type: 'CUSTOM_FORMULA', values: [{ userEnteredValue: '=MOD(ROW(),2)=0' }] },
+                            format: { backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 } },
+                        },
+                    },
+                    index: 0,
                 },
             });
         }
