@@ -25,3 +25,4 @@ export { EmptyState } from './EmptyState';
 export { Skeleton, SkeletonCard, SkeletonList, SkeletonTable, SkeletonChart } from './Skeleton';
 export { PWAInstallPrompt } from './PWAInstallPrompt';
 export { BackButton } from './BackButton';
+export { ExpandableCard } from './ExpandableCard';

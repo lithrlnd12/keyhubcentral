@@ -1,17 +1,39 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Calendar, Clock, Briefcase, ArrowRight } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import {
+  Calendar,
+  Briefcase,
+  DollarSign,
+  Package,
+  User,
+  Settings,
+  CheckCircle,
+} from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
+import { ExpandableCard } from '@/components/ui/ExpandableCard';
 import { useAuth } from '@/lib/hooks';
 import { getContractorByUserId } from '@/lib/firebase/contractors';
 import { Contractor } from '@/types/contractor';
+import {
+  AvailabilityCardContent,
+  JobsCardContent,
+  EarningsCardContent,
+  InventoryCardContent,
+  ProfileCardContent,
+  SettingsCardContent,
+} from '@/components/portal';
+import { formatCurrency } from '@/lib/utils/formatters';
+
+// Mock data for summaries - will be replaced with real data
+const mockJobsSummary = { active: 3, total: 5 };
+const mockEarningsSummary = { total: 7540, pending: 2850 };
 
 export default function PortalDashboardPage() {
   const { user } = useAuth();
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadContractor() {
@@ -38,67 +60,128 @@ export default function PortalDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="space-y-4 pb-20">
+      {/* Header */}
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">
           Welcome back{contractor?.businessName ? `, ${contractor.businessName}` : ''}!
         </h1>
         <p className="text-gray-400 mt-1">
-          Manage your availability and view your assignments
+          Manage your availability, jobs, and earnings
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Expandable Cards */}
+      <div className="space-y-3">
         {/* Availability Card */}
-        <Link href="/portal/availability">
-          <Card className="p-6 hover:border-gold/50 transition-colors cursor-pointer h-full">
-            <div className="flex items-start justify-between">
-              <div className="p-3 bg-gold/10 rounded-lg">
-                <Calendar className="h-6 w-6 text-gold" />
-              </div>
-              <ArrowRight className="h-5 w-5 text-gray-500" />
+        <ExpandableCard
+          id="availability"
+          icon={<Calendar className="h-6 w-6 text-gold" />}
+          iconBgColor="bg-gold/10"
+          title="Availability"
+          subtitle="Manage your schedule"
+          expandedId={expandedId}
+          onToggle={setExpandedId}
+          summary={
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-400" />
+              <span className="text-xs text-green-400">Available today</span>
             </div>
-            <h3 className="text-lg font-semibold text-white mt-4">My Availability</h3>
-            <p className="text-gray-400 text-sm mt-1">
-              Set your available days and time off
+          }
+        >
+          {contractor && <AvailabilityCardContent contractor={contractor} />}
+        </ExpandableCard>
+
+        {/* Jobs Card */}
+        <ExpandableCard
+          id="jobs"
+          icon={<Briefcase className="h-6 w-6 text-blue-400" />}
+          iconBgColor="bg-blue-500/10"
+          title="My Jobs"
+          subtitle="View assigned work"
+          badge={
+            <Badge variant="info">{mockJobsSummary.active} active</Badge>
+          }
+          expandedId={expandedId}
+          onToggle={setExpandedId}
+          summary={
+            <p className="text-xs text-gray-400">
+              {mockJobsSummary.total} jobs total
             </p>
-          </Card>
-        </Link>
+          }
+        >
+          <JobsCardContent />
+        </ExpandableCard>
 
-        {/* Quick Status Card */}
-        <Card className="p-6">
-          <div className="p-3 bg-blue-500/10 rounded-lg w-fit">
-            <Clock className="h-6 w-6 text-blue-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-white mt-4">Status</h3>
-          <p className="text-gray-400 text-sm mt-1">
-            {contractor?.status === 'active' ? (
-              <span className="text-green-400">Active</span>
+        {/* Earnings Card */}
+        <ExpandableCard
+          id="earnings"
+          icon={<DollarSign className="h-6 w-6 text-green-400" />}
+          iconBgColor="bg-green-500/10"
+          title="Earnings"
+          subtitle="Payment history"
+          expandedId={expandedId}
+          onToggle={setExpandedId}
+          summary={
+            <div className="flex items-center gap-3 text-xs">
+              <span className="text-green-400">{formatCurrency(mockEarningsSummary.total)} earned</span>
+              <span className="text-yellow-400">{formatCurrency(mockEarningsSummary.pending)} pending</span>
+            </div>
+          }
+        >
+          <EarningsCardContent />
+        </ExpandableCard>
+
+        {/* Inventory Card */}
+        <ExpandableCard
+          id="inventory"
+          icon={<Package className="h-6 w-6 text-purple-400" />}
+          iconBgColor="bg-purple-500/10"
+          title="Inventory"
+          subtitle="Truck stock & receipts"
+          expandedId={expandedId}
+          onToggle={setExpandedId}
+          summary={
+            <p className="text-xs text-gray-400">
+              Manage your truck inventory
+            </p>
+          }
+        >
+          <InventoryCardContent />
+        </ExpandableCard>
+
+        {/* Profile Card */}
+        <ExpandableCard
+          id="profile"
+          icon={<User className="h-6 w-6 text-gray-400" />}
+          iconBgColor="bg-gray-500/10"
+          title="My Profile"
+          subtitle={user?.displayName || user?.email || 'View details'}
+          badge={
+            contractor?.status === 'active' ? (
+              <Badge variant="success">Active</Badge>
             ) : (
-              <span className="text-yellow-400">{contractor?.status || 'Unknown'}</span>
-            )}
-          </p>
-        </Card>
+              <Badge variant="warning">{contractor?.status || 'Unknown'}</Badge>
+            )
+          }
+          expandedId={expandedId}
+          onToggle={setExpandedId}
+        >
+          {user && <ProfileCardContent user={user as any} contractor={contractor} />}
+        </ExpandableCard>
 
-        {/* Trades Card */}
-        <Card className="p-6">
-          <div className="p-3 bg-purple-500/10 rounded-lg w-fit">
-            <Briefcase className="h-6 w-6 text-purple-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-white mt-4">Trades</h3>
-          <div className="flex flex-wrap gap-1 mt-2">
-            {contractor?.trades?.map((trade) => (
-              <span
-                key={trade}
-                className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded"
-              >
-                {trade}
-              </span>
-            )) || (
-              <span className="text-gray-500 text-sm">No trades assigned</span>
-            )}
-          </div>
-        </Card>
+        {/* Settings Card */}
+        <ExpandableCard
+          id="settings"
+          icon={<Settings className="h-6 w-6 text-gray-400" />}
+          iconBgColor="bg-gray-500/10"
+          title="Settings"
+          subtitle="Integrations & preferences"
+          expandedId={expandedId}
+          onToggle={setExpandedId}
+        >
+          <SettingsCardContent />
+        </ExpandableCard>
       </div>
     </div>
   );

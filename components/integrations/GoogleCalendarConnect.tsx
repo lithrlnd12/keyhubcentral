@@ -10,10 +10,12 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 
 interface GoogleCalendarConnectProps {
   returnUrl?: string;
+  compact?: boolean;
 }
 
 export function GoogleCalendarConnect({
   returnUrl = '/portal/settings',
+  compact = false,
 }: GoogleCalendarConnectProps) {
   const { user, getIdToken } = useAuth();
   const [integration, setIntegration] = useState<GoogleCalendarIntegration | null>(null);
@@ -146,6 +148,16 @@ export function GoogleCalendarConnect({
   };
 
   if (loading) {
+    if (compact) {
+      return (
+        <div className="animate-pulse flex items-center gap-3">
+          <div className="h-8 w-8 bg-gray-700 rounded-lg" />
+          <div className="flex-1">
+            <div className="h-4 w-24 bg-gray-700 rounded" />
+          </div>
+        </div>
+      );
+    }
     return (
       <Card className="animate-pulse">
         <div className="flex items-center justify-between">
@@ -159,6 +171,65 @@ export function GoogleCalendarConnect({
           <div className="h-10 w-24 bg-gray-700 rounded" />
         </div>
       </Card>
+    );
+  }
+
+  // Compact view for expandable cards
+  if (compact) {
+    return (
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center h-8 w-8 bg-brand-gold/10 rounded-lg">
+            <svg
+              className="h-5 w-5 text-brand-gold"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-white">Google Calendar</p>
+            <p className="text-xs text-gray-400">
+              {integration?.enabled ? 'Connected' : 'Not connected'}
+            </p>
+          </div>
+        </div>
+
+        {integration?.enabled ? (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleManualSync}
+              disabled={syncing}
+              className="p-1.5 text-gray-400 hover:text-white rounded transition-colors"
+            >
+              {syncing ? (
+                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              )}
+            </button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleDisconnect}
+              disabled={disconnecting}
+              loading={disconnecting}
+            >
+              Disconnect
+            </Button>
+          </div>
+        ) : (
+          <Button size="sm" onClick={handleConnect} disabled={connecting} loading={connecting}>
+            Connect
+          </Button>
+        )}
+      </div>
     );
   }
 
