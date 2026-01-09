@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { Badge, BackButton } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
 import { getContractorByUserId } from '@/lib/firebase/contractors';
 import { Contractor, getRatingTier } from '@/types/contractor';
@@ -38,11 +38,14 @@ export default function PortalProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">My Profile</h1>
-        <p className="text-gray-400 mt-1">
-          View your contractor profile information
-        </p>
+      <div className="flex items-center gap-4">
+        <BackButton href="/portal" />
+        <div>
+          <h1 className="text-2xl font-bold text-white">My Profile</h1>
+          <p className="text-gray-400 mt-1">
+            View your contractor profile information
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

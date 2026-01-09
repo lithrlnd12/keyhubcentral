@@ -6,6 +6,7 @@ import { Plus, Search, ClipboardList, MapPin, AlertTriangle, Calendar } from 'lu
 import { useAuth, usePartnerTickets } from '@/lib/hooks';
 import { PartnerTicketStatus, Urgency, getPartnerTicketStatusLabel, URGENCY_OPTIONS } from '@/types/partner';
 import { Spinner } from '@/components/ui/Spinner';
+import { BackButton } from '@/components/ui';
 
 const STATUS_COLORS: Record<PartnerTicketStatus, string> = {
   new: 'bg-yellow-500/20 text-yellow-400',
@@ -51,9 +52,12 @@ export default function ServiceTicketsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Service Tickets</h1>
-          <p className="text-gray-400">Manage warranty and service requests</p>
+        <div className="flex items-center gap-4">
+          <BackButton href="/partner" />
+          <div>
+            <h1 className="text-2xl font-bold text-white">Service Tickets</h1>
+            <p className="text-gray-400">Manage warranty and service requests</p>
+          </div>
         </div>
         <Link
           href="/partner/service-tickets/new"

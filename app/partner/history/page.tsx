@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, Wrench, ClipboardList, CheckCircle, Calendar } from 'lucide-react';
 import { useAuth, useLaborRequests, usePartnerTickets } from '@/lib/hooks';
 import { Spinner } from '@/components/ui/Spinner';
+import { BackButton } from '@/components/ui';
 
 type FilterType = 'all' | 'labor' | 'service';
 
@@ -75,9 +76,12 @@ export default function HistoryPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">History</h1>
-        <p className="text-gray-400">View your completed labor requests and service tickets</p>
+      <div className="flex items-center gap-4">
+        <BackButton href="/partner" />
+        <div>
+          <h1 className="text-2xl font-bold text-white">History</h1>
+          <p className="text-gray-400">View your completed labor requests and service tickets</p>
+        </div>
       </div>
 
       {/* Filters */}

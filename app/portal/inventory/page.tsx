@@ -17,6 +17,7 @@ import {
   useReceipts,
 } from '@/lib/hooks';
 import { Spinner } from '@/components/ui/Spinner';
+import { BackButton } from '@/components/ui';
 import { LowStockAlertBanner, LowStockAlertList } from '@/components/inventory';
 
 export default function ContractorInventoryPage() {
@@ -66,9 +67,12 @@ export default function ContractorInventoryPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">My Truck Inventory</h1>
-        <p className="text-gray-400">{location.name}</p>
+      <div className="flex items-center gap-4">
+        <BackButton href="/portal" />
+        <div>
+          <h1 className="text-2xl font-bold text-white">My Truck Inventory</h1>
+          <p className="text-gray-400">{location.name}</p>
+        </div>
       </div>
 
       {/* Low Stock Alert */}

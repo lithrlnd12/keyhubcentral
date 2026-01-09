@@ -8,7 +8,7 @@ test.describe('Authentication', () => {
     await expect(page).toHaveTitle(/KeyHub Central/);
 
     // Check login form elements exist
-    await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();
     await expect(page.getByLabel(/email/i)).toBeVisible();
     await expect(page.getByLabel(/password/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
@@ -19,9 +19,9 @@ test.describe('Authentication', () => {
 
     // Check signup form elements exist
     await expect(page.getByRole('heading', { name: /create.*account/i })).toBeVisible();
-    await expect(page.getByLabel(/name/i)).toBeVisible();
+    await expect(page.getByLabel(/full name/i)).toBeVisible();
     await expect(page.getByLabel(/email/i)).toBeVisible();
-    await expect(page.getByLabel(/password/i)).toBeVisible();
+    await expect(page.getByLabel(/^password$/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /sign up|create account/i })).toBeVisible();
   });
 

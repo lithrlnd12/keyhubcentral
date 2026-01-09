@@ -24,3 +24,4 @@ export type { FileUploadProps } from './FileUpload';
 export { EmptyState } from './EmptyState';
 export { Skeleton, SkeletonCard, SkeletonList, SkeletonTable, SkeletonChart } from './Skeleton';
 export { PWAInstallPrompt } from './PWAInstallPrompt';
+export { BackButton } from './BackButton';

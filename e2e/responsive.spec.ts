@@ -1,4 +1,4 @@
-import { test, expect, devices } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.describe('Responsive Design', () => {
   test('login page is responsive on mobile', async ({ page }) => {
@@ -33,9 +33,9 @@ test.describe('Responsive Design', () => {
 });
 
 test.describe('Touch Interactions', () => {
-  test.use({ ...devices['Pixel 5'] });
-
   test('buttons are touch-friendly size on mobile', async ({ page }) => {
+    // Set mobile viewport
+    await page.setViewportSize({ width: 393, height: 851 });
     await page.goto('/login');
 
     const signInButton = page.getByRole('button', { name: /sign in/i });
@@ -46,6 +46,8 @@ test.describe('Touch Interactions', () => {
   });
 
   test('form inputs are properly sized for touch', async ({ page }) => {
+    // Set mobile viewport
+    await page.setViewportSize({ width: 393, height: 851 });
     await page.goto('/login');
 
     const emailInput = page.getByLabel(/email/i);

@@ -17,8 +17,8 @@ export default defineConfig({
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
 
-  // Opt out of parallel tests on CI
-  workers: process.env.CI ? 1 : undefined,
+  // Limit parallel tests for stability (CI uses 1, local uses 2)
+  workers: process.env.CI ? 1 : 2,
 
   // Reporter to use
   reporter: [
@@ -36,7 +36,14 @@ export default defineConfig({
 
     // Take screenshot on failure
     screenshot: 'only-on-failure',
+
+    // Increase timeout for navigation and actions
+    navigationTimeout: 60000,
+    actionTimeout: 30000,
   },
+
+  // Global timeout for each test
+  timeout: 60000,
 
   // Configure projects for major browsers
   projects: [

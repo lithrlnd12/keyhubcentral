@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardTitle } from '@/components/ui/Card';
+import { BackButton } from '@/components/ui';
 import { GoogleCalendarConnect } from '@/components/integrations';
 import { useToast } from '@/components/ui/Toast';
 
@@ -41,11 +42,14 @@ export default function PortalSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-gray-400 mt-1">
-          Manage your account settings and integrations
-        </p>
+      <div className="flex items-center gap-4">
+        <BackButton href="/portal" />
+        <div>
+          <h1 className="text-2xl font-bold text-white">Settings</h1>
+          <p className="text-gray-400 mt-1">
+            Manage your account settings and integrations
+          </p>
+        </div>
       </div>
 
       {/* Integrations Section */}

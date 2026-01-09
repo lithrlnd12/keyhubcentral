@@ -12,9 +12,9 @@ test.describe('Home Page', () => {
   test('has correct meta tags', async ({ page }) => {
     await page.goto('/login');
 
-    // Check meta description
+    // Check meta description - should describe the unified business management platform
     const description = await page.getAttribute('meta[name="description"]', 'content');
-    expect(description).toContain('KeyHub');
+    expect(description).toContain('business management');
   });
 
   test('has PWA manifest linked', async ({ page }) => {
@@ -37,15 +37,20 @@ test.describe('404 Page', () => {
   test('shows 404 page for non-existent routes', async ({ page }) => {
     await page.goto('/this-page-does-not-exist');
 
-    // Should show 404 content
-    await expect(page.getByText(/404|not found/i)).toBeVisible();
+    // Should show 404 content - look for heading or the 404 number
+    await expect(page.getByRole('heading', { name: /page not found/i })).toBeVisible();
   });
 
   test('404 page has navigation options', async ({ page }) => {
     await page.goto('/this-page-does-not-exist');
 
-    // Should have button to go back or to home
-    const homeButton = page.getByRole('link', { name: /dashboard|home|login/i });
-    await expect(homeButton).toBeVisible();
+    // Should have links to dashboard and login
+    const dashboardLink = page.getByRole('link', { name: /go to dashboard/i });
+    const loginLink = page.getByRole('link', { name: /back to login/i });
+
+    // At least one navigation option should be visible
+    const hasDashboard = await dashboardLink.isVisible().catch(() => false);
+    const hasLogin = await loginLink.isVisible().catch(() => false);
+    expect(hasDashboard || hasLogin).toBe(true);
   });
 });

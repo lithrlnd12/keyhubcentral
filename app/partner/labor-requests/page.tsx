@@ -6,6 +6,7 @@ import { Plus, Search, Filter, Wrench, MapPin, Users, Calendar } from 'lucide-re
 import { useAuth, useLaborRequests } from '@/lib/hooks';
 import { LaborRequestStatus, WorkType, getLaborRequestStatusLabel, WORK_TYPE_OPTIONS } from '@/types/partner';
 import { Spinner } from '@/components/ui/Spinner';
+import { BackButton } from '@/components/ui';
 
 const STATUS_COLORS: Record<LaborRequestStatus, string> = {
   new: 'bg-yellow-500/20 text-yellow-400',
@@ -45,9 +46,12 @@ export default function LaborRequestsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Labor Requests</h1>
-          <p className="text-gray-400">Manage your crew and installation requests</p>
+        <div className="flex items-center gap-4">
+          <BackButton href="/partner" />
+          <div>
+            <h1 className="text-2xl font-bold text-white">Labor Requests</h1>
+            <p className="text-gray-400">Manage your crew and installation requests</p>
+          </div>
         </div>
         <Link
           href="/partner/labor-requests/new"

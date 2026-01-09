@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { BackButton } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
 import { getContractorByUserId } from '@/lib/firebase/contractors';
 import { Contractor } from '@/types/contractor';
@@ -48,11 +49,14 @@ export default function PortalAvailabilityPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">My Availability</h1>
-        <p className="text-gray-400 mt-1">
-          Click on a day to set your availability status
-        </p>
+      <div className="flex items-center gap-4">
+        <BackButton href="/portal" />
+        <div>
+          <h1 className="text-2xl font-bold text-white">My Availability</h1>
+          <p className="text-gray-400 mt-1">
+            Click on a day to set your availability status
+          </p>
+        </div>
       </div>
 
       <ContractorAvailabilityCalendar contractor={contractor} />
