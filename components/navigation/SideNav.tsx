@@ -17,6 +17,11 @@ import {
   UserCircle,
   Package,
   Receipt,
+  Calendar,
+  DollarSign,
+  User,
+  ClipboardList,
+  History,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
@@ -44,10 +49,8 @@ const canAccessSettings = (role: UserRole): boolean =>
   ['owner', 'admin', 'pm', 'sales_rep'].includes(role);
 
 const navItems: NavItem[] = [
+  // Internal staff items
   { label: 'Overview', href: '/overview', icon: LayoutDashboard, permission: isInternalStaff },
-  { label: 'Portal', href: '/portal', icon: UserCircle, permission: isContractor },
-  { label: 'Partner Portal', href: '/partner', icon: Briefcase, permission: isPartner },
-  { label: 'My Leads', href: '/subscriber', icon: Users, permission: isSubscriber },
   { label: 'KTS', href: '/kts', icon: Wrench, permission: isInternalStaff },
   { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: canViewInventory },
   { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: canViewInventory },
@@ -58,6 +61,24 @@ const navItems: NavItem[] = [
   { label: 'Partner Requests', href: '/admin/partner-requests', icon: Users, permission: canManagePartnerRequests },
   { label: 'Admin', href: '/admin', icon: Settings, permission: canManageUsers },
   { label: 'Settings', href: '/settings', icon: Cog, permission: canAccessSettings },
+
+  // Contractor portal items
+  { label: 'Dashboard', href: '/portal', icon: LayoutDashboard, permission: isContractor },
+  { label: 'Availability', href: '/portal/availability', icon: Calendar, permission: isContractor },
+  { label: 'My Jobs', href: '/portal/jobs', icon: Briefcase, permission: isContractor },
+  { label: 'Earnings', href: '/portal/earnings', icon: DollarSign, permission: isContractor },
+  { label: 'Inventory', href: '/portal/inventory', icon: Package, permission: isContractor },
+  { label: 'Profile', href: '/portal/my-profile', icon: User, permission: isContractor },
+  { label: 'Settings', href: '/portal/settings', icon: Cog, permission: isContractor },
+
+  // Partner portal items
+  { label: 'Dashboard', href: '/partner', icon: LayoutDashboard, permission: isPartner },
+  { label: 'Labor Requests', href: '/partner/labor-requests', icon: Wrench, permission: isPartner },
+  { label: 'Service Tickets', href: '/partner/service-tickets', icon: ClipboardList, permission: isPartner },
+  { label: 'History', href: '/partner/history', icon: History, permission: isPartner },
+
+  // Subscriber items
+  { label: 'My Leads', href: '/subscriber', icon: Users, permission: isSubscriber },
 ];
 
 export function SideNav() {

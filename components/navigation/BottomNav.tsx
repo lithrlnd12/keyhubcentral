@@ -14,6 +14,8 @@ import {
   ClipboardList,
   History,
   Package,
+  Calendar,
+  DollarSign,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks';
@@ -35,10 +37,11 @@ const internalNavItems: NavItem[] = [
 
 // Contractor nav items
 const contractorNavItems: NavItem[] = [
-  { label: 'Portal', href: '/portal', icon: UserCircle },
+  { label: 'Home', href: '/portal', icon: LayoutDashboard },
+  { label: 'Schedule', href: '/portal/availability', icon: Calendar },
   { label: 'Jobs', href: '/portal/jobs', icon: Wrench },
-  { label: 'Inventory', href: '/portal/inventory', icon: Package },
-  { label: 'Profile', href: '/profile', icon: User },
+  { label: 'Earnings', href: '/portal/earnings', icon: DollarSign },
+  { label: 'More', href: '/portal/my-profile', icon: User },
 ];
 
 // Subscriber nav items
