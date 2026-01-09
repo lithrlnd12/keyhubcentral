@@ -1,7 +1,8 @@
 'use client';
 
-import { Bell, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Logo } from '@/components/ui';
+import { NotificationDropdown } from '@/components/notifications';
 import { useAuth } from '@/lib/hooks';
 
 interface TopBarProps {
@@ -32,11 +33,7 @@ export function TopBar({ title, onMenuClick }: TopBarProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <button className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors relative">
-            <Bell className="w-5 h-5" />
-            {/* Notification dot */}
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-gold rounded-full" />
-          </button>
+          <NotificationDropdown />
         </div>
       </div>
     </header>
