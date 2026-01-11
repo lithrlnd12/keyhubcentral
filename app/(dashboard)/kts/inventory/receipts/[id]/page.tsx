@@ -23,7 +23,7 @@ import { getReceipt, verifyReceipt, linkReceiptItemToInventory, updateReceiptLoc
 import { addStockFromReceipt } from '@/lib/firebase/inventoryStock';
 import { createInventoryItem } from '@/lib/firebase/inventory';
 import { createExpenseFromReceipt } from '@/lib/firebase/expenses';
-import { Receipt as ReceiptType, ReceiptItem, getReceiptStatusLabel, getReceiptStatusColor, InventoryItem, InventoryCategory, COMPANY_OPTIONS, ReceiptCompany } from '@/types/inventory';
+import { Receipt as ReceiptType, ReceiptItem, getReceiptStatusLabel, getReceiptStatusColor, InventoryItem, InventoryCategory, COMPANY_OPTIONS, Company } from '@/types/inventory';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
 import { useAuth, useInventoryItems, useInventoryLocations } from '@/lib/hooks';
@@ -602,7 +602,7 @@ export default function ReceiptDetailPage() {
                 <select
                   value={receipt.company || ''}
                   onChange={async (e) => {
-                    const company = e.target.value as ReceiptCompany;
+                    const company = e.target.value as Company;
                     if (company) {
                       await updateReceiptCompany(receiptId, company);
                       setReceipt({ ...receipt, company });

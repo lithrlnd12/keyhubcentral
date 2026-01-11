@@ -20,12 +20,22 @@ export type UnitOfMeasure =
   | 'bag'
   | 'bundle';
 
+// Company allocation
+export type Company = 'kts' | 'kr' | 'kd';
+
+export const COMPANY_OPTIONS: { value: Company; label: string }[] = [
+  { value: 'kts', label: 'Key Trade Solutions' },
+  { value: 'kr', label: 'Key Renovations' },
+  { value: 'kd', label: 'Keynote Digital' },
+];
+
 // Inventory item (material or tool)
 export interface InventoryItem {
   id: string;
   name: string;
   sku?: string;
   category: InventoryCategory;
+  company?: Company;
   description?: string;
   unitOfMeasure: UnitOfMeasure;
   parLevel: number;
@@ -100,15 +110,6 @@ export interface InventoryCount {
 // Receipt status
 export type ReceiptStatus = 'pending' | 'parsing' | 'parsed' | 'verified' | 'added_to_pl' | 'error';
 
-// Company allocation for receipts
-export type ReceiptCompany = 'kts' | 'kr' | 'kd';
-
-export const COMPANY_OPTIONS: { value: ReceiptCompany; label: string }[] = [
-  { value: 'kts', label: 'Key Trade Solutions' },
-  { value: 'kr', label: 'Key Renovations' },
-  { value: 'kd', label: 'Keynote Digital' },
-];
-
 // Parsed receipt line item
 export interface ReceiptItem {
   description: string;
@@ -134,7 +135,7 @@ export interface Receipt {
   total?: number;
   items: ReceiptItem[];
   status: ReceiptStatus;
-  company?: ReceiptCompany;
+  company?: Company;
   locationId?: string;
   locationName?: string;
   parsedData?: {

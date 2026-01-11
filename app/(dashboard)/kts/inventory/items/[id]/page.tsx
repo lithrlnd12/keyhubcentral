@@ -22,6 +22,7 @@ import {
   getCategoryLabel,
   getVarianceColor,
   getVarianceDisplay,
+  COMPANY_OPTIONS,
 } from '@/types/inventory';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { cn } from '@/lib/utils';
@@ -159,6 +160,15 @@ export default function InventoryItemDetailPage() {
               <div className="sm:col-span-2 lg:col-span-3">
                 <p className="text-sm text-gray-400">Description</p>
                 <p className="text-white">{item.description}</p>
+              </div>
+            )}
+
+            {item.company && (
+              <div>
+                <p className="text-sm text-gray-400">Company</p>
+                <p className="text-white">
+                  {COMPANY_OPTIONS.find(c => c.value === item.company)?.label || item.company}
+                </p>
               </div>
             )}
 

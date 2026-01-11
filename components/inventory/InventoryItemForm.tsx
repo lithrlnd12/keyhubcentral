@@ -6,7 +6,9 @@ import {
   InventoryItem,
   InventoryCategory,
   UnitOfMeasure,
+  Company,
   UNIT_OF_MEASURE_OPTIONS,
+  COMPANY_OPTIONS,
 } from '@/types/inventory';
 import { cn } from '@/lib/utils';
 import { useInventoryItems } from '@/lib/hooks/useInventory';
@@ -31,6 +33,7 @@ export function InventoryItemForm({
     name: item?.name || '',
     sku: item?.sku || '',
     category: item?.category || ('material' as InventoryCategory),
+    company: item?.company || ('' as Company | ''),
     description: item?.description || '',
     unitOfMeasure: item?.unitOfMeasure || ('each' as UnitOfMeasure),
     parLevel: item?.parLevel || 0,
@@ -95,6 +98,7 @@ export function InventoryItemForm({
       name: formData.name.trim(),
       sku: formData.sku.trim() || undefined,
       category: formData.category,
+      company: formData.company || undefined,
       description: formData.description.trim() || undefined,
       unitOfMeasure: formData.unitOfMeasure,
       parLevel: formData.parLevel,
@@ -140,6 +144,30 @@ export function InventoryItemForm({
             Tool
           </button>
         </div>
+      </div>
+
+      {/* Company */}
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Company
+        </label>
+        <select
+          value={formData.company}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              company: e.target.value as Company | '',
+            })
+          }
+          className="w-full px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white focus:outline-none focus:border-gold"
+        >
+          <option value="">Select company (optional)</option>
+          {COMPANY_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Name */}
