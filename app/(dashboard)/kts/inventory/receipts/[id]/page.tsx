@@ -19,11 +19,11 @@ import {
   Plus,
   X,
 } from 'lucide-react';
-import { getReceipt, verifyReceipt, linkReceiptItemToInventory, updateReceiptLocation, updateReceiptVendor, addReceiptToPL } from '@/lib/firebase/receipts';
+import { getReceipt, verifyReceipt, linkReceiptItemToInventory, updateReceiptLocation, updateReceiptVendor, updateReceiptCompany, addReceiptToPL } from '@/lib/firebase/receipts';
 import { addStockFromReceipt } from '@/lib/firebase/inventoryStock';
 import { createInventoryItem } from '@/lib/firebase/inventory';
 import { createExpenseFromReceipt } from '@/lib/firebase/expenses';
-import { Receipt as ReceiptType, ReceiptItem, getReceiptStatusLabel, getReceiptStatusColor, InventoryItem, InventoryCategory } from '@/types/inventory';
+import { Receipt as ReceiptType, ReceiptItem, getReceiptStatusLabel, getReceiptStatusColor, InventoryItem, InventoryCategory, COMPANY_OPTIONS, ReceiptCompany } from '@/types/inventory';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
 import { useAuth, useInventoryItems, useInventoryLocations } from '@/lib/hooks';
@@ -266,7 +266,7 @@ export default function ReceiptDetailPage() {
 
       const expenseId = await createExpenseFromReceipt(
         receipt.id,
-        'kts', // Inventory expenses go to KTS
+        receipt.company || 'kts', // Use selected company or default to KTS
         'inventory',
         `Receipt from ${receipt.vendor || 'Unknown Vendor'}`,
         receipt.vendor,
@@ -595,6 +595,28 @@ export default function ReceiptDetailPage() {
                     {parsedData?.vendor || receipt.vendor || (canEdit ? 'Click to add...' : '-')}
                   </button>
                 )}
+              </div>
+              {/* Company Allocation */}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Company</span>
+                <select
+                  value={receipt.company || ''}
+                  onChange={async (e) => {
+                    const company = e.target.value as ReceiptCompany;
+                    if (company) {
+                      await updateReceiptCompany(receiptId, company);
+                      setReceipt({ ...receipt, company });
+                    }
+                  }}
+                  className="px-3 py-1 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-gold"
+                >
+                  <option value="">Select company...</option>
+                  {COMPANY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               {/* Store Location (from AI parsing) */}
               {parsedData?.storeLocation && (
