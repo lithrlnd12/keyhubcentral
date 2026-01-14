@@ -1,6 +1,7 @@
 import {
   ref,
   uploadBytesResumable,
+  uploadBytes,
   getDownloadURL,
   deleteObject,
   UploadTask,
@@ -84,5 +85,78 @@ export function extractPathFromUrl(url: string): string | null {
     return null;
   } catch {
     return null;
+  }
+}
+
+// ==========================================
+// JOB PHOTO FUNCTIONS
+// ==========================================
+
+export type JobPhotoType = 'before' | 'after';
+
+export function getJobPhotoPath(
+  jobId: string,
+  photoType: JobPhotoType,
+  fileName: string
+): string {
+  const timestamp = Date.now();
+  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  return `jobs/${jobId}/photos/${photoType}/${timestamp}_${sanitizedFileName}`;
+}
+
+export async function uploadJobPhoto(
+  jobId: string,
+  file: File,
+  photoType: JobPhotoType
+): Promise<string> {
+  const path = getJobPhotoPath(jobId, photoType, file.name);
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file);
+  return getDownloadURL(storageRef);
+}
+
+export function uploadJobPhotoWithProgress(
+  jobId: string,
+  file: File,
+  photoType: JobPhotoType,
+  onProgress?: (progress: UploadProgress) => void
+): UploadTask {
+  const path = getJobPhotoPath(jobId, photoType, file.name);
+  const storageRef = ref(storage, path);
+  const uploadTask = uploadBytesResumable(storageRef, file);
+
+  uploadTask.on(
+    'state_changed',
+    (snapshot) => {
+      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+      onProgress?.({
+        progress,
+        state: snapshot.state as 'running' | 'paused',
+      });
+    },
+    (error) => {
+      onProgress?.({
+        progress: 0,
+        state: 'error',
+        error,
+      });
+    },
+    async () => {
+      const url = await getDownloadURL(uploadTask.snapshot.ref);
+      onProgress?.({
+        progress: 100,
+        state: 'success',
+        url,
+      });
+    }
+  );
+
+  return uploadTask;
+}
+
+export async function deleteJobPhoto(url: string): Promise<void> {
+  const path = extractPathFromUrl(url);
+  if (path) {
+    await deleteDocument(path);
   }
 }

@@ -14,7 +14,7 @@ import {
   QueryConstraint,
 } from 'firebase/firestore';
 import { db } from './config';
-import { Job, JobStatus, JobType } from '@/types/job';
+import { Job, JobStatus, JobType, JobPhoto } from '@/types/job';
 
 const COLLECTION = 'jobs';
 
@@ -204,4 +204,77 @@ export async function generateJobNumber(): Promise<string> {
   });
 
   return `KR-${year}-${String(maxNumber + 1).padStart(4, '0')}`;
+}
+
+// ==========================================
+// CONTRACTOR-SPECIFIC JOB FUNCTIONS
+// ==========================================
+
+// Subscribe to jobs for a contractor (crew member) in real-time
+export function subscribeToContractorJobs(
+  contractorId: string,
+  callback: (jobs: Job[]) => void
+): () => void {
+  const q = query(
+    collection(db, COLLECTION),
+    where('crewIds', 'array-contains', contractorId),
+    orderBy('createdAt', 'desc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const jobs = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Job[];
+    callback(jobs);
+  });
+}
+
+// Get completed jobs for a contractor (for invoice job selection)
+export async function getContractorCompletedJobs(contractorId: string): Promise<Job[]> {
+  // Get all jobs where contractor is in crew
+  const jobs = await getJobsByCrewMember(contractorId);
+
+  // Filter to only completed/paid_in_full jobs
+  return jobs.filter((job) =>
+    job.status === 'complete' || job.status === 'paid_in_full'
+  );
+}
+
+// ==========================================
+// JOB PHOTOS FUNCTIONS
+// ==========================================
+
+export async function addJobPhoto(
+  jobId: string,
+  photoType: 'before' | 'after',
+  photo: JobPhoto
+): Promise<void> {
+  const job = await getJob(jobId);
+  if (!job) throw new Error('Job not found');
+
+  const currentPhotos = job.photos || { before: [], after: [] };
+  const updatedPhotos = {
+    ...currentPhotos,
+    [photoType]: [...currentPhotos[photoType], photo],
+  };
+
+  await updateJob(jobId, { photos: updatedPhotos });
+}
+
+export async function removeJobPhoto(
+  jobId: string,
+  photoType: 'before' | 'after',
+  photoUrl: string
+): Promise<void> {
+  const job = await getJob(jobId);
+  if (!job) throw new Error('Job not found');
+
+  const currentPhotos = job.photos || { before: [], after: [] };
+  const updatedPhotos = {
+    ...currentPhotos,
+    [photoType]: currentPhotos[photoType].filter((p) => p.url !== photoUrl),
+  };
+
+  await updateJob(jobId, { photos: updatedPhotos });
 }

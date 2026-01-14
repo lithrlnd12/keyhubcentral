@@ -13,3 +13,4 @@ export { JobPipeline } from './JobPipeline';
 export { CommunicationFeed } from './CommunicationFeed';
 export { ServiceTicketCard } from './ServiceTicketCard';
 export { ServiceTicketList } from './ServiceTicketList';
+export { JobPhotos } from './JobPhotos';

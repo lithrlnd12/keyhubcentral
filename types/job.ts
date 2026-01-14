@@ -43,6 +43,19 @@ export interface Warranty {
   status: 'active' | 'expired' | 'pending';
 }
 
+export interface JobPhoto {
+  url: string;
+  uploadedBy: string;
+  uploadedByName: string;
+  uploadedAt: Timestamp;
+  caption?: string;
+}
+
+export interface JobPhotos {
+  before: JobPhoto[];  // Photos taken by sales rep when job is sold
+  after: JobPhoto[];   // Photos taken by PM when job is complete
+}
+
 export interface Job {
   id: string;
   jobNumber: string;
@@ -56,6 +69,7 @@ export interface Job {
   dates: JobDates;
   warranty: Warranty;
   notes: string;
+  photos?: JobPhotos;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
