@@ -102,20 +102,22 @@ service cloud.firestore {
       // This allows list queries to work; frontend controls what's displayed
       allow read: if isInternalUser();
 
-      allow create: if isAdmin();
+      // Admins can create any job
+      // Sales reps can create jobs where they are the sales rep
+      allow create: if isAdmin() ||
+        (isActiveUser() &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'sales_rep' &&
+          request.resource.data.salesRepId == request.auth.uid);
 
       // Status updates based on role
       allow update: if isAdmin() ||
         (isActiveUser() && (
           // PM can update most fields
           resource.data.pmId == request.auth.uid ||
-          // Sales rep can only update lead -> sold
+          // Sales rep can update their own jobs (status, crew, photos, etc.)
+          // but cannot change salesRepId or pmId
           (resource.data.salesRepId == request.auth.uid &&
-            resource.data.status == 'lead' &&
-            request.resource.data.status == 'sold') ||
-          // Sales rep can update photos field only
-          (resource.data.salesRepId == request.auth.uid &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photos', 'updatedAt'])) ||
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['salesRepId', 'pmId'])) ||
           // Crew members (contractors) can update photos field only
           (request.auth.uid in resource.data.crewIds &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photos', 'updatedAt']))
