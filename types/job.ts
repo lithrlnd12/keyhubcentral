@@ -56,6 +56,19 @@ export interface JobPhotos {
   after: JobPhoto[];   // Photos taken by PM when job is complete
 }
 
+export type CommissionStatus = 'pending' | 'approved' | 'paid';
+
+export interface JobCommission {
+  contractValue: number;      // Total job sale price
+  rate: number;               // Commission rate (e.g., 0.10 for 10%)
+  amount: number;             // Calculated commission amount
+  status: CommissionStatus;
+  approvedAt?: Timestamp | null;
+  approvedBy?: string | null;
+  paidAt?: Timestamp | null;
+  notes?: string;
+}
+
 export interface Job {
   id: string;
   jobNumber: string;
@@ -70,6 +83,7 @@ export interface Job {
   warranty: Warranty;
   notes: string;
   photos?: JobPhotos;
+  commission?: JobCommission;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

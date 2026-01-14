@@ -12,6 +12,7 @@ import {
   JobCrew,
   CommunicationFeed,
   JobPhotos,
+  JobCommission,
 } from '@/components/jobs';
 import { useJob } from '@/lib/hooks/useJob';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -33,6 +34,20 @@ function canViewJob(userRole: string | undefined, job: { salesRepId: string | nu
 function canEditJob(userRole: string | undefined): boolean {
   if (!userRole) return false;
   return ['owner', 'admin', 'pm'].includes(userRole);
+}
+
+function canEditCommission(userRole: string | undefined, job: { salesRepId: string | null }, userId: string | undefined): boolean {
+  if (!userRole) return false;
+  // Admins and sales rep assigned to job can edit commission
+  if (['owner', 'admin'].includes(userRole)) return true;
+  if (job.salesRepId === userId) return true;
+  return false;
+}
+
+function canApproveCommission(userRole: string | undefined): boolean {
+  if (!userRole) return false;
+  // Only admins can approve and mark as paid
+  return ['owner', 'admin'].includes(userRole);
 }
 
 export default function JobDetailPage({ params }: JobDetailPageProps) {
@@ -84,6 +99,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
         <TabsList>
           <TabsTrigger value="info">Details</TabsTrigger>
           <TabsTrigger value="photos">Photos</TabsTrigger>
+          <TabsTrigger value="commission">Commission</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="costs">Costs</TabsTrigger>
           <TabsTrigger value="crew">Crew</TabsTrigger>
@@ -101,6 +117,16 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
             userName={user?.displayName || 'Unknown'}
             userRole={user?.role}
             onUpdate={() => {}}
+          />
+        </TabsContent>
+
+        <TabsContent value="commission">
+          <JobCommission
+            job={job}
+            canEdit={canEditCommission(user?.role, job, user?.uid)}
+            canApprove={canApproveCommission(user?.role)}
+            userId={user?.uid || ''}
+            onUpdate={update}
           />
         </TabsContent>
 
