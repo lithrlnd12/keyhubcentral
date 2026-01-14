@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onUserApproved = exports.onUserCreated = exports.testNotification = exports.onPartnerServiceTicket = exports.onPartnerLaborRequest = exports.onInvoiceOverdue = exports.onUserPendingApproval = exports.onJobAssigned = exports.onLeadAssigned = exports.dailyExpirationCheck = exports.manualCalendarSync = exports.syncCalendarToApp = exports.onRatingSubmitted = exports.onInvoicePaid = exports.onJobComplete = exports.onAvailabilityChange = exports.onLeadCreated = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
+exports.onUserApproved = exports.onUserCreated = exports.onUserGeocode = exports.onLeadCreatedAutoAssign = exports.testNotification = exports.onPartnerServiceTicket = exports.onPartnerLaborRequest = exports.onInvoiceOverdue = exports.onUserPendingApproval = exports.onJobAssigned = exports.onLeadAssigned = exports.dailyExpirationCheck = exports.manualCalendarSync = exports.syncCalendarToApp = exports.onRatingSubmitted = exports.onInvoicePaid = exports.onJobComplete = exports.onAvailabilityChange = exports.onLeadCreated = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -44,6 +44,10 @@ Object.defineProperty(exports, "onInvoiceOverdue", { enumerable: true, get: func
 Object.defineProperty(exports, "onPartnerLaborRequest", { enumerable: true, get: function () { return notificationTriggers_1.onPartnerLaborRequest; } });
 Object.defineProperty(exports, "onPartnerServiceTicket", { enumerable: true, get: function () { return notificationTriggers_1.onPartnerServiceTicket; } });
 Object.defineProperty(exports, "testNotification", { enumerable: true, get: function () { return notificationTriggers_1.testNotification; } });
+// Lead auto-assignment triggers
+var leadAutoAssign_1 = require("./triggers/leadAutoAssign");
+Object.defineProperty(exports, "onLeadCreatedAutoAssign", { enumerable: true, get: function () { return leadAutoAssign_1.onLeadCreatedAutoAssign; } });
+Object.defineProperty(exports, "onUserGeocode", { enumerable: true, get: function () { return leadAutoAssign_1.onUserGeocode; } });
 admin.initializeApp();
 // Admin emails to notify when new users sign up
 const ADMIN_EMAILS = [

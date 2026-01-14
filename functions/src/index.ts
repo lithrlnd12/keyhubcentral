@@ -44,6 +44,9 @@ export {
   testNotification,
 } from './triggers/notificationTriggers';
 
+// Lead auto-assignment triggers
+export { onLeadCreatedAutoAssign, onUserGeocode } from './triggers/leadAutoAssign';
+
 admin.initializeApp();
 
 // Admin emails to notify when new users sign up

@@ -17,7 +17,7 @@ import {
   onAuthChange,
 } from '@/lib/firebase/auth';
 import { auth } from '@/lib/firebase/config';
-import { UserProfile, AuthContextType } from '@/types/user';
+import { UserProfile, AuthContextType, UserRole } from '@/types/user';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -68,12 +68,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string,
     displayName: string,
-    phone?: string
+    phone?: string,
+    requestedRole?: UserRole,
+    baseZipCode?: string
   ) => {
     setLoading(true);
     setError(null);
     try {
-      await firebaseSignUp(email, password, displayName, phone);
+      await firebaseSignUp(email, password, displayName, phone, requestedRole, baseZipCode);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Sign up failed';
       setError(errorMessage);

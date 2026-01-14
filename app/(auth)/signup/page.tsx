@@ -3,8 +3,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, Select } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
+import { UserRole } from '@/types/user';
+
+// Roles available for self-signup (excludes admin roles)
+const SIGNUP_ROLES = [
+  { value: 'contractor', label: 'Contractor / Installer' },
+  { value: 'sales_rep', label: 'Sales Representative' },
+  { value: 'subscriber', label: 'Subscriber (Marketing)' },
+];
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -14,6 +22,8 @@ export default function SignUpPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [requestedRole, setRequestedRole] = useState<UserRole>('contractor');
+  const [baseZipCode, setBaseZipCode] = useState('');
   const [localError, setLocalError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,8 +40,23 @@ export default function SignUpPage() {
       return;
     }
 
+    // Validate zip code for sales_rep
+    if (requestedRole === 'sales_rep') {
+      if (!baseZipCode || !/^\d{5}$/.test(baseZipCode)) {
+        setLocalError('Please enter a valid 5-digit zip code');
+        return;
+      }
+    }
+
     try {
-      await signUp(email, password, displayName, phone || undefined);
+      await signUp(
+        email,
+        password,
+        displayName,
+        phone || undefined,
+        requestedRole,
+        requestedRole === 'sales_rep' ? baseZipCode : undefined
+      );
       router.push('/pending');
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Sign up failed';
@@ -72,6 +97,25 @@ export default function SignUpPage() {
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
+
+        <Select
+          label="I am applying as a"
+          options={SIGNUP_ROLES}
+          value={requestedRole}
+          onChange={(e) => setRequestedRole(e.target.value as UserRole)}
+        />
+
+        {requestedRole === 'sales_rep' && (
+          <Input
+            label="Your Base Zip Code"
+            type="text"
+            placeholder="73012"
+            value={baseZipCode}
+            onChange={(e) => setBaseZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
+            required
+            maxLength={5}
+          />
+        )}
 
         <Input
           label="Password"

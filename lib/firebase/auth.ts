@@ -19,7 +19,9 @@ export async function signUp(
   email: string,
   password: string,
   displayName: string,
-  phone?: string
+  phone?: string,
+  requestedRole?: UserRole,
+  baseZipCode?: string
 ): Promise<UserCredential> {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
@@ -31,6 +33,9 @@ export async function signUp(
     phone: phone || null,
     role: 'pending' as UserRole,
     status: 'pending' as UserStatus,
+    requestedRole: requestedRole || null,
+    baseZipCode: baseZipCode || null,
+    baseCoordinates: null, // Will be geocoded by Cloud Function
     createdAt: serverTimestamp(),
     approvedAt: null,
     approvedBy: null,

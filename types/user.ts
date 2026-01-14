@@ -20,6 +20,12 @@ export interface UserProfile {
   role: UserRole;
   status: UserStatus;
   partnerId?: string | null; // For partner role users - links to partner company
+  requestedRole?: UserRole | null; // Role user selected during signup
+  baseZipCode?: string | null; // For sales_rep: their home base zip code
+  baseCoordinates?: { // Geocoded coordinates from zip code
+    lat: number;
+    lng: number;
+  } | null;
   createdAt: Timestamp;
   approvedAt: Timestamp | null;
   approvedBy: string | null;
@@ -30,7 +36,14 @@ export interface AuthContextType {
   loading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, displayName: string, phone?: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    displayName: string,
+    phone?: string,
+    requestedRole?: UserRole,
+    baseZipCode?: string
+  ) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   getIdToken: () => Promise<string | null>;

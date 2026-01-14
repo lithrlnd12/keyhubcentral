@@ -108,6 +108,10 @@ export interface Lead extends LeadCallData, LeadSmsData {
   contactPreference?: ContactPreference;
   autoCallEnabled?: boolean;
   autoSmsEnabled?: boolean;
+  // Auto-assignment tracking
+  autoAssigned?: boolean;
+  autoAssignedAt?: Timestamp | null;
+  autoAssignedDistance?: number | null; // miles from sales rep
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

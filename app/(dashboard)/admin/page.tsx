@@ -58,10 +58,10 @@ export default function AdminPage() {
       const snapshot = await getDocs(q);
       const users = snapshot.docs.map((doc) => doc.data() as UserProfile);
       setPendingUsers(users);
-      // Initialize default roles
+      // Initialize default roles - use requestedRole if available
       const defaultRoles: Record<string, UserRole> = {};
       users.forEach((u) => {
-        defaultRoles[u.uid] = 'contractor';
+        defaultRoles[u.uid] = u.requestedRole || 'contractor';
       });
       setSelectedRoles((prev) => ({ ...defaultRoles, ...prev }));
     } catch (error) {
@@ -294,8 +294,18 @@ export default function AdminPage() {
                     <User className="w-5 h-5 text-gray-400" />
                   </div>
                   <div>
-                    <p className="font-medium text-white">{pendingUser.displayName}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-white">{pendingUser.displayName}</p>
+                      {pendingUser.requestedRole && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${ROLE_COLORS[pendingUser.requestedRole]}`}>
+                          Requested: {ROLE_LABELS[pendingUser.requestedRole]}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-400">{pendingUser.email}</p>
+                    {pendingUser.baseZipCode && (
+                      <p className="text-xs text-gray-500">Base ZIP: {pendingUser.baseZipCode}</p>
+                    )}
                   </div>
                 </div>
 
