@@ -36,13 +36,15 @@ service firebase.storage {
         isUnderSizeLimit(request.resource.size);
     }
 
-    // Job photos
-    match /jobs/{jobId}/photos/{photo} {
+    // Job photos (before/after categories)
+    match /jobs/{jobId}/photos/{category}/{photo} {
       // Anyone authenticated can view job photos
       allow read: if isAuthenticated();
 
       // Authenticated users can upload photos
+      // Category must be 'before' or 'after'
       allow write: if isAuthenticated() &&
+        category in ['before', 'after'] &&
         request.resource.contentType.matches('image/.*') &&
         isUnderSizeLimit(request.resource.size);
     }

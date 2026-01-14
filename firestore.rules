@@ -112,7 +112,13 @@ service cloud.firestore {
           // Sales rep can only update lead -> sold
           (resource.data.salesRepId == request.auth.uid &&
             resource.data.status == 'lead' &&
-            request.resource.data.status == 'sold')
+            request.resource.data.status == 'sold') ||
+          // Sales rep can update photos field only
+          (resource.data.salesRepId == request.auth.uid &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photos', 'updatedAt'])) ||
+          // Crew members (contractors) can update photos field only
+          (request.auth.uid in resource.data.crewIds &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photos', 'updatedAt']))
         ));
 
       allow delete: if isOwner();
