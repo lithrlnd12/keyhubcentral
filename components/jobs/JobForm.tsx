@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Job, JobType, Customer, JobCosts, JobDates, Warranty } from '@/types/job';
-import { Address } from '@/types/contractor';
+import { Address, Contractor } from '@/types/contractor';
+import { TimeBlock, TIME_BLOCK_CONFIG, TIME_BLOCKS } from '@/types/availability';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -20,8 +21,10 @@ import {
   Save,
   Loader2,
   ArrowLeft,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
+import { ContractorRecommendations } from './ContractorRecommendations';
 
 interface JobFormProps {
   job?: Job;
@@ -73,6 +76,7 @@ export function JobForm({ job, initialTab = 'customer' }: JobFormProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [scheduledTimeBlock, setScheduledTimeBlock] = useState<TimeBlock | undefined>(undefined);
 
   const [formData, setFormData] = useState<JobFormData>({
     jobNumber: job?.jobNumber || '',
@@ -211,6 +215,7 @@ export function JobForm({ job, initialTab = 'customer' }: JobFormProps) {
           <TabsTrigger value="job">Job Details</TabsTrigger>
           <TabsTrigger value="costs">Costs</TabsTrigger>
           <TabsTrigger value="dates">Dates</TabsTrigger>
+          <TabsTrigger value="crew">Crew</TabsTrigger>
         </TabsList>
 
         {/* Customer Tab */}
@@ -642,6 +647,95 @@ export function JobForm({ job, initialTab = 'customer' }: JobFormProps) {
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Crew Tab */}
+        <TabsContent value="crew">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-brand-gold" />
+                Scheduling & Crew
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Schedule Selection */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">
+                    Scheduled Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={
+                      formData.dates.scheduledStart
+                        ? formData.dates.scheduledStart.toDate().toISOString().split('T')[0]
+                        : ''
+                    }
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        dates: {
+                          ...prev.dates,
+                          scheduledStart: e.target.value
+                            ? Timestamp.fromDate(new Date(e.target.value))
+                            : null,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">
+                    Time Block
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {TIME_BLOCKS.map((block) => {
+                      const config = TIME_BLOCK_CONFIG[block];
+                      return (
+                        <button
+                          key={block}
+                          type="button"
+                          onClick={() => setScheduledTimeBlock(block)}
+                          className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                            scheduledTimeBlock === block
+                              ? 'border-brand-gold bg-brand-gold/10 text-brand-gold'
+                              : 'border-gray-700 hover:border-gray-600 text-gray-300'
+                          }`}
+                        >
+                          {config.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Contractor Recommendations */}
+              <ContractorRecommendations
+                jobLocation={formData.customer.address}
+                scheduledDate={
+                  formData.dates.scheduledStart
+                    ? formData.dates.scheduledStart.toDate()
+                    : undefined
+                }
+                timeBlock={scheduledTimeBlock}
+                selectedCrewIds={formData.crewIds}
+                onSelect={(contractor: Contractor) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    crewIds: [...prev.crewIds, contractor.id],
+                  }));
+                }}
+                onRemove={(contractorId: string) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    crewIds: prev.crewIds.filter((id) => id !== contractorId),
+                  }));
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>

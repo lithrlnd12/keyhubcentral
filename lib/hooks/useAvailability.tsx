@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Availability, AvailabilityStatus } from '@/types/availability';
 import {
   subscribeToMonthAvailability,
-  setAvailability,
+  setAllBlocksStatus,
   clearAvailability,
 } from '@/lib/firebase/availability';
 
@@ -56,13 +56,13 @@ export function useAvailability({
     return () => unsubscribe();
   }, [contractorId, year, month]);
 
-  // Set day status
+  // Set day status (sets all blocks to the same status)
   const setDayStatus = useCallback(
     async (date: Date, status: AvailabilityStatus, notes?: string) => {
       if (!contractorId) return;
 
       try {
-        await setAvailability(contractorId, date, status, notes);
+        await setAllBlocksStatus(contractorId, date, status, notes);
       } catch (err) {
         console.error('Error setting availability:', err);
         setError('Failed to update availability');

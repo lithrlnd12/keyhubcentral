@@ -97,3 +97,25 @@ export function canVerifyReceipts(role: UserRole): boolean {
 export function canAddReceiptsToPL(role: UserRole): boolean {
   return ADMIN_ROLES.includes(role);
 }
+
+// Contractor-specific permissions
+export function isContractor(role: UserRole): boolean {
+  return role === 'contractor';
+}
+
+export function canCreateContractorInvoice(role: UserRole): boolean {
+  return role === 'contractor';
+}
+
+export function canViewOwnFinancials(role: UserRole): boolean {
+  return ['contractor', 'sales_rep'].includes(role);
+}
+
+// Job crew assignment permissions
+export function canAssignCrew(role: UserRole): boolean {
+  return ['owner', 'admin', 'pm', 'sales_rep'].includes(role);
+}
+
+export function canScheduleJobs(role: UserRole): boolean {
+  return ['owner', 'admin', 'pm', 'sales_rep'].includes(role);
+}

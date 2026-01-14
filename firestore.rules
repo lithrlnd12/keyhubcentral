@@ -36,6 +36,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'partner';
     }
 
+    function isContractor() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor';
+    }
+
     function getUserPartnerId() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.partnerId;
     }
@@ -170,10 +175,28 @@ service cloud.firestore {
 
     // Invoices collection
     match /invoices/{invoiceId} {
-      // Internal users can read invoices (needed for earnings calculations)
-      allow read: if isInternalUser();
+      // Internal users can read all invoices
+      // Contractors can also read their own invoices (where they are from or to)
+      allow read: if isInternalUser() ||
+        (isContractor() && isActiveUser() && (
+          resource.data.from.contractorId == request.auth.uid ||
+          resource.data.to.contractorId == request.auth.uid
+        ));
 
-      allow create, update: if isAdmin();
+      // Admins can create any invoice
+      // Contractors can create invoices FROM themselves only
+      allow create: if isAdmin() ||
+        (isContractor() && isActiveUser() &&
+          request.resource.data.from.entity == 'contractor' &&
+          request.resource.data.from.contractorId == request.auth.uid);
+
+      // Admins can update any invoice
+      // Contractors can update their own draft invoices only
+      allow update: if isAdmin() ||
+        (isContractor() && isActiveUser() &&
+          resource.data.from.contractorId == request.auth.uid &&
+          resource.data.status == 'draft');
+
       allow delete: if isOwner();
     }
 
@@ -310,13 +333,46 @@ service cloud.firestore {
     // Expenses collection - Direct expenses from receipts for P&L
     match /expenses/{expenseId} {
       // Internal users can read expenses (needed for P&L)
-      allow read: if isInternalUser();
+      // Contractors can read their own expenses
+      allow read: if isInternalUser() ||
+        (isContractor() && isActiveUser() && resource.data.createdBy == request.auth.uid);
 
       // Admins can create/update expenses
-      allow create, update: if isAdmin();
+      // Contractors can create expenses for themselves (from receipts)
+      allow create: if isAdmin() ||
+        (isContractor() && isActiveUser() &&
+          request.resource.data.createdBy == request.auth.uid &&
+          request.resource.data.entity == 'contractor');
+
+      // Only admins can update expenses
+      allow update: if isAdmin();
 
       // Only owner can delete expenses
       allow delete: if isOwner();
+    }
+
+    // ========================================
+    // RATING REQUESTS COLLECTION
+    // ========================================
+
+    // Rating Requests collection - Customer rating surveys
+    match /ratingRequests/{requestId} {
+      // Public read access - token in URL provides security
+      // The app validates the token matches before showing rating form
+      allow read: if true;
+
+      // Only Cloud Functions (admin SDK) can create rating requests
+      // This happens automatically when job status changes to 'complete'
+      allow create: if false;
+
+      // Allow public updates for rating submission
+      // Token validation happens in app code
+      // Only allow updating rating-related fields
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['rating', 'comment', 'status', 'completedAt', 'reminderSentAt']);
+
+      // No deletes allowed
+      allow delete: if false;
     }
   }
 }

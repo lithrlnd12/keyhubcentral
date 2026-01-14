@@ -9,6 +9,17 @@ export const CALENDAR_EVENT_TITLES: Record<string, string> = {
   on_leave: 'On Leave - KeyHub',
 };
 
+// Time block configuration (must match frontend types/availability.ts)
+export type TimeBlock = 'am' | 'pm' | 'evening';
+
+export const TIME_BLOCK_CONFIG = {
+  am: { start: 6, end: 12, label: 'Morning' },
+  pm: { start: 12, end: 18, label: 'Afternoon' },
+  evening: { start: 18, end: 22, label: 'Evening' },
+} as const;
+
+export const TIME_BLOCKS: TimeBlock[] = ['am', 'pm', 'evening'];
+
 // Marker to identify our events
 export const KEYHUB_EVENT_MARKER = 'Synced from KeyHub Central';
 
@@ -87,7 +98,7 @@ export async function getCalendarClient(
   return google.calendar({ version: 'v3', auth: oauth2Client });
 }
 
-// Create an all-day event for availability status
+// Create an all-day event for availability status (legacy - for backward compatibility)
 export async function createAvailabilityEvent(
   calendar: calendar_v3.Calendar,
   calendarId: string,
@@ -114,6 +125,78 @@ export async function createAvailabilityEvent(
     return event.data.id || null;
   } catch (error) {
     console.error('Error creating calendar event:', error);
+    throw error;
+  }
+}
+
+// Create a timed event for a specific time block
+export async function createBlockAvailabilityEvent(
+  calendar: calendar_v3.Calendar,
+  calendarId: string,
+  date: string, // YYYY-MM-DD format
+  block: TimeBlock,
+  status: string,
+  timezone: string = 'America/New_York'
+): Promise<string | null> {
+  const title = CALENDAR_EVENT_TITLES[status];
+  if (!title) {
+    return null;
+  }
+
+  const config = TIME_BLOCK_CONFIG[block];
+  const startHour = config.start.toString().padStart(2, '0');
+  const endHour = config.end.toString().padStart(2, '0');
+
+  try {
+    const event = await calendar.events.insert({
+      calendarId,
+      requestBody: {
+        summary: `${title} (${config.label})`,
+        description: `${KEYHUB_EVENT_MARKER}\nBlock: ${block}`,
+        start: {
+          dateTime: `${date}T${startHour}:00:00`,
+          timeZone: timezone,
+        },
+        end: {
+          dateTime: `${date}T${endHour}:00:00`,
+          timeZone: timezone,
+        },
+        transparency: 'opaque', // Show as busy
+      },
+    });
+
+    return event.data.id || null;
+  } catch (error) {
+    console.error(`Error creating calendar event for block ${block}:`, error);
+    throw error;
+  }
+}
+
+// Update an existing block availability event
+export async function updateBlockAvailabilityEvent(
+  calendar: calendar_v3.Calendar,
+  calendarId: string,
+  eventId: string,
+  block: TimeBlock,
+  status: string
+): Promise<void> {
+  const title = CALENDAR_EVENT_TITLES[status];
+  if (!title) {
+    return;
+  }
+
+  const config = TIME_BLOCK_CONFIG[block];
+
+  try {
+    await calendar.events.patch({
+      calendarId,
+      eventId,
+      requestBody: {
+        summary: `${title} (${config.label})`,
+      },
+    });
+  } catch (error) {
+    console.error(`Error updating calendar event for block ${block}:`, error);
     throw error;
   }
 }
@@ -213,4 +296,42 @@ export function getEventDate(event: calendar_v3.Schema$Event): string | null {
 export function isEventBusy(event: calendar_v3.Schema$Event): boolean {
   // transparent = free, opaque = busy (default)
   return event.transparency !== 'transparent';
+}
+
+// Get time blocks that an event overlaps with
+export function getEventTimeBlocks(event: calendar_v3.Schema$Event): TimeBlock[] {
+  // All-day events affect all blocks
+  if (event.start?.date) {
+    return [...TIME_BLOCKS];
+  }
+
+  // Timed events - check which blocks they overlap
+  if (!event.start?.dateTime || !event.end?.dateTime) {
+    return [];
+  }
+
+  const startTime = new Date(event.start.dateTime);
+  const endTime = new Date(event.end.dateTime);
+  const startHour = startTime.getHours();
+  const endHour = endTime.getHours() + (endTime.getMinutes() > 0 ? 1 : 0);
+
+  const blocks: TimeBlock[] = [];
+
+  for (const block of TIME_BLOCKS) {
+    const config = TIME_BLOCK_CONFIG[block];
+    // Check if event overlaps with this block
+    if (startHour < config.end && endHour > config.start) {
+      blocks.push(block);
+    }
+  }
+
+  return blocks;
+}
+
+// Extract block from KeyHub event description
+export function getBlockFromEventDescription(event: calendar_v3.Schema$Event): TimeBlock | null {
+  if (!event.description) return null;
+
+  const match = event.description.match(/Block: (am|pm|evening)/);
+  return match ? (match[1] as TimeBlock) : null;
 }

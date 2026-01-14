@@ -5,7 +5,17 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Contractor } from '@/types/contractor';
-import { Availability, AvailabilityStatus, getAvailabilityInfo, formatDateKey } from '@/types/availability';
+import {
+  Availability,
+  AvailabilityStatus,
+  BlockStatus,
+  TIME_BLOCKS,
+  TIME_BLOCK_CONFIG,
+  getAvailabilityInfo,
+  formatDateKey,
+  getDayStatusFromBlocks,
+  getDefaultBlocks,
+} from '@/types/availability';
 import { getContractors } from '@/lib/firebase/contractors';
 import { getAllContractorsAvailability } from '@/lib/firebase/availability';
 import { AvailabilityModal } from './AvailabilityModal';
@@ -141,13 +151,13 @@ export function AvailabilityCalendar({
     handleModalClose();
   };
 
-  const getStatusForDay = (contractorId: string, date: Date): AvailabilityStatus | null => {
+  const getBlocksForDay = (contractorId: string, date: Date): BlockStatus | null => {
     const contractorAvailability = availability.get(contractorId);
     if (!contractorAvailability) return null;
 
     const dateKey = formatDateKey(date);
     const dayAvailability = contractorAvailability.get(dateKey);
-    return dayAvailability?.status || null;
+    return dayAvailability?.blocks || null;
   };
 
   const isToday = (date: Date | null): boolean => {
@@ -241,8 +251,9 @@ export function AvailabilityCalendar({
                     return <td key={index} className="bg-gray-900/50"></td>;
                   }
 
-                  const status = getStatusForDay(contractor.id, day);
-                  const statusInfo = status ? getAvailabilityInfo(status) : null;
+                  const blocks = getBlocksForDay(contractor.id, day);
+                  const defaultBlocks = getDefaultBlocks();
+                  const displayBlocks = blocks || defaultBlocks;
                   const past = isPast(day);
 
                   return (
@@ -253,14 +264,23 @@ export function AvailabilityCalendar({
                       } ${canEdit && !past ? 'cursor-pointer hover:bg-gray-700/50' : ''}`}
                       onClick={() => !past && handleDayClick(day, contractor)}
                     >
-                      {status ? (
-                        <div
-                          className={`w-6 h-6 mx-auto rounded-full ${statusInfo?.bgColor}`}
-                          title={`${statusInfo?.label}`}
-                        />
-                      ) : (
-                        <div className="w-6 h-6 mx-auto rounded-full bg-green-500/20" title="Available" />
-                      )}
+                      <div
+                        className="flex flex-col gap-0.5 mx-auto w-6"
+                        title={TIME_BLOCKS.map(b =>
+                          `${TIME_BLOCK_CONFIG[b].shortLabel}: ${getAvailabilityInfo(displayBlocks[b]).label}`
+                        ).join('\n')}
+                      >
+                        {TIME_BLOCKS.map((block) => {
+                          const status = displayBlocks[block];
+                          const info = getAvailabilityInfo(status);
+                          return (
+                            <div
+                              key={block}
+                              className={`h-1.5 w-full rounded-sm ${info.bgColor}`}
+                            />
+                          );
+                        })}
+                      </div>
                     </td>
                   );
                 })}
@@ -285,7 +305,7 @@ export function AvailabilityCalendar({
           onSave={handleAvailabilityUpdate}
           contractor={selectedContractor}
           date={selectedDate}
-          currentStatus={getStatusForDay(selectedContractor.id, selectedDate)}
+          currentBlocks={getBlocksForDay(selectedContractor.id, selectedDate)}
         />
       )}
     </div>

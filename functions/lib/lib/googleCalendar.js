@@ -1,14 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.KEYHUB_EVENT_MARKER = exports.CALENDAR_EVENT_TITLES = void 0;
+exports.KEYHUB_EVENT_MARKER = exports.TIME_BLOCKS = exports.TIME_BLOCK_CONFIG = exports.CALENDAR_EVENT_TITLES = void 0;
 exports.getCalendarClient = getCalendarClient;
 exports.createAvailabilityEvent = createAvailabilityEvent;
+exports.createBlockAvailabilityEvent = createBlockAvailabilityEvent;
+exports.updateBlockAvailabilityEvent = updateBlockAvailabilityEvent;
 exports.updateAvailabilityEvent = updateAvailabilityEvent;
 exports.deleteAvailabilityEvent = deleteAvailabilityEvent;
 exports.getCalendarEvents = getCalendarEvents;
 exports.isKeyHubEvent = isKeyHubEvent;
 exports.getEventDate = getEventDate;
 exports.isEventBusy = isEventBusy;
+exports.getEventTimeBlocks = getEventTimeBlocks;
+exports.getBlockFromEventDescription = getBlockFromEventDescription;
 const admin = require("firebase-admin");
 // Status titles for calendar events
 exports.CALENDAR_EVENT_TITLES = {
@@ -16,6 +20,12 @@ exports.CALENDAR_EVENT_TITLES = {
     unavailable: 'Unavailable - KeyHub',
     on_leave: 'On Leave - KeyHub',
 };
+exports.TIME_BLOCK_CONFIG = {
+    am: { start: 6, end: 12, label: 'Morning' },
+    pm: { start: 12, end: 18, label: 'Afternoon' },
+    evening: { start: 18, end: 22, label: 'Evening' },
+};
+exports.TIME_BLOCKS = ['am', 'pm', 'evening'];
 // Marker to identify our events
 exports.KEYHUB_EVENT_MARKER = 'Synced from KeyHub Central';
 // Get OAuth2 client with user's tokens (async to support dynamic import)
@@ -78,7 +88,7 @@ async function getCalendarClient(userId) {
     const { google } = await Promise.resolve().then(() => require('googleapis'));
     return google.calendar({ version: 'v3', auth: oauth2Client });
 }
-// Create an all-day event for availability status
+// Create an all-day event for availability status (legacy - for backward compatibility)
 async function createAvailabilityEvent(calendar, calendarId, date, // YYYY-MM-DD format
 status) {
     const title = exports.CALENDAR_EVENT_TITLES[status];
@@ -100,6 +110,61 @@ status) {
     }
     catch (error) {
         console.error('Error creating calendar event:', error);
+        throw error;
+    }
+}
+// Create a timed event for a specific time block
+async function createBlockAvailabilityEvent(calendar, calendarId, date, // YYYY-MM-DD format
+block, status, timezone = 'America/New_York') {
+    const title = exports.CALENDAR_EVENT_TITLES[status];
+    if (!title) {
+        return null;
+    }
+    const config = exports.TIME_BLOCK_CONFIG[block];
+    const startHour = config.start.toString().padStart(2, '0');
+    const endHour = config.end.toString().padStart(2, '0');
+    try {
+        const event = await calendar.events.insert({
+            calendarId,
+            requestBody: {
+                summary: `${title} (${config.label})`,
+                description: `${exports.KEYHUB_EVENT_MARKER}\nBlock: ${block}`,
+                start: {
+                    dateTime: `${date}T${startHour}:00:00`,
+                    timeZone: timezone,
+                },
+                end: {
+                    dateTime: `${date}T${endHour}:00:00`,
+                    timeZone: timezone,
+                },
+                transparency: 'opaque', // Show as busy
+            },
+        });
+        return event.data.id || null;
+    }
+    catch (error) {
+        console.error(`Error creating calendar event for block ${block}:`, error);
+        throw error;
+    }
+}
+// Update an existing block availability event
+async function updateBlockAvailabilityEvent(calendar, calendarId, eventId, block, status) {
+    const title = exports.CALENDAR_EVENT_TITLES[status];
+    if (!title) {
+        return;
+    }
+    const config = exports.TIME_BLOCK_CONFIG[block];
+    try {
+        await calendar.events.patch({
+            calendarId,
+            eventId,
+            requestBody: {
+                summary: `${title} (${config.label})`,
+            },
+        });
+    }
+    catch (error) {
+        console.error(`Error updating calendar event for block ${block}:`, error);
         throw error;
     }
 }
@@ -180,5 +245,37 @@ function getEventDate(event) {
 function isEventBusy(event) {
     // transparent = free, opaque = busy (default)
     return event.transparency !== 'transparent';
+}
+// Get time blocks that an event overlaps with
+function getEventTimeBlocks(event) {
+    var _a, _b, _c;
+    // All-day events affect all blocks
+    if ((_a = event.start) === null || _a === void 0 ? void 0 : _a.date) {
+        return [...exports.TIME_BLOCKS];
+    }
+    // Timed events - check which blocks they overlap
+    if (!((_b = event.start) === null || _b === void 0 ? void 0 : _b.dateTime) || !((_c = event.end) === null || _c === void 0 ? void 0 : _c.dateTime)) {
+        return [];
+    }
+    const startTime = new Date(event.start.dateTime);
+    const endTime = new Date(event.end.dateTime);
+    const startHour = startTime.getHours();
+    const endHour = endTime.getHours() + (endTime.getMinutes() > 0 ? 1 : 0);
+    const blocks = [];
+    for (const block of exports.TIME_BLOCKS) {
+        const config = exports.TIME_BLOCK_CONFIG[block];
+        // Check if event overlaps with this block
+        if (startHour < config.end && endHour > config.start) {
+            blocks.push(block);
+        }
+    }
+    return blocks;
+}
+// Extract block from KeyHub event description
+function getBlockFromEventDescription(event) {
+    if (!event.description)
+        return null;
+    const match = event.description.match(/Block: (am|pm|evening)/);
+    return match ? match[1] : null;
 }
 //# sourceMappingURL=googleCalendar.js.map

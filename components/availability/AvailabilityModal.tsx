@@ -1,12 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Calendar } from 'lucide-react';
+import { X, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { Contractor } from '@/types/contractor';
-import { AvailabilityStatus, getAvailabilityInfo } from '@/types/availability';
-import { setAvailability, clearAvailability, setAvailabilityBulk } from '@/lib/firebase/availability';
+import {
+  AvailabilityStatus,
+  BlockStatus,
+  TimeBlock,
+  TIME_BLOCK_CONFIG,
+  TIME_BLOCKS,
+  getAvailabilityInfo,
+  getDefaultBlocks,
+} from '@/types/availability';
+import {
+  setAvailability,
+  setBlockAvailability,
+  clearAvailability,
+  setAvailabilityBulk,
+  setAvailabilityBulkBlocks,
+} from '@/lib/firebase/availability';
+
+type BlockSelection = TimeBlock | 'all';
 
 interface AvailabilityModalProps {
   isOpen: boolean;
@@ -14,7 +30,7 @@ interface AvailabilityModalProps {
   onSave: () => void;
   contractor: Contractor;
   date: Date;
-  currentStatus: AvailabilityStatus | null;
+  currentBlocks?: BlockStatus | null;
 }
 
 const STATUS_OPTIONS: { value: AvailabilityStatus; label: string; description: string }[] = [
@@ -24,21 +40,39 @@ const STATUS_OPTIONS: { value: AvailabilityStatus; label: string; description: s
   { value: 'on_leave', label: 'On Leave', description: 'Vacation or time off' },
 ];
 
+const BLOCK_OPTIONS: { value: BlockSelection; label: string }[] = [
+  { value: 'all', label: 'All Day' },
+  { value: 'am', label: TIME_BLOCK_CONFIG.am.label },
+  { value: 'pm', label: TIME_BLOCK_CONFIG.pm.label },
+  { value: 'evening', label: TIME_BLOCK_CONFIG.evening.label },
+];
+
 export function AvailabilityModal({
   isOpen,
   onClose,
   onSave,
   contractor,
   date,
-  currentStatus,
+  currentBlocks,
 }: AvailabilityModalProps) {
-  const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus | 'clear'>(
-    currentStatus || 'available'
-  );
+  const [selectedBlock, setSelectedBlock] = useState<BlockSelection>('all');
+  const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus | 'clear'>('available');
   const [notes, setNotes] = useState('');
   const [endDate, setEndDate] = useState<string>('');
   const [isRange, setIsRange] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Get current status based on selected block
+  const getCurrentBlockStatus = (): AvailabilityStatus | null => {
+    if (!currentBlocks) return null;
+    if (selectedBlock === 'all') {
+      // If all blocks are the same, return that status
+      const { am, pm, evening } = currentBlocks;
+      if (am === pm && pm === evening) return am;
+      return null; // Mixed status
+    }
+    return currentBlocks[selectedBlock];
+  };
 
   if (!isOpen) return null;
 
@@ -67,9 +101,28 @@ export function AvailabilityModal({
           current.setDate(current.getDate() + 1);
         }
 
-        await setAvailabilityBulk(contractor.id, dates, selectedStatus, notes || undefined);
+        if (selectedBlock === 'all') {
+          // Set all blocks to the same status for all dates
+          await setAvailabilityBulk(contractor.id, dates, selectedStatus, notes || undefined);
+        } else {
+          // Set specific block for all dates
+          const blockStatus: BlockStatus = currentBlocks || getDefaultBlocks();
+          blockStatus[selectedBlock] = selectedStatus;
+          await setAvailabilityBulkBlocks(contractor.id, dates, blockStatus, notes || undefined);
+        }
       } else {
-        await setAvailability(contractor.id, date, selectedStatus, notes || undefined);
+        if (selectedBlock === 'all') {
+          // Set all blocks to the same status
+          const blocks: BlockStatus = {
+            am: selectedStatus,
+            pm: selectedStatus,
+            evening: selectedStatus,
+          };
+          await setAvailability(contractor.id, date, blocks, notes || undefined);
+        } else {
+          // Set a single block
+          await setBlockAvailability(contractor.id, date, selectedBlock, selectedStatus);
+        }
       }
       onSave();
     } catch (error) {
@@ -108,6 +161,51 @@ export function AvailabilityModal({
           <div className="flex items-center gap-2 text-gray-300">
             <Calendar className="h-5 w-5 text-gold" />
             <span>{formatDisplayDate(date)}</span>
+          </div>
+
+          {/* Current Block Status Display */}
+          {currentBlocks && (
+            <div className="bg-gray-800/50 rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-400">Current Status</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {TIME_BLOCKS.map((block) => {
+                  const config = TIME_BLOCK_CONFIG[block];
+                  const status = currentBlocks[block];
+                  const info = getAvailabilityInfo(status);
+                  return (
+                    <div key={block} className="text-center">
+                      <div className={`text-xs ${info.color} font-medium`}>
+                        {config.shortLabel}
+                      </div>
+                      <div className={`w-4 h-4 mx-auto mt-1 rounded-full ${info.bgColor}`} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Time Block Selector */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-400">Time Block</label>
+            <div className="grid grid-cols-4 gap-2">
+              {BLOCK_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setSelectedBlock(option.value)}
+                  className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                    selectedBlock === option.value
+                      ? 'border-gold bg-gold/10 text-gold'
+                      : 'border-gray-700 hover:border-gray-600 text-gray-300'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Date Range Toggle */}
@@ -168,7 +266,7 @@ export function AvailabilityModal({
           </div>
 
           {/* Clear option */}
-          {currentStatus && (
+          {currentBlocks && (
             <button
               onClick={() => setSelectedStatus('clear')}
               className={`w-full p-3 rounded-lg border text-left transition-all ${

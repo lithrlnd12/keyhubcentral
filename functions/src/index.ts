@@ -26,6 +26,9 @@ export { onLeadCreated } from './triggers/leadEmailTriggers';
 // Availability & Calendar sync triggers
 export { onAvailabilityChange } from './triggers/availabilityTriggers';
 
+// Rating request triggers
+export { onJobComplete, onInvoicePaid, onRatingSubmitted } from './triggers/ratingTriggers';
+
 // Calendar sync scheduled tasks
 export { syncCalendarToApp, manualCalendarSync } from './scheduled/calendarSync';
 

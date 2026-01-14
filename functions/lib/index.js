@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onUserApproved = exports.onUserCreated = exports.testNotification = exports.onPartnerServiceTicket = exports.onPartnerLaborRequest = exports.onInvoiceOverdue = exports.onUserPendingApproval = exports.onJobAssigned = exports.onLeadAssigned = exports.dailyExpirationCheck = exports.manualCalendarSync = exports.syncCalendarToApp = exports.onAvailabilityChange = exports.onLeadCreated = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
+exports.onUserApproved = exports.onUserCreated = exports.testNotification = exports.onPartnerServiceTicket = exports.onPartnerLaborRequest = exports.onInvoiceOverdue = exports.onUserPendingApproval = exports.onJobAssigned = exports.onLeadAssigned = exports.dailyExpirationCheck = exports.manualCalendarSync = exports.syncCalendarToApp = exports.onRatingSubmitted = exports.onInvoicePaid = exports.onJobComplete = exports.onAvailabilityChange = exports.onLeadCreated = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -25,6 +25,11 @@ Object.defineProperty(exports, "onLeadCreated", { enumerable: true, get: functio
 // Availability & Calendar sync triggers
 var availabilityTriggers_1 = require("./triggers/availabilityTriggers");
 Object.defineProperty(exports, "onAvailabilityChange", { enumerable: true, get: function () { return availabilityTriggers_1.onAvailabilityChange; } });
+// Rating request triggers
+var ratingTriggers_1 = require("./triggers/ratingTriggers");
+Object.defineProperty(exports, "onJobComplete", { enumerable: true, get: function () { return ratingTriggers_1.onJobComplete; } });
+Object.defineProperty(exports, "onInvoicePaid", { enumerable: true, get: function () { return ratingTriggers_1.onInvoicePaid; } });
+Object.defineProperty(exports, "onRatingSubmitted", { enumerable: true, get: function () { return ratingTriggers_1.onRatingSubmitted; } });
 // Calendar sync scheduled tasks
 var calendarSync_1 = require("./scheduled/calendarSync");
 Object.defineProperty(exports, "syncCalendarToApp", { enumerable: true, get: function () { return calendarSync_1.syncCalendarToApp; } });

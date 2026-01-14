@@ -2,10 +2,12 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import {
   getCalendarClient,
-  createAvailabilityEvent,
-  updateAvailabilityEvent,
+  createBlockAvailabilityEvent,
+  updateBlockAvailabilityEvent,
   deleteAvailabilityEvent,
   CALENDAR_EVENT_TITLES,
+  TIME_BLOCKS,
+  TimeBlock,
 } from '../lib/googleCalendar';
 
 const runtimeOpts: functions.RuntimeOptions = {
@@ -14,11 +16,25 @@ const runtimeOpts: functions.RuntimeOptions = {
   memory: '256MB',
 };
 
+// Block status type matching frontend
+interface BlockStatus {
+  am: string;
+  pm: string;
+  evening: string;
+}
+
+interface BlockGoogleEventIds {
+  am?: string;
+  pm?: string;
+  evening?: string;
+}
+
 /**
  * Sync availability changes to Google Calendar
  *
  * When a contractor sets their availability (busy, unavailable, on_leave),
  * this trigger creates/updates/deletes corresponding Google Calendar events.
+ * Now handles time blocks (AM/PM/Evening) with separate events for each.
  */
 export const onAvailabilityChange = functions
   .runWith(runtimeOpts)
@@ -53,7 +69,7 @@ export const onAvailabilityChange = functions
       return null;
     }
 
-    // Get integration for calendarId
+    // Get integration for calendarId and timezone
     const integrationDoc = await db
       .collection('users')
       .doc(userId)
@@ -63,6 +79,7 @@ export const onAvailabilityChange = functions
 
     const integration = integrationDoc.data();
     const calendarId = integration?.calendarId || 'primary';
+    const timezone = integration?.timezone || 'America/New_York';
 
     const before = change.before.exists ? change.before.data() : null;
     const after = change.after.exists ? change.after.data() : null;
@@ -74,51 +91,97 @@ export const onAvailabilityChange = functions
     }
 
     try {
-      // Document deleted or status changed to 'available'
-      if (!after || after.status === 'available') {
-        // Delete the calendar event if it exists
-        if (before?.googleEventId) {
-          await deleteAvailabilityEvent(calendar, calendarId, before.googleEventId);
-          console.log(`Deleted calendar event for ${dateKey}`);
+      // Get block statuses (handle legacy format)
+      const beforeBlocks: BlockStatus | null = before?.blocks || (before?.status ? {
+        am: before.status,
+        pm: before.status,
+        evening: before.status,
+      } : null);
+
+      const afterBlocks: BlockStatus | null = after?.blocks || (after?.status ? {
+        am: after.status,
+        pm: after.status,
+        evening: after.status,
+      } : null);
+
+      // Get existing event IDs
+      const beforeEventIds: BlockGoogleEventIds = before?.googleEventIds || {};
+      const afterEventIds: BlockGoogleEventIds = after?.googleEventIds || {};
+      const updatedEventIds: BlockGoogleEventIds = { ...afterEventIds };
+      let hasUpdates = false;
+
+      // Document deleted - delete all calendar events
+      if (!after) {
+        for (const block of TIME_BLOCKS) {
+          const eventId = beforeEventIds[block];
+          if (eventId) {
+            await deleteAvailabilityEvent(calendar, calendarId, eventId);
+            console.log(`Deleted calendar event for ${dateKey} ${block}`);
+          }
         }
         return null;
       }
 
-      // Check if this is a status we sync (not 'available')
-      if (!CALENDAR_EVENT_TITLES[after.status]) {
-        console.log(`Status ${after.status} not syncable, skipping`);
-        return null;
-      }
+      // Process each block
+      for (const block of TIME_BLOCKS) {
+        const beforeStatus = beforeBlocks?.[block];
+        const afterStatus = afterBlocks?.[block];
+        const eventId = updatedEventIds[block];
 
-      // If we already have an event ID and status changed, update it
-      if (after.googleEventId && before?.status !== after.status) {
-        await updateAvailabilityEvent(
-          calendar,
-          calendarId,
-          after.googleEventId,
-          after.status
-        );
-        console.log(`Updated calendar event for ${dateKey} to ${after.status}`);
-        return null;
-      }
-
-      // Create new event if we don't have one
-      if (!after.googleEventId) {
-        const eventId = await createAvailabilityEvent(
-          calendar,
-          calendarId,
-          dateKey,
-          after.status
-        );
-
-        if (eventId) {
-          // Store the event ID back in the document
-          await change.after.ref.update({
-            googleEventId: eventId,
-            syncSource: 'app',
-          });
-          console.log(`Created calendar event ${eventId} for ${dateKey}`);
+        // Status is now 'available' - delete event if exists
+        if (!afterStatus || afterStatus === 'available') {
+          if (eventId) {
+            await deleteAvailabilityEvent(calendar, calendarId, eventId);
+            delete updatedEventIds[block];
+            hasUpdates = true;
+            console.log(`Deleted calendar event for ${dateKey} ${block}`);
+          }
+          continue;
         }
+
+        // Check if this is a status we sync (not 'available')
+        if (!CALENDAR_EVENT_TITLES[afterStatus]) {
+          continue;
+        }
+
+        // Status changed - update existing event
+        if (eventId && beforeStatus !== afterStatus) {
+          await updateBlockAvailabilityEvent(
+            calendar,
+            calendarId,
+            eventId,
+            block as TimeBlock,
+            afterStatus
+          );
+          console.log(`Updated calendar event for ${dateKey} ${block} to ${afterStatus}`);
+          continue;
+        }
+
+        // Create new event if we don't have one
+        if (!eventId) {
+          const newEventId = await createBlockAvailabilityEvent(
+            calendar,
+            calendarId,
+            dateKey,
+            block as TimeBlock,
+            afterStatus,
+            timezone
+          );
+
+          if (newEventId) {
+            updatedEventIds[block] = newEventId;
+            hasUpdates = true;
+            console.log(`Created calendar event ${newEventId} for ${dateKey} ${block}`);
+          }
+        }
+      }
+
+      // Update the document with new event IDs
+      if (hasUpdates) {
+        await change.after.ref.update({
+          googleEventIds: updatedEventIds,
+          syncSource: 'app',
+        });
       }
 
       return null;

@@ -8,7 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
 import { CalendarGrid } from '@/components/calendar/CalendarGrid';
 import { useAvailability } from '@/lib/hooks/useAvailability';
-import { AvailabilityStatus, getAvailabilityInfo, formatDateKey } from '@/types/availability';
+import { AvailabilityStatus, getAvailabilityInfo, formatDateKey, getDayStatusFromBlocks } from '@/types/availability';
 
 interface AvailabilityCalendarProps {
   contractorId: string;
@@ -41,7 +41,11 @@ export function AvailabilityCalendar({ contractorId }: AvailabilityCalendarProps
     const key = formatDateKey(date);
     const existing = availability.get(key);
     if (existing) {
-      setSelectedStatus(existing.status);
+      // Get status from blocks if available, otherwise use legacy status field
+      const status = existing.blocks
+        ? getDayStatusFromBlocks(existing.blocks)
+        : existing.status || 'available';
+      setSelectedStatus(status);
       setNotes(existing.notes || '');
     } else {
       setSelectedStatus('available');
