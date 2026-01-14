@@ -4,6 +4,8 @@ exports.onUserApproved = exports.onUserCreated = exports.onUserGeocode = exports
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
+// Initialize Firebase Admin first, before any other imports that use Firestore
+admin.initializeApp();
 // Invoice Sheets sync triggers
 var invoiceTriggers_1 = require("./triggers/invoiceTriggers");
 Object.defineProperty(exports, "onInvoiceCreated", { enumerable: true, get: function () { return invoiceTriggers_1.onInvoiceCreated; } });
@@ -48,7 +50,6 @@ Object.defineProperty(exports, "testNotification", { enumerable: true, get: func
 var leadAutoAssign_1 = require("./triggers/leadAutoAssign");
 Object.defineProperty(exports, "onLeadCreatedAutoAssign", { enumerable: true, get: function () { return leadAutoAssign_1.onLeadCreatedAutoAssign; } });
 Object.defineProperty(exports, "onUserGeocode", { enumerable: true, get: function () { return leadAutoAssign_1.onUserGeocode; } });
-admin.initializeApp();
 // Admin emails to notify when new users sign up
 const ADMIN_EMAILS = [
     'aaron@innovativeaiconsulting.com',

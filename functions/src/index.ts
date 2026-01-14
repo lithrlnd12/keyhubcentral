@@ -2,6 +2,9 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
 
+// Initialize Firebase Admin first, before any other imports that use Firestore
+admin.initializeApp();
+
 // Invoice Sheets sync triggers
 export {
   onInvoiceCreated,
@@ -46,8 +49,6 @@ export {
 
 // Lead auto-assignment triggers
 export { onLeadCreatedAutoAssign, onUserGeocode } from './triggers/leadAutoAssign';
-
-admin.initializeApp();
 
 // Admin emails to notify when new users sign up
 const ADMIN_EMAILS = [
