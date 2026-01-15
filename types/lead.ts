@@ -112,6 +112,8 @@ export interface Lead extends LeadCallData, LeadSmsData {
   autoAssigned?: boolean;
   autoAssignedAt?: Timestamp | null;
   autoAssignedDistance?: number | null; // miles from sales rep
+  // Job conversion tracking
+  linkedJobId?: string | null;  // Reference to created job
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

@@ -8,4 +8,5 @@ export { LeadHeader } from './LeadHeader';
 export { LeadInfo } from './LeadInfo';
 export { LeadAssignment } from './LeadAssignment';
 export { LeadReturnModal } from './LeadReturnModal';
+export { ConvertLeadDialog } from './ConvertLeadDialog';
 export { LeadForm } from './LeadForm';

@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLead } from '@/lib/hooks/useLead';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { convertLead, updateLead } from '@/lib/firebase/leads';
+import { updateLead } from '@/lib/firebase/leads';
 import {
   LeadHeader,
   LeadInfo,
   LeadAssignment,
   LeadReturnModal,
+  ConvertLeadDialog,
 } from '@/components/leads';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
@@ -25,6 +26,7 @@ export default function LeadDetailPage() {
 
   const [showAssignment, setShowAssignment] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
+  const [showConvert, setShowConvert] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   const canEdit = user?.role && ['owner', 'admin'].includes(user.role);
@@ -54,15 +56,12 @@ export default function LeadDetailPage() {
     );
   }
 
-  const handleConvert = async () => {
-    try {
-      setActionLoading(true);
-      await convertLead(lead.id);
-    } catch (err) {
-      console.error('Failed to convert lead:', err);
-    } finally {
-      setActionLoading(false);
-    }
+  const handleConvert = () => {
+    setShowConvert(true);
+  };
+
+  const handleConvertSuccess = (jobId: string) => {
+    router.push(`/kr/${jobId}`);
   };
 
   const handleMarkLost = async () => {
@@ -114,6 +113,14 @@ export default function LeadDetailPage() {
         lead={lead}
         isOpen={showReturn}
         onClose={() => setShowReturn(false)}
+      />
+
+      {/* Convert Dialog */}
+      <ConvertLeadDialog
+        lead={lead}
+        isOpen={showConvert}
+        onClose={() => setShowConvert(false)}
+        onConverted={handleConvertSuccess}
       />
     </div>
   );

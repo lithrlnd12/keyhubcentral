@@ -11,10 +11,13 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
+  Timestamp,
   QueryConstraint,
 } from 'firebase/firestore';
 import { db } from './config';
 import { Lead, LeadStatus, LeadSource, LeadQuality, AssignedType } from '@/types/lead';
+import { JobType, JobStatus } from '@/types/job';
+import { createJob, generateJobNumber } from './jobs';
 
 const COLLECTION = 'leads';
 
@@ -161,6 +164,74 @@ export async function convertLead(id: string): Promise<void> {
     status: 'converted',
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function convertLeadToJob(
+  leadId: string,
+  jobType: JobType
+): Promise<string> {
+  // Get the lead
+  const lead = await getLead(leadId);
+  if (!lead) {
+    throw new Error('Lead not found');
+  }
+
+  // Generate job number
+  const jobNumber = await generateJobNumber();
+
+  // Map lead customer to job customer (handle null phone/email)
+  const customer = {
+    name: lead.customer.name,
+    phone: lead.customer.phone || '',
+    email: lead.customer.email || '',
+    address: lead.customer.address,
+  };
+
+  // Create job data
+  const jobData = {
+    jobNumber,
+    customer,
+    type: jobType,
+    status: 'lead' as JobStatus,
+    salesRepId: lead.assignedTo,
+    crewIds: [],
+    pmId: null,
+    leadId: leadId,
+    costs: {
+      materialProjected: 0,
+      materialActual: 0,
+      laborProjected: 0,
+      laborActual: 0,
+    },
+    dates: {
+      created: Timestamp.now(),
+      sold: null,
+      scheduledStart: null,
+      actualStart: null,
+      targetCompletion: null,
+      actualCompletion: null,
+      paidInFull: null,
+    },
+    warranty: {
+      startDate: null,
+      endDate: null,
+      status: 'pending' as const,
+    },
+    notes: lead.customer.notes || '',
+  };
+
+  // Create the job
+  const jobId = await createJob(jobData);
+
+  // Update lead with converted status and job link
+  const leadRef = doc(db, COLLECTION, leadId);
+  await updateDoc(leadRef, {
+    status: 'converted',
+    linkedJobId: jobId,
+    updatedAt: serverTimestamp(),
+  });
+
+  return jobId;
 }
 
 export async function deleteLead(id: string): Promise<void> {

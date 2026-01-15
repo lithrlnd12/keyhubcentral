@@ -84,6 +84,7 @@ export interface Job {
   notes: string;
   photos?: JobPhotos;
   commission?: JobCommission;
+  leadId?: string | null;  // Reference to source lead
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
