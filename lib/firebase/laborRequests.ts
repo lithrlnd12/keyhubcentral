@@ -25,6 +25,11 @@ import {
 const COLLECTION = 'laborRequests';
 
 export async function getLaborRequests(filters?: LaborRequestFilters): Promise<LaborRequest[]> {
+  // If partnerId filter is provided but empty, return empty results
+  if (filters?.partnerId !== undefined && !filters.partnerId) {
+    return [];
+  }
+
   const constraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
 
   if (filters?.partnerId) {
@@ -184,6 +189,13 @@ export function subscribeToLaborRequests(
   callback: (requests: LaborRequest[]) => void,
   filters?: LaborRequestFilters
 ): () => void {
+  // If partnerId filter is provided but empty, return empty results
+  // This prevents querying all documents when user doesn't have a partnerId
+  if (filters?.partnerId !== undefined && !filters.partnerId) {
+    callback([]);
+    return () => {};
+  }
+
   const constraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
 
   if (filters?.partnerId) {
@@ -237,26 +249,13 @@ export function subscribeToLaborRequest(
   });
 }
 
-// Generate next request number
+// Generate next request number using timestamp (no read required)
 export async function generateRequestNumber(): Promise<string> {
-  const year = new Date().getFullYear();
-  const q = query(
-    collection(db, COLLECTION),
-    orderBy('createdAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const time = String(now.getTime()).slice(-6); // Last 6 digits of timestamp for uniqueness
 
-  // Find the highest request number for this year
-  let maxNumber = 0;
-  snapshot.docs.forEach((doc) => {
-    const data = doc.data();
-    if (data.requestNumber?.startsWith(`LR-${year}-`)) {
-      const num = parseInt(data.requestNumber.split('-')[2], 10);
-      if (num > maxNumber) {
-        maxNumber = num;
-      }
-    }
-  });
-
-  return `LR-${year}-${String(maxNumber + 1).padStart(4, '0')}`;
+  return `LR-${year}${month}${day}-${time}`;
 }

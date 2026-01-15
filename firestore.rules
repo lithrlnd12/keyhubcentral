@@ -263,13 +263,36 @@ service cloud.firestore {
     // INVENTORY MANAGEMENT COLLECTIONS
     // ========================================
 
-    // Inventory Items collection - Materials and tools tracked
+    // Inventory Items collection - Materials and tools tracked (per-contractor)
     match /inventoryItems/{itemId} {
-      // Internal users can read inventory items
-      allow read: if isInternalUser();
+      // Admins can read all inventory items
+      allow read: if isAdmin();
 
-      // Only admins can create/update/delete items
+      // Contractors can read their own items
+      allow read: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        resource.data.contractorId == request.auth.uid;
+
+      // Admins can create/update/delete any items
       allow create, update: if isAdmin();
+
+      // Contractors can create items for themselves
+      allow create: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        request.resource.data.contractorId == request.auth.uid;
+
+      // Contractors can update their own items
+      allow update: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        resource.data.contractorId == request.auth.uid &&
+        request.resource.data.contractorId == request.auth.uid;
+
+      // Contractors can delete their own items
+      allow delete: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        resource.data.contractorId == request.auth.uid;
+
+      // Owner can delete any items
       allow delete: if isOwner();
     }
 
@@ -316,47 +339,97 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Receipts collection - Uploaded receipts with parsed data
+    // Receipts collection - Uploaded receipts with parsed data (per-contractor)
     match /receipts/{receiptId} {
       // Admins can read all receipts
       allow read: if isAdmin();
 
-      // Users can read their own receipts
-      allow read: if isActiveUser() && resource.data.uploadedBy == request.auth.uid;
+      // Contractors can read their own receipts (by contractorId)
+      allow read: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        resource.data.contractorId == request.auth.uid;
 
-      // Internal users can create receipts
-      allow create: if isInternalUser() && isActiveUser();
+      // Admins can create any receipt
+      allow create: if isAdmin();
 
-      // Only admins can update receipts (verify, add to P&L)
+      // Contractors can create receipts for themselves
+      allow create: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        request.resource.data.contractorId == request.auth.uid;
+
+      // Admins can update any receipt (verify, add to P&L)
       allow update: if isAdmin();
 
-      // Users can update their own pending receipts (edit parsed data)
+      // Contractors can update their own pending receipts (edit parsed data)
       allow update: if isActiveUser() &&
-        resource.data.uploadedBy == request.auth.uid &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        resource.data.contractorId == request.auth.uid &&
         resource.data.status in ['pending', 'parsing', 'parsed'];
 
+      // Contractors can delete their own receipts
+      allow delete: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        resource.data.contractorId == request.auth.uid;
+
+      // Owner can delete any receipts
       allow delete: if isOwner();
     }
 
-    // Expenses collection - Direct expenses from receipts for P&L
+    // Expenses collection - Direct expenses from receipts for P&L (per-contractor)
     match /expenses/{expenseId} {
-      // Internal users can read expenses (needed for P&L)
-      // Contractors can read their own expenses
-      allow read: if isInternalUser() ||
-        (isContractor() && isActiveUser() && resource.data.createdBy == request.auth.uid);
+      // Admins can read all expenses (needed for P&L)
+      allow read: if isAdmin();
 
-      // Admins can create/update expenses
+      // Contractors can read their own expenses (by contractorId)
+      allow read: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        resource.data.contractorId == request.auth.uid;
+
+      // Admins can create any expenses
+      allow create: if isAdmin();
+
       // Contractors can create expenses for themselves (from receipts)
-      allow create: if isAdmin() ||
-        (isContractor() && isActiveUser() &&
-          request.resource.data.createdBy == request.auth.uid &&
-          request.resource.data.entity == 'contractor');
+      allow create: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        request.resource.data.contractorId == request.auth.uid &&
+        request.resource.data.entity == 'contractor';
 
-      // Only admins can update expenses
+      // Admins can update any expenses
       allow update: if isAdmin();
 
-      // Only owner can delete expenses
+      // Contractors can update their own expenses
+      allow update: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        resource.data.contractorId == request.auth.uid;
+
+      // Contractors can delete their own expenses
+      allow delete: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        resource.data.contractorId == request.auth.uid;
+
+      // Owner can delete any expenses
       allow delete: if isOwner();
+    }
+
+    // ========================================
+    // NOTIFICATIONS COLLECTION
+    // ========================================
+
+    // Notifications collection - User notifications
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Only Cloud Functions (admin SDK) can create notifications
+      allow create: if false;
+
+      // Users can update their own notifications (mark as read)
+      allow update: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+
+      // Users can delete their own notifications
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
 
     // ========================================

@@ -25,6 +25,11 @@ import {
 const COLLECTION = 'partnerServiceTickets';
 
 export async function getPartnerTickets(filters?: PartnerTicketFilters): Promise<PartnerServiceTicket[]> {
+  // If partnerId filter is provided but empty, return empty results
+  if (filters?.partnerId !== undefined && !filters.partnerId) {
+    return [];
+  }
+
   const constraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
 
   if (filters?.partnerId) {
@@ -222,6 +227,12 @@ export function subscribeToPartnerTickets(
   callback: (tickets: PartnerServiceTicket[]) => void,
   filters?: PartnerTicketFilters
 ): () => void {
+  // If partnerId filter is provided but empty, return empty results
+  if (filters?.partnerId !== undefined && !filters.partnerId) {
+    callback([]);
+    return () => {};
+  }
+
   const constraints: QueryConstraint[] = [orderBy('createdAt', 'desc')];
 
   if (filters?.partnerId) {
