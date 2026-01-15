@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/hooks';
 import { Button } from '@/components/ui';
@@ -127,6 +127,40 @@ export default function AdminPage() {
 
       await updateDoc(doc(db, 'users', uid), updateData);
 
+      // If approving as contractor, also create a contractor profile
+      if (role === 'contractor') {
+        const pendingUser = pendingUsers.find((u) => u.uid === uid);
+        if (pendingUser) {
+          await addDoc(collection(db, 'contractors'), {
+            userId: uid,
+            businessName: pendingUser.displayName || null,
+            address: {
+              street: '',
+              city: '',
+              state: '',
+              zip: pendingUser.baseZipCode || '',
+            },
+            trades: [],
+            skills: [],
+            licenses: [],
+            insurance: null,
+            w9Url: null,
+            achInfo: null,
+            serviceRadius: 25,
+            rating: {
+              overall: 3.0,
+              customer: 3.0,
+              speed: 3.0,
+              warranty: 3.0,
+              internal: 3.0,
+            },
+            status: 'active',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
+      }
+
       await fetch('/api/admin/set-role', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -191,6 +225,49 @@ export default function AdminPage() {
       }
 
       await updateDoc(doc(db, 'users', uid), updateData);
+
+      // If changing to contractor role, check if contractor profile exists
+      if (role === 'contractor') {
+        const contractorQuery = query(
+          collection(db, 'contractors'),
+          where('userId', '==', uid)
+        );
+        const contractorSnapshot = await getDocs(contractorQuery);
+
+        // If no contractor profile exists, create one
+        if (contractorSnapshot.empty) {
+          const activeUser = activeUsers.find((u) => u.uid === uid);
+          if (activeUser) {
+            await addDoc(collection(db, 'contractors'), {
+              userId: uid,
+              businessName: activeUser.displayName || null,
+              address: {
+                street: '',
+                city: '',
+                state: '',
+                zip: activeUser.baseZipCode || '',
+              },
+              trades: [],
+              skills: [],
+              licenses: [],
+              insurance: null,
+              w9Url: null,
+              achInfo: null,
+              serviceRadius: 25,
+              rating: {
+                overall: 3.0,
+                customer: 3.0,
+                speed: 3.0,
+                warranty: 3.0,
+                internal: 3.0,
+              },
+              status: 'active',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+          }
+        }
+      }
 
       await fetch('/api/admin/set-role', {
         method: 'POST',
