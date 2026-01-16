@@ -13,7 +13,9 @@ interface FormData {
   lastName: string;
   phone: string;
   email: string;
-  address: string;
+  street: string;
+  city: string;
+  zip: string;
   isHomeowner: string;
   notes: string;
   contactPreference: ContactPreference | '';
@@ -33,7 +35,9 @@ export default function LeadCapturePage() {
     lastName: '',
     phone: '',
     email: '',
-    address: '',
+    street: '',
+    city: '',
+    zip: '',
     isHomeowner: '',
     notes: '',
     contactPreference: '',
@@ -118,19 +122,6 @@ export default function LeadCapturePage() {
     return attachments;
   };
 
-  const parseAddress = (addressStr: string) => {
-    // Simple address parsing - can be enhanced
-    const parts = addressStr.split(',').map((p) => p.trim());
-    return {
-      street: parts[0] || '',
-      city: parts[1] || '',
-      state: '',
-      zip: parts[2] || '',
-      lat: null,
-      lng: null,
-    };
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -185,7 +176,14 @@ export default function LeadCapturePage() {
           name: `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim(),
           phone: phoneNumber || null,
           email: formData.email.trim() || null,
-          address: parseAddress(formData.address),
+          address: {
+            street: formData.street.trim(),
+            city: formData.city.trim(),
+            state: '',
+            zip: formData.zip.trim(),
+            lat: null,
+            lng: null,
+          },
           isHomeowner: formData.isHomeowner || null,
           notes: formData.notes.trim() || null,
           attachments: attachments.length > 0 ? attachments : null,
@@ -253,7 +251,7 @@ export default function LeadCapturePage() {
           <button
             onClick={() => {
               setSubmitted(false);
-              setFormData({ firstName: '', lastName: '', phone: '', email: '', address: '', isHomeowner: '', notes: '', contactPreference: '' });
+              setFormData({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', zip: '', isHomeowner: '', notes: '', contactPreference: '' });
               setFiles([]);
             }}
             className="text-brand-gold hover:text-brand-gold-light transition-colors"
@@ -421,21 +419,61 @@ export default function LeadCapturePage() {
 
           <div>
             <label
-              htmlFor="address"
+              htmlFor="street"
               className="block text-sm font-medium text-gray-300 mb-1"
             >
-              Address (Street, City, Zip Code)
+              Street Address
             </label>
             <input
               type="text"
-              id="address"
-              name="address"
-              value={formData.address}
+              id="street"
+              name="street"
+              value={formData.street}
               onChange={handleChange}
               className="w-full px-4 py-3 bg-brand-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold transition-colors"
-              placeholder="123 Main St, Austin, 78701"
+              placeholder="123 Main St"
               autoComplete="street-address"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                htmlFor="city"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                City
+              </label>
+              <input
+                type="text"
+                id="city"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-brand-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold transition-colors"
+                placeholder="Austin"
+                autoComplete="address-level2"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="zip"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Zip Code
+              </label>
+              <input
+                type="text"
+                id="zip"
+                name="zip"
+                value={formData.zip}
+                onChange={handleChange}
+                className="w-full px-4 py-3 bg-brand-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold transition-colors"
+                placeholder="78701"
+                autoComplete="postal-code"
+                maxLength={10}
+              />
+            </div>
           </div>
 
           <div>
