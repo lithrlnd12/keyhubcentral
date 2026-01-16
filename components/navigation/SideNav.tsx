@@ -66,7 +66,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/portal', icon: LayoutDashboard, permission: isContractor },
   { label: 'Availability', href: '/portal/availability', icon: Calendar, permission: isContractor },
   { label: 'My Jobs', href: '/portal/jobs', icon: Briefcase, permission: isContractor },
-  { label: 'Earnings', href: '/portal/earnings', icon: DollarSign, permission: isContractor },
+  { label: 'Financials', href: '/portal/financials', icon: DollarSign, permission: isContractor },
   { label: 'Inventory', href: '/portal/inventory', icon: Package, permission: isContractor },
   { label: 'Profile', href: '/portal/my-profile', icon: User, permission: isContractor },
   { label: 'Settings', href: '/portal/settings', icon: Cog, permission: isContractor },

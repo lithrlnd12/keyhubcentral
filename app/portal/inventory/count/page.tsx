@@ -21,7 +21,11 @@ export default function ContractorCountPage() {
   const { location, loading: locationLoading } = useContractorLocation(
     user?.uid || ''
   );
-  const { items, loading: itemsLoading } = useInventoryItems({ realtime: true });
+  // Filter inventory items by the logged-in contractor's ID
+  const { items, loading: itemsLoading } = useInventoryItems({
+    realtime: true,
+    contractorId: user?.uid,
+  });
   const { submitCount, loading: submitting, error } = useSubmitCount();
 
   const [counts, setCounts] = useState<Record<string, number>>({});

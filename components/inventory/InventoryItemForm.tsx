@@ -18,6 +18,7 @@ interface InventoryItemFormProps {
   onSubmit: (data: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
+  contractorId?: string; // Owner contractor for the item
 }
 
 export function InventoryItemForm({
@@ -25,9 +26,14 @@ export function InventoryItemForm({
   onSubmit,
   onCancel,
   loading = false,
+  contractorId,
 }: InventoryItemFormProps) {
   // Get existing items to check for duplicates (only when creating new)
-  const { items: existingItems } = useInventoryItems({ realtime: false });
+  // Filter by contractorId if provided to check within the contractor's items
+  const { items: existingItems } = useInventoryItems({
+    realtime: false,
+    contractorId: contractorId,
+  });
 
   const [formData, setFormData] = useState({
     name: item?.name || '',
@@ -106,6 +112,7 @@ export function InventoryItemForm({
       partNumber: formData.partNumber.trim() || undefined,
       cost: formData.cost || undefined,
       createdBy: '', // Will be set by the calling component
+      contractorId: contractorId, // Owner contractor for the item
     });
   };
 

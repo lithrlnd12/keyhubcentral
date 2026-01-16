@@ -49,3 +49,8 @@ export {
   useReceiptsNeedingVerification,
 } from './useReceipts';
 export { useExpenses, useExpenseMutations } from './useExpenses';
+
+// Contractor-specific hooks
+export { useContractorInvoices } from './useContractorInvoices';
+export { useContractorJobs } from './useContractorJobs';
+export { useContractorExpenses } from './useContractorExpenses';

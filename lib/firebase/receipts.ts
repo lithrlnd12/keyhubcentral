@@ -40,6 +40,11 @@ export async function getReceipts(filters?: ReceiptFilters): Promise<Receipt[]> 
     constraints.unshift(where('locationId', '==', filters.locationId));
   }
 
+  // Filter by contractor ID - receipts are per-contractor
+  if (filters?.contractorId) {
+    constraints.unshift(where('contractorId', '==', filters.contractorId));
+  }
+
   const q = query(collection(db, COLLECTION), ...constraints);
   const snapshot = await getDocs(q);
 
@@ -90,7 +95,8 @@ export async function createReceipt(
   uploadedBy: string,
   uploadedByName: string,
   locationId?: string,
-  locationName?: string
+  locationName?: string,
+  contractorId?: string
 ): Promise<string> {
   const docRef = await addDoc(collection(db, COLLECTION), {
     uploadedBy,
@@ -101,6 +107,7 @@ export async function createReceipt(
     items: [],
     locationId: locationId || null,
     locationName: locationName || null,
+    contractorId: contractorId || uploadedBy, // Default to uploadedBy if not specified
   });
 
   return docRef.id;
@@ -265,6 +272,11 @@ export function subscribeToReceipts(
     constraints.unshift(where('locationId', '==', filters.locationId));
   }
 
+  // Filter by contractor ID - receipts are per-contractor
+  if (filters?.contractorId) {
+    constraints.unshift(where('contractorId', '==', filters.contractorId));
+  }
+
   const q = query(collection(db, COLLECTION), ...constraints);
 
   return onSnapshot(q, (snapshot) => {
@@ -320,7 +332,8 @@ export async function uploadAndCreateReceipt(
   uploadedBy: string,
   uploadedByName: string,
   locationId?: string,
-  locationName?: string
+  locationName?: string,
+  contractorId?: string
 ): Promise<{ receiptId: string; imageUrl: string }> {
   const imageUrl = await uploadReceiptImage(file, uploadedBy);
   const receiptId = await createReceipt(
@@ -328,7 +341,8 @@ export async function uploadAndCreateReceipt(
     uploadedBy,
     uploadedByName,
     locationId,
-    locationName
+    locationName,
+    contractorId
   );
 
   return { receiptId, imageUrl };

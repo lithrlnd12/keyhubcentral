@@ -447,3 +447,155 @@ export async function getInvoiceStats(): Promise<{
 
   return stats;
 }
+
+// ==========================================
+// CONTRACTOR-SPECIFIC INVOICE FUNCTIONS
+// ==========================================
+
+// Get invoices created BY a contractor
+export async function getContractorInvoices(contractorId: string): Promise<Invoice[]> {
+  const q = query(
+    collection(db, COLLECTION),
+    where('from.contractorId', '==', contractorId),
+    orderBy('createdAt', 'desc')
+  );
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Invoice[];
+}
+
+// Get invoices/payments TO a contractor (from KTS)
+export async function getContractorPayments(contractorId: string): Promise<Invoice[]> {
+  const q = query(
+    collection(db, COLLECTION),
+    where('to.contractorId', '==', contractorId),
+    orderBy('createdAt', 'desc')
+  );
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Invoice[];
+}
+
+// Subscribe to contractor's invoices in real-time
+export function subscribeToContractorInvoices(
+  contractorId: string,
+  callback: (invoices: Invoice[]) => void
+): () => void {
+  const q = query(
+    collection(db, COLLECTION),
+    where('from.contractorId', '==', contractorId),
+    orderBy('createdAt', 'desc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const invoices = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Invoice[];
+    callback(invoices);
+  });
+}
+
+// Generate contractor-specific invoice number
+export async function generateContractorInvoiceNumber(contractorId: string): Promise<string> {
+  const prefix = `CTR-${contractorId.slice(0, 4).toUpperCase()}`;
+  const year = new Date().getFullYear();
+  const q = query(
+    collection(db, COLLECTION),
+    where('from.contractorId', '==', contractorId),
+    orderBy('createdAt', 'desc')
+  );
+  const snapshot = await getDocs(q);
+
+  let maxNumber = 0;
+  snapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    const pattern = `${prefix}-${year}-`;
+    if (data.invoiceNumber?.startsWith(pattern)) {
+      const parts = data.invoiceNumber.split('-');
+      const num = parseInt(parts[parts.length - 1], 10);
+      if (num > maxNumber) {
+        maxNumber = num;
+      }
+    }
+  });
+
+  return `${prefix}-${year}-${String(maxNumber + 1).padStart(4, '0')}`;
+}
+
+// Create a contractor invoice
+export async function createContractorInvoice(
+  contractorId: string,
+  contractorName: string,
+  contractorEmail: string | undefined,
+  toEntity: InvoiceEntity,
+  lineItems: LineItem[],
+  discount: number = 0
+): Promise<string> {
+  const invoiceNumber = await generateContractorInvoiceNumber(contractorId);
+  const { subtotal, total } = calculateInvoiceTotals(lineItems, discount);
+
+  return createInvoice({
+    invoiceNumber,
+    from: {
+      entity: 'contractor',
+      name: contractorName,
+      email: contractorEmail,
+      contractorId,
+    },
+    to: toEntity,
+    lineItems,
+    subtotal,
+    discount,
+    total,
+    status: 'draft',
+    dueDate: calculateDueDate(),
+    sentAt: null,
+    paidAt: null,
+  });
+}
+
+// Get contractor invoice stats
+export async function getContractorInvoiceStats(contractorId: string): Promise<{
+  totalInvoices: number;
+  totalRevenue: number;
+  pendingRevenue: number;
+  draftCount: number;
+  sentCount: number;
+  paidCount: number;
+}> {
+  const invoices = await getContractorInvoices(contractorId);
+
+  const stats = {
+    totalInvoices: invoices.length,
+    totalRevenue: 0,
+    pendingRevenue: 0,
+    draftCount: 0,
+    sentCount: 0,
+    paidCount: 0,
+  };
+
+  invoices.forEach((inv) => {
+    switch (inv.status) {
+      case 'draft':
+        stats.draftCount++;
+        break;
+      case 'sent':
+        stats.sentCount++;
+        stats.pendingRevenue += inv.total || 0;
+        break;
+      case 'paid':
+        stats.paidCount++;
+        stats.totalRevenue += inv.total || 0;
+        break;
+    }
+  });
+
+  return stats;
+}

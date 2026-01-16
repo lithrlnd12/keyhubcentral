@@ -20,6 +20,7 @@ interface UseInventoryItemsOptions {
   category?: InventoryCategory;
   search?: string;
   realtime?: boolean;
+  contractorId?: string; // Filter items by owner contractor
 }
 
 interface UseInventoryItemsReturn {
@@ -41,6 +42,7 @@ export function useInventoryItems(
   const [filters, setFilters] = useState<InventoryFilters>({
     category: options.category,
     search: options.search || '',
+    contractorId: options.contractorId,
   });
 
   const fetchItems = useCallback(async () => {

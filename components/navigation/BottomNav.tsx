@@ -40,7 +40,7 @@ const contractorNavItems: NavItem[] = [
   { label: 'Home', href: '/portal', icon: LayoutDashboard },
   { label: 'Schedule', href: '/portal/availability', icon: Calendar },
   { label: 'Jobs', href: '/portal/jobs', icon: Wrench },
-  { label: 'Earnings', href: '/portal/earnings', icon: DollarSign },
+  { label: 'Money', href: '/portal/financials', icon: DollarSign },
   { label: 'More', href: '/portal/my-profile', icon: User },
 ];
 

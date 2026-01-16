@@ -84,9 +84,9 @@ export async function getPartnerTicket(id: string): Promise<PartnerServiceTicket
 }
 
 export async function createPartnerTicket(
-  data: Omit<PartnerServiceTicket, 'id' | 'ticketNumber' | 'createdAt' | 'updatedAt' | 'statusHistory' | 'resolvedAt' | 'assignedTechId' | 'scheduledDate' | 'resolution'>
+  data: Omit<PartnerServiceTicket, 'id' | 'ticketNumber' | 'createdAt' | 'updatedAt' | 'statusHistory' | 'resolvedAt' | 'assignedTechId' | 'scheduledDate' | 'resolution' | 'status'>
 ): Promise<string> {
-  const ticketNumber = await generatePartnerTicketNumber();
+  const ticketNumber = generatePartnerTicketNumber();
 
   const initialStatusChange: PartnerStatusChange = {
     status: 'new',
@@ -291,26 +291,14 @@ export function subscribeToPartnerTicket(
   });
 }
 
-// Generate next ticket number
-export async function generatePartnerTicketNumber(): Promise<string> {
-  const year = new Date().getFullYear();
-  const q = query(
-    collection(db, COLLECTION),
-    orderBy('createdAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
+// Generate next ticket number using timestamp (no database read required)
+// This avoids permission issues since partners can only read their own tickets
+export function generatePartnerTicketNumber(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const time = String(now.getTime()).slice(-6); // Last 6 digits of timestamp for uniqueness
 
-  // Find the highest ticket number for this year
-  let maxNumber = 0;
-  snapshot.docs.forEach((doc) => {
-    const data = doc.data();
-    if (data.ticketNumber?.startsWith(`PST-${year}-`)) {
-      const num = parseInt(data.ticketNumber.split('-')[2], 10);
-      if (num > maxNumber) {
-        maxNumber = num;
-      }
-    }
-  });
-
-  return `PST-${year}-${String(maxNumber + 1).padStart(4, '0')}`;
+  return `PST-${year}${month}${day}-${time}`;
 }

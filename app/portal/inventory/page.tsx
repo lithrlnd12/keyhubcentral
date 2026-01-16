@@ -8,6 +8,7 @@ import {
   Receipt,
   ArrowRight,
   Truck,
+  Settings,
 } from 'lucide-react';
 import {
   useAuth,
@@ -34,7 +35,7 @@ export default function ContractorInventoryPage() {
     realtime: true,
   });
   const { receipts, loading: receiptsLoading } = useReceipts({
-    uploadedBy: user?.uid,
+    contractorId: user?.uid,
     realtime: true,
   });
 
@@ -109,6 +110,24 @@ export default function ContractorInventoryPage() {
 
       {/* Quick Actions */}
       <div className="space-y-3">
+        <Link
+          href="/portal/inventory/items"
+          className="flex items-center justify-between p-4 bg-brand-charcoal border border-gray-800 rounded-xl hover:border-blue-500/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Settings className="h-5 w-5 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-white font-medium">Manage Items</p>
+              <p className="text-gray-400 text-sm">
+                Add or edit your inventory items
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="h-5 w-5 text-gray-400" />
+        </Link>
+
         <Link
           href="/portal/inventory/count"
           className="flex items-center justify-between p-4 bg-brand-charcoal border border-gray-800 rounded-xl hover:border-gold/50 transition-colors"

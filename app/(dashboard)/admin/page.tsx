@@ -105,15 +105,33 @@ export default function AdminPage() {
 
   const handleApprove = async (uid: string) => {
     const role = selectedRoles[uid] || 'contractor';
-    const partnerId = role === 'partner' ? selectedPartners[uid] : null;
-
-    if (role === 'partner' && !partnerId) {
-      alert('Please select a partner company for this user');
-      return;
-    }
+    let partnerId = role === 'partner' ? selectedPartners[uid] : null;
+    const pendingUser = pendingUsers.find((u) => u.uid === uid);
 
     setProcessing(uid);
     try {
+      // If approving as partner, create partner company if none selected
+      if (role === 'partner' && !partnerId) {
+        const partnerDoc = await addDoc(collection(db, 'partners'), {
+          companyName: pendingUser?.displayName || 'New Partner Company',
+          contactName: pendingUser?.displayName || '',
+          contactEmail: pendingUser?.email || '',
+          contactPhone: pendingUser?.phone || '',
+          address: {
+            street: '',
+            city: '',
+            state: '',
+            zip: '',
+          },
+          status: 'active',
+          notes: null,
+          createdAt: serverTimestamp(),
+          approvedAt: serverTimestamp(),
+          approvedBy: user?.uid,
+        });
+        partnerId = partnerDoc.id;
+      }
+
       const updateData: Record<string, unknown> = {
         status: 'active' as UserStatus,
         role,
@@ -129,7 +147,6 @@ export default function AdminPage() {
 
       // If approving as contractor, also create a contractor profile
       if (role === 'contractor') {
-        const pendingUser = pendingUsers.find((u) => u.uid === uid);
         if (pendingUser) {
           await addDoc(collection(db, 'contractors'), {
             userId: uid,

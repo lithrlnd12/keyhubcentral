@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { Timestamp } from 'firebase-admin/firestore';
-import { verifyFirebaseAuth, isInternal } from '@/lib/auth/verifyRequest';
+import { verifyFirebaseAuth, isInternal, hasRole } from '@/lib/auth/verifyRequest';
 import { getAdminDb } from '@/lib/firebase/admin';
+import { ExpenseCategory } from '@/types/expense';
 
 // Server-side receipt functions using Admin SDK
 async function getReceiptAdmin(id: string) {
@@ -48,6 +49,70 @@ async function updateReceiptParsedDataAdmin(
     })) || [],
     status: 'parsed',
   });
+}
+
+// Get user info for expense creation
+async function getUserInfoAdmin(userId: string): Promise<{ name: string } | null> {
+  const db = getAdminDb();
+  const userDoc = await db.collection('users').doc(userId).get();
+  if (userDoc.exists) {
+    const data = userDoc.data();
+    return { name: data?.displayName || data?.email || 'Unknown' };
+  }
+  return null;
+}
+
+// Create contractor expense from receipt (auto-link feature)
+async function createContractorExpenseAdmin(
+  receiptId: string,
+  parsedData: ParsedReceiptData,
+  imageUrl: string,
+  contractorId: string,
+  contractorName: string
+): Promise<string> {
+  const db = getAdminDb();
+
+  // Determine category based on parsed items
+  let category: ExpenseCategory = 'materials';
+  if (parsedData.items && parsedData.items.length > 0) {
+    // If most items are tools, categorize as tools
+    const toolCount = parsedData.items.filter(item => item.category === 'tool').length;
+    if (toolCount > parsedData.items.length / 2) {
+      category = 'tools';
+    }
+  }
+
+  // Build description from vendor and item count
+  const itemCount = parsedData.items?.length || 0;
+  const description = parsedData.vendor
+    ? `${parsedData.vendor} - ${itemCount} item${itemCount !== 1 ? 's' : ''}`
+    : `Receipt - ${itemCount} item${itemCount !== 1 ? 's' : ''}`;
+
+  const expenseData = {
+    entity: 'contractor',
+    category,
+    description,
+    vendor: parsedData.vendor || null,
+    amount: parsedData.total || 0,
+    date: parsedData.date
+      ? Timestamp.fromDate(new Date(parsedData.date))
+      : Timestamp.now(),
+    receiptId,
+    receiptImageUrl: imageUrl,
+    createdBy: contractorId,
+    createdByName: contractorName,
+    createdAt: Timestamp.now(),
+    contractorId: contractorId, // Owner contractor - expenses are per-contractor
+  };
+
+  const expenseRef = await db.collection('expenses').add(expenseData);
+
+  // Update receipt with linked expense ID
+  await db.collection('receipts').doc(receiptId).update({
+    linkedExpenseId: expenseRef.id,
+  });
+
+  return expenseRef.id;
 }
 
 const anthropic = new Anthropic({
@@ -276,9 +341,30 @@ export async function POST(request: NextRequest) {
     // Update the receipt with parsed data
     await updateReceiptParsedDataAdmin(receiptId, parsedData);
 
+    // Auto-create expense for contractors
+    let expenseId: string | undefined;
+    if (hasRole(auth.role, ['contractor']) && parsedData.total && parsedData.total > 0) {
+      try {
+        const userInfo = await getUserInfoAdmin(auth.user!.uid);
+        const contractorName = userInfo?.name || 'Unknown';
+        expenseId = await createContractorExpenseAdmin(
+          receiptId,
+          parsedData,
+          imageUrl,
+          auth.user!.uid,
+          contractorName
+        );
+        console.log(`Auto-created expense ${expenseId} for contractor ${auth.user!.uid}`);
+      } catch (expenseError) {
+        // Log but don't fail the request - receipt was parsed successfully
+        console.error('Failed to auto-create expense:', expenseError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: parsedData,
+      expenseId, // Include expense ID if one was created
     });
   } catch (error) {
     console.error('Receipt parsing error:', error);

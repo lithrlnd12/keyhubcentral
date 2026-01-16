@@ -17,8 +17,9 @@ import { cn } from '@/lib/utils';
 export default function ContractorReceiptsPage() {
   const { user } = useAuth();
   const { location } = useContractorLocation(user?.uid || '');
+  // Filter receipts by the logged-in contractor's ID
   const { receipts, loading } = useReceipts({
-    uploadedBy: user?.uid,
+    contractorId: user?.uid,
     realtime: true,
   });
   const { uploadReceipt, parseReceipt, loading: uploading, error } = useReceiptMutations();
@@ -37,7 +38,8 @@ export default function ContractorReceiptsPage() {
         user.uid,
         user.displayName || 'Unknown',
         location?.id,
-        location?.name
+        location?.name,
+        user.uid // contractorId - the logged-in contractor owns this receipt
       );
       setUploadedId(result.receiptId);
 

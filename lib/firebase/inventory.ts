@@ -29,6 +29,11 @@ export async function getInventoryItems(filters?: InventoryFilters): Promise<Inv
     constraints.unshift(where('category', '==', filters.category));
   }
 
+  // Filter by contractor ID - items are per-contractor
+  if (filters?.contractorId) {
+    constraints.unshift(where('contractorId', '==', filters.contractorId));
+  }
+
   const q = query(collection(db, COLLECTION), ...constraints);
   const snapshot = await getDocs(q);
 
@@ -99,6 +104,11 @@ export function subscribeToInventoryItems(
 
   if (filters?.category) {
     constraints.unshift(where('category', '==', filters.category));
+  }
+
+  // Filter by contractor ID - items are per-contractor
+  if (filters?.contractorId) {
+    constraints.unshift(where('contractorId', '==', filters.contractorId));
   }
 
   const q = query(collection(db, COLLECTION), ...constraints);

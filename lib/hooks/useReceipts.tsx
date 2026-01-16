@@ -28,6 +28,7 @@ interface UseReceiptsOptions {
   uploadedBy?: string;
   locationId?: string;
   realtime?: boolean;
+  contractorId?: string; // Filter receipts by owner contractor
 }
 
 interface UseReceiptsReturn {
@@ -47,6 +48,7 @@ export function useReceipts(options: UseReceiptsOptions = {}): UseReceiptsReturn
     status: options.status,
     uploadedBy: options.uploadedBy,
     locationId: options.locationId,
+    contractorId: options.contractorId,
   });
 
   const fetchReceipts = useCallback(async () => {
@@ -158,7 +160,8 @@ interface UseReceiptMutationsReturn {
     userId: string,
     userName: string,
     locationId?: string,
-    locationName?: string
+    locationName?: string,
+    contractorId?: string
   ) => Promise<{ receiptId: string; imageUrl: string }>;
   parseReceipt: (receiptId: string, imageUrl: string) => Promise<void>;
   updateItems: (receiptId: string, items: ReceiptItem[]) => Promise<void>;
@@ -184,7 +187,8 @@ export function useReceiptMutations(): UseReceiptMutationsReturn {
     userId: string,
     userName: string,
     locationId?: string,
-    locationName?: string
+    locationName?: string,
+    contractorId?: string
   ): Promise<{ receiptId: string; imageUrl: string }> => {
     try {
       setLoading(true);
@@ -194,7 +198,8 @@ export function useReceiptMutations(): UseReceiptMutationsReturn {
         userId,
         userName,
         locationId,
-        locationName
+        locationName,
+        contractorId
       );
       return result;
     } catch (err) {

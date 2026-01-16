@@ -22,6 +22,7 @@ export const ENTITY_CONFIG: Record<
   kr: { label: 'Key Renovations', shortLabel: 'KR', color: 'text-green-400' },
   customer: { label: 'Customer', shortLabel: 'Customer', color: 'text-gray-400' },
   subscriber: { label: 'Subscriber', shortLabel: 'Subscriber', color: 'text-amber-400' },
+  contractor: { label: 'Contractor', shortLabel: 'Contractor', color: 'text-gold' },
 };
 
 // Format entity name
@@ -83,6 +84,8 @@ export function getInvoiceType(invoice: Invoice): string {
   if (from === 'kts' && to === 'kr') return 'Labor & Commission';
   if (from === 'kr' && to === 'customer') return 'Customer Invoice';
   if (from === 'kd' && to === 'subscriber') return 'Subscription';
+  if (from === 'contractor' && to === 'kts') return 'Labor Invoice';
+  if (from === 'contractor' && to === 'customer') return 'Service Invoice';
 
   return 'Invoice';
 }

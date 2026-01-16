@@ -3,9 +3,10 @@ import { Timestamp } from 'firebase/firestore';
 export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue';
 
 export interface InvoiceEntity {
-  entity: 'kd' | 'kts' | 'kr' | 'customer' | 'subscriber';
+  entity: 'kd' | 'kts' | 'kr' | 'customer' | 'subscriber' | 'contractor';
   name: string;
   email?: string;
+  contractorId?: string; // Required when entity='contractor'
 }
 
 export interface LineItem {
@@ -37,7 +38,9 @@ export type InvoiceType =
   | 'kd_to_kr' // Lead fees
   | 'kts_to_kr' // Labor + commissions
   | 'kr_to_customer' // Job payments
-  | 'kd_to_subscriber'; // Subscription + ad spend
+  | 'kd_to_subscriber' // Subscription + ad spend
+  | 'contractor_to_kts' // Contractor billing KTS for labor
+  | 'contractor_to_customer'; // Contractor billing customer directly
 
 export function getInvoiceTypeLabel(type: InvoiceType): string {
   switch (type) {
@@ -49,6 +52,10 @@ export function getInvoiceTypeLabel(type: InvoiceType): string {
       return 'Customer Invoice';
     case 'kd_to_subscriber':
       return 'Subscription';
+    case 'contractor_to_kts':
+      return 'Labor Invoice';
+    case 'contractor_to_customer':
+      return 'Contractor Invoice';
   }
 }
 

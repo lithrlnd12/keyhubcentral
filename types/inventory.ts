@@ -46,6 +46,7 @@ export interface InventoryItem {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   createdBy: string;
+  contractorId?: string; // Owner contractor - items are per-contractor
 }
 
 // Location types
@@ -138,6 +139,7 @@ export interface Receipt {
   company?: Company;
   locationId?: string;
   locationName?: string;
+  contractorId?: string; // Owner contractor - receipts are per-contractor
   parsedData?: {
     vendor?: string;
     storeLocation?: string;
@@ -158,12 +160,14 @@ export interface Receipt {
   verifiedAt?: Timestamp;
   plExpenseId?: string; // Link to P&L expense when added
   addedToPLAt?: Timestamp;
+  linkedExpenseId?: string; // Auto-created expense for contractors
 }
 
 // Filters for inventory queries
 export interface InventoryFilters {
   category?: InventoryCategory;
   search?: string;
+  contractorId?: string; // Filter items by owner contractor
 }
 
 export interface StockFilters {
@@ -178,6 +182,7 @@ export interface ReceiptFilters {
   locationId?: string;
   startDate?: Date;
   endDate?: Date;
+  contractorId?: string; // Filter receipts by owner contractor
 }
 
 // Stock with par variance calculation

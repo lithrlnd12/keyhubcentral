@@ -69,7 +69,6 @@ export default function NewServiceTicketPage() {
         preferredDate: formData.preferredDate
           ? Timestamp.fromDate(new Date(formData.preferredDate))
           : null,
-        status: 'new',
       });
 
       router.push('/partner/service-tickets');

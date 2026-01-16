@@ -176,6 +176,7 @@ export async function getExpenseTotalsByEntity(
     kd: 0,
     kts: 0,
     kr: 0,
+    contractor: 0,
   };
 
   expenses.forEach((expense) => {
@@ -183,4 +184,107 @@ export async function getExpenseTotalsByEntity(
   });
 
   return totals;
+}
+
+// ==========================================
+// CONTRACTOR-SPECIFIC EXPENSE FUNCTIONS
+// ==========================================
+
+// Get expenses for a specific contractor (by contractorId)
+export async function getContractorExpenses(contractorId: string): Promise<Expense[]> {
+  const q = query(
+    collection(db, COLLECTION),
+    where('contractorId', '==', contractorId),
+    orderBy('date', 'desc')
+  );
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Expense[];
+}
+
+// Subscribe to contractor's expenses in real-time (by contractorId)
+export function subscribeToContractorExpenses(
+  contractorId: string,
+  callback: (expenses: Expense[]) => void
+): () => void {
+  const q = query(
+    collection(db, COLLECTION),
+    where('contractorId', '==', contractorId),
+    orderBy('date', 'desc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const expenses = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Expense[];
+    callback(expenses);
+  });
+}
+
+// Get contractor expense stats
+export async function getContractorExpenseStats(
+  contractorId: string,
+  startDate?: Date,
+  endDate?: Date
+): Promise<{
+  totalExpenses: number;
+  expensesByCategory: Record<string, number>;
+  expenseCount: number;
+}> {
+  let expenses = await getContractorExpenses(contractorId);
+
+  // Filter by date range if provided
+  if (startDate || endDate) {
+    expenses = expenses.filter((expense) => {
+      const expenseDate = expense.date.toMillis();
+      if (startDate && expenseDate < startDate.getTime()) return false;
+      if (endDate && expenseDate > endDate.getTime()) return false;
+      return true;
+    });
+  }
+
+  const stats = {
+    totalExpenses: 0,
+    expensesByCategory: {} as Record<string, number>,
+    expenseCount: expenses.length,
+  };
+
+  expenses.forEach((expense) => {
+    stats.totalExpenses += expense.amount;
+    stats.expensesByCategory[expense.category] =
+      (stats.expensesByCategory[expense.category] || 0) + expense.amount;
+  });
+
+  return stats;
+}
+
+// Create expense from contractor receipt (auto-link)
+export async function createContractorExpenseFromReceipt(
+  receiptId: string,
+  category: ExpenseCategory,
+  description: string,
+  vendor: string | undefined,
+  amount: number,
+  date: Date,
+  receiptImageUrl: string | undefined,
+  contractorId: string,
+  contractorName: string
+): Promise<string> {
+  return createExpense({
+    entity: 'contractor',
+    category,
+    description,
+    vendor,
+    amount,
+    date: Timestamp.fromDate(date),
+    receiptId,
+    receiptImageUrl,
+    createdBy: contractorId,
+    createdByName: contractorName,
+    contractorId: contractorId, // Owner contractor - expenses are per-contractor
+  });
 }

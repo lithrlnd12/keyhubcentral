@@ -13,7 +13,7 @@ export type ExpenseCategory =
   | 'office'
   | 'other';
 
-export type ExpenseEntity = 'kd' | 'kts' | 'kr';
+export type ExpenseEntity = 'kd' | 'kts' | 'kr' | 'contractor';
 
 export interface Expense {
   id: string;
@@ -28,6 +28,7 @@ export interface Expense {
   createdBy: string;
   createdByName: string;
   createdAt: Timestamp;
+  contractorId?: string; // Owner contractor - expenses are per-contractor
 }
 
 export function getExpenseCategoryLabel(category: ExpenseCategory): string {
