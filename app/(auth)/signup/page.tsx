@@ -11,6 +11,7 @@ import { UserRole } from '@/types/user';
 const SIGNUP_ROLES = [
   { value: 'contractor', label: 'Contractor / Installer' },
   { value: 'sales_rep', label: 'Sales Representative' },
+  { value: 'partner', label: 'Partner Company' },
   { value: 'subscriber', label: 'Subscriber (Marketing)' },
 ];
 
