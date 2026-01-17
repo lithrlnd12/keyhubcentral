@@ -188,9 +188,10 @@ export async function convertLeadToJob(
     address: lead.customer.address,
   };
 
-  // Use current user as salesRepId to satisfy Firestore rules
+  // Always use current user as salesRepId to satisfy Firestore rules
   // (sales reps can only create jobs where salesRepId == their uid)
-  const salesRepId = lead.assignedTo || currentUserId;
+  // The person converting the lead becomes the sales rep on the job
+  const salesRepId = currentUserId;
 
   // Create job data
   const jobData = {
