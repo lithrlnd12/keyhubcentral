@@ -181,8 +181,6 @@ export default function LeadCapturePage() {
             city: formData.city.trim(),
             state: '',
             zip: formData.zip.trim(),
-            lat: null,
-            lng: null,
           },
           isHomeowner: formData.isHomeowner || null,
           notes: formData.notes.trim() || null,
