@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/hooks';
 import { getContractorByUserId } from '@/lib/firebase/contractors';
 import { Contractor } from '@/types/contractor';
 import { ContractorAvailabilityCalendar } from '@/components/availability/ContractorAvailabilityCalendar';
+import { GoogleCalendarConnect } from '@/components/integrations/GoogleCalendarConnect';
 
 export default function PortalAvailabilityPage() {
   const { user } = useAuth();
@@ -58,6 +59,8 @@ export default function PortalAvailabilityPage() {
           </p>
         </div>
       </div>
+
+      <GoogleCalendarConnect returnUrl="/portal/availability" />
 
       <ContractorAvailabilityCalendar contractor={contractor} />
     </div>

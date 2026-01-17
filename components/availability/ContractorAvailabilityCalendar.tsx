@@ -142,6 +142,12 @@ export function ContractorAvailabilityCalendar({ contractor }: ContractorAvailab
     return dayAvailability?.blocks || null;
   };
 
+  const isSyncedFromGoogle = (date: Date): boolean => {
+    const dateKey = formatDateKey(date);
+    const dayAvailability = availability.get(dateKey);
+    return dayAvailability?.syncSource === 'google';
+  };
+
   const isToday = (date: Date | null): boolean => {
     if (!date) return false;
     const today = new Date();
@@ -210,6 +216,7 @@ export function ContractorAvailabilityCalendar({ contractor }: ContractorAvailab
               const past = isPast(day);
               const today = isToday(day);
               const selected = isSelected(day);
+              const fromGoogle = isSyncedFromGoogle(day);
 
               return (
                 <button
@@ -224,6 +231,21 @@ export function ContractorAvailabilityCalendar({ contractor }: ContractorAvailab
                     ${today ? 'font-bold' : ''}
                   `}
                 >
+                  {/* Google Calendar sync indicator */}
+                  {fromGoogle && (
+                    <div
+                      className="absolute top-0.5 right-0.5"
+                      title="Synced from Google Calendar"
+                    >
+                      <svg
+                        className="h-3 w-3 text-brand-gold"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z" />
+                      </svg>
+                    </div>
+                  )}
                   <span className={`${today ? 'text-gold' : 'text-white'} mb-1`}>
                     {day.getDate()}
                   </span>
