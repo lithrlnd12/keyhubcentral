@@ -159,8 +159,14 @@ service cloud.firestore {
          request.resource.data.customer.name != null &&
          request.resource.data.customer.name != '');
 
+      // Sales reps can update leads assigned to them
+      // Also allow updating to 'converted' status when linking to a job
       allow update: if isAdmin() ||
-        (isActiveUser() && resource.data.assignedTo == request.auth.uid);
+        (isActiveUser() && resource.data.assignedTo == request.auth.uid) ||
+        (isActiveUser() &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'sales_rep' &&
+          request.resource.data.status == 'converted' &&
+          request.resource.data.linkedJobId != null);
       allow delete: if isOwner();
     }
 
