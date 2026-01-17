@@ -6,6 +6,7 @@ import { JobType } from '@/types/job';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { convertLeadToJob } from '@/lib/firebase/leads';
+import { useAuth } from '@/lib/hooks';
 import { ArrowRightCircle, X, Home, ChefHat, PaintBucket, Wrench } from 'lucide-react';
 
 interface ConvertLeadDialogProps {
@@ -28,6 +29,7 @@ export function ConvertLeadDialog({
   onClose,
   onConverted,
 }: ConvertLeadDialogProps) {
+  const { user } = useAuth();
   const [jobType, setJobType] = useState<JobType | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,10 +42,15 @@ export function ConvertLeadDialog({
       return;
     }
 
+    if (!user) {
+      setError('You must be logged in to convert leads');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      const jobId = await convertLeadToJob(lead.id, jobType);
+      const jobId = await convertLeadToJob(lead.id, jobType, user.uid);
       onConverted?.(jobId);
       onClose();
     } catch (err) {

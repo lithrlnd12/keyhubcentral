@@ -168,7 +168,8 @@ export async function convertLead(id: string): Promise<void> {
 
 export async function convertLeadToJob(
   leadId: string,
-  jobType: JobType
+  jobType: JobType,
+  currentUserId: string
 ): Promise<string> {
   // Get the lead
   const lead = await getLead(leadId);
@@ -187,13 +188,17 @@ export async function convertLeadToJob(
     address: lead.customer.address,
   };
 
+  // Use current user as salesRepId to satisfy Firestore rules
+  // (sales reps can only create jobs where salesRepId == their uid)
+  const salesRepId = lead.assignedTo || currentUserId;
+
   // Create job data
   const jobData = {
     jobNumber,
     customer,
     type: jobType,
     status: 'lead' as JobStatus,
-    salesRepId: lead.assignedTo,
+    salesRepId,
     crewIds: [],
     pmId: null,
     leadId: leadId,
