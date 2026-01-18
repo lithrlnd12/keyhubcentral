@@ -22,9 +22,12 @@ import {
   Loader2,
   ArrowLeft,
   Users,
+  Navigation,
+  CheckCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ContractorRecommendations } from './ContractorRecommendations';
+import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
 
 interface JobFormProps {
   job?: Job;
@@ -77,6 +80,8 @@ export function JobForm({ job, initialTab = 'customer' }: JobFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [scheduledTimeBlock, setScheduledTimeBlock] = useState<TimeBlock | undefined>(undefined);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeStatus, setGeocodeStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const [formData, setFormData] = useState<JobFormData>({
     jobNumber: job?.jobNumber || '',
@@ -138,29 +143,81 @@ export function JobForm({ job, initialTab = 'customer' }: JobFormProps) {
     }));
   };
 
+  const handleGeocodeAddress = async () => {
+    const address = formData.customer.address;
+    const addressString = buildAddressString(address);
+
+    if (!addressString) {
+      setError('Please enter an address first');
+      return;
+    }
+
+    setGeocoding(true);
+    setGeocodeStatus('idle');
+
+    try {
+      const result = await geocodeAddress(addressString);
+      if (result) {
+        updateCustomerAddress({ lat: result.lat, lng: result.lng });
+        setGeocodeStatus('success');
+        setTimeout(() => setGeocodeStatus('idle'), 3000);
+      } else {
+        setGeocodeStatus('error');
+        setError('Could not find coordinates for this address. Please verify the address is correct.');
+      }
+    } catch (err) {
+      setGeocodeStatus('error');
+      setError('Failed to geocode address');
+    } finally {
+      setGeocoding(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setError(null);
     setSaving(true);
 
     try {
+      // Auto-geocode if address is missing coordinates
+      let finalFormData = { ...formData };
+      if (!formData.customer.address.lat || !formData.customer.address.lng) {
+        const addressString = buildAddressString(formData.customer.address);
+        if (addressString) {
+          const result = await geocodeAddress(addressString);
+          if (result) {
+            finalFormData = {
+              ...formData,
+              customer: {
+                ...formData.customer,
+                address: {
+                  ...formData.customer.address,
+                  lat: result.lat,
+                  lng: result.lng,
+                },
+              },
+            };
+          }
+        }
+      }
+
       if (job) {
         // Update existing job
         await updateJob(job.id, {
-          ...formData,
+          ...finalFormData,
           dates: {
             created: job.dates.created,
-            ...formData.dates,
+            ...finalFormData.dates,
           },
         });
         router.push(`/kr/${job.id}`);
       } else {
         // Create new job
         const id = await createJob({
-          ...formData,
+          ...finalFormData,
           status: 'lead',
           dates: {
             created: Timestamp.now(),
-            ...formData.dates,
+            ...finalFormData.dates,
           },
         });
         router.push(`/kr/${id}`);
@@ -263,10 +320,43 @@ export function JobForm({ job, initialTab = 'customer' }: JobFormProps) {
               </div>
 
               <div>
-                <h4 className="flex items-center gap-2 text-white font-medium mb-3">
-                  <MapPin className="w-4 h-4 text-brand-gold" />
-                  Address
-                </h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="flex items-center gap-2 text-white font-medium">
+                    <MapPin className="w-4 h-4 text-brand-gold" />
+                    Address
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    {formData.customer.address.lat && formData.customer.address.lng ? (
+                      <span className="flex items-center gap-1 text-sm text-green-400">
+                        <CheckCircle className="w-4 h-4" />
+                        Coordinates set
+                      </span>
+                    ) : (
+                      <span className="text-sm text-yellow-400">
+                        No coordinates
+                      </span>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGeocodeAddress}
+                      disabled={geocoding}
+                    >
+                      {geocoding ? (
+                        <>
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          Looking up...
+                        </>
+                      ) : (
+                        <>
+                          <Navigation className="w-3 h-3 mr-1" />
+                          {formData.customer.address.lat ? 'Re-geocode' : 'Get Coordinates'}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <label className="block text-sm text-gray-400 mb-1">
