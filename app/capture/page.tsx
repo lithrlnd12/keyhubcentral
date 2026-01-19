@@ -439,8 +439,6 @@ export default function LeadCapturePage() {
                     Consent is not required for purchase.{' '}
                     <a
                       href="/legal/sms-terms"
-                      target="_blank"
-                      rel="noopener noreferrer"
                       className="text-brand-gold hover:text-brand-gold-light underline"
                     >
                       View SMS Terms
@@ -629,7 +627,7 @@ export default function LeadCapturePage() {
 
           <p className="text-xs text-gray-500 text-center mt-4">
             By submitting, you agree to our{' '}
-            <a href="/legal/sms-terms" target="_blank" rel="noopener noreferrer" className="text-brand-gold hover:underline">
+            <a href="/legal/sms-terms" className="text-brand-gold hover:underline">
               Terms of Service
             </a>.
           </p>

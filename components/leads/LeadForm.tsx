@@ -406,7 +406,6 @@ export function LeadForm({ lead, mode }: LeadFormProps) {
                 Consent is not a condition of purchase.{' '}
                 <Link
                   href="/legal/sms-terms"
-                  target="_blank"
                   className="text-brand-gold hover:text-brand-gold/80 underline"
                 >
                   View SMS Terms & Conditions

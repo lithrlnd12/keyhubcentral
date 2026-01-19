@@ -1,14 +1,22 @@
-import { Metadata } from 'next';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'SMS Terms & Conditions | KeyHub',
-  description: 'Terms and conditions for SMS and call communications from KeyHub.',
-};
+import { ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function SmsTermsPage() {
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
+
         <div className="bg-gray-800 rounded-xl p-8 border border-gray-700">
           <h1 className="text-3xl font-bold text-white mb-6">
             SMS & Call Terms and Conditions
