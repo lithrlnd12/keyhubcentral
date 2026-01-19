@@ -421,7 +421,7 @@ export default function LeadCapturePage() {
                 </div>
               </div>
 
-              {/* SMS/Call Opt-In Consent */}
+              {/* SMS/Call Opt-In Consent - CTIA Compliant */}
               <div className="bg-brand-black border border-gray-700 rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <input
@@ -430,19 +430,36 @@ export default function LeadCapturePage() {
                     name="smsCallOptIn"
                     checked={formData.smsCallOptIn}
                     onChange={handleChange}
-                    className="mt-1 h-5 w-5 rounded border-gray-600 bg-gray-800 text-brand-gold focus:ring-brand-gold/50 cursor-pointer"
+                    className="mt-1 h-5 w-5 rounded border-gray-600 bg-gray-800 text-brand-gold focus:ring-brand-gold/50 cursor-pointer flex-shrink-0"
                   />
                   <label htmlFor="smsCallOptIn" className="text-sm text-gray-300 cursor-pointer">
-                    I agree to receive calls and text messages from KeyHub at the phone number provided.
-                    Message frequency varies. Msg &amp; data rates may apply.
-                    Reply STOP to unsubscribe or HELP for help.
-                    Consent is not required for purchase.{' '}
-                    <a
-                      href="/legal/sms-terms"
-                      className="text-brand-gold hover:text-brand-gold-light underline"
-                    >
-                      View SMS Terms
-                    </a>
+                    By checking this box, I consent to receive automated text messages and phone calls
+                    from KeyHub Central at the phone number provided above regarding:
+                    <ul className="list-disc list-inside mt-1 mb-2 ml-2 text-gray-400 text-xs">
+                      <li>Quote requests and follow-ups</li>
+                      <li>Appointment confirmations and reminders</li>
+                      <li>Service and project updates</li>
+                    </ul>
+                    <span className="text-gray-400 text-xs">
+                      Message frequency varies; expect up to 10 messages per month.
+                      Msg &amp; data rates may apply. Reply STOP to cancel, HELP for help.
+                      Consent is not a condition of purchase.
+                    </span>
+                    <span className="block mt-2 text-xs">
+                      <a
+                        href="/legal/privacy"
+                        className="text-brand-gold hover:text-brand-gold-light underline"
+                      >
+                        Privacy Policy
+                      </a>
+                      {' | '}
+                      <a
+                        href="/legal/sms-terms"
+                        className="text-brand-gold hover:text-brand-gold-light underline"
+                      >
+                        SMS Terms
+                      </a>
+                    </span>
                   </label>
                 </div>
               </div>
