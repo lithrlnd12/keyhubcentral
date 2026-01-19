@@ -109,10 +109,12 @@ export async function getLeadsByAssignee(userId: string): Promise<Lead[]> {
 }
 
 export async function createLead(
-  data: Omit<Lead, 'id' | 'createdAt' | 'updatedAt'>
+  data: Omit<Lead, 'id' | 'createdAt' | 'updatedAt' | 'smsCallOptInAt'>
 ): Promise<string> {
   const docRef = await addDoc(collection(db, COLLECTION), {
     ...data,
+    // Set opt-in timestamp if smsCallOptIn is true
+    smsCallOptInAt: data.smsCallOptIn ? serverTimestamp() : null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -122,13 +124,19 @@ export async function createLead(
 
 export async function updateLead(
   id: string,
-  data: Partial<Omit<Lead, 'id' | 'createdAt'>>
+  data: Partial<Omit<Lead, 'id' | 'createdAt'>> & { _newSmsOptIn?: boolean }
 ): Promise<void> {
   const docRef = doc(db, COLLECTION, id);
-  await updateDoc(docRef, {
-    ...data,
+  const { _newSmsOptIn: newSmsOptIn, ...updateData } = data;
+
+  // If this is a new SMS opt-in, set the timestamp
+  const finalData = {
+    ...updateData,
+    ...(newSmsOptIn ? { smsCallOptInAt: serverTimestamp() } : {}),
     updatedAt: serverTimestamp(),
-  });
+  };
+
+  await updateDoc(docRef, finalData);
 }
 
 export async function assignLead(

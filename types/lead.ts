@@ -108,6 +108,9 @@ export interface Lead extends LeadCallData, LeadSmsData {
   contactPreference?: ContactPreference;
   autoCallEnabled?: boolean;
   autoSmsEnabled?: boolean;
+  // SMS/Call consent tracking (TCPA/CTIA compliance)
+  smsCallOptIn?: boolean;
+  smsCallOptInAt?: Timestamp | null;
   // Auto-assignment tracking
   autoAssigned?: boolean;
   autoAssignedAt?: Timestamp | null;

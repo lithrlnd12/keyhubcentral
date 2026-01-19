@@ -13,7 +13,7 @@ import {
   LEAD_TRADES,
   LEAD_MARKETS,
 } from '@/lib/utils/leads';
-import { User, MapPin, Wrench, Save, ArrowLeft } from 'lucide-react';
+import { User, MapPin, Wrench, Save, ArrowLeft, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 
 interface LeadFormProps {
@@ -52,13 +52,15 @@ export function LeadForm({ lead, mode }: LeadFormProps) {
     trade: lead?.trade || '',
     market: lead?.market || '',
     campaignId: lead?.campaignId || '',
+    smsCallOptIn: lead?.smsCallOptIn || false,
   });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,6 +111,7 @@ export function LeadForm({ lead, mode }: LeadFormProps) {
         assignedType: null,
         returnReason: null,
         returnedAt: null,
+        smsCallOptIn: formData.smsCallOptIn,
       };
 
       if (mode === 'create') {
@@ -122,6 +125,9 @@ export function LeadForm({ lead, mode }: LeadFormProps) {
           trade: leadData.trade,
           market: leadData.market,
           campaignId: leadData.campaignId,
+          smsCallOptIn: formData.smsCallOptIn,
+          // Flag to indicate if this is a new opt-in (timestamp will be set in updateLead)
+          _newSmsOptIn: formData.smsCallOptIn && !lead.smsCallOptIn,
         });
         router.push(`/kd/leads/${lead.id}`);
       }
@@ -372,6 +378,46 @@ export function LeadForm({ lead, mode }: LeadFormProps) {
                 placeholder="Link to campaign..."
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* SMS/Call Consent - TCPA/CTIA Compliance */}
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-brand-gold" />
+              Communication Consent
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="smsCallOptIn"
+                name="smsCallOptIn"
+                checked={formData.smsCallOptIn}
+                onChange={handleChange}
+                className="mt-1 h-5 w-5 rounded border-gray-600 bg-gray-800 text-brand-gold focus:ring-brand-gold/50 focus:ring-offset-gray-900 cursor-pointer"
+              />
+              <label htmlFor="smsCallOptIn" className="text-sm text-gray-300 cursor-pointer">
+                By checking this box, the customer agrees to receive calls and text messages from KeyHub and its affiliates at the phone number provided.
+                Message frequency varies. Message and data rates may apply.
+                Reply STOP to unsubscribe or HELP for help.
+                Consent is not a condition of purchase.{' '}
+                <Link
+                  href="/legal/sms-terms"
+                  target="_blank"
+                  className="text-brand-gold hover:text-brand-gold/80 underline"
+                >
+                  View SMS Terms & Conditions
+                </Link>
+              </label>
+            </div>
+            {lead?.smsCallOptIn && lead?.smsCallOptInAt && (
+              <p className="mt-3 text-xs text-gray-500">
+                Consent recorded on {lead.smsCallOptInAt.toDate().toLocaleDateString()} at {lead.smsCallOptInAt.toDate().toLocaleTimeString()}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
