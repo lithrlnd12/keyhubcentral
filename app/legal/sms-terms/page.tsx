@@ -1,6 +1,4 @@
 import { Metadata } from 'next';
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'SMS Terms & Conditions | KeyHub',
@@ -11,14 +9,6 @@ export default function SmsTermsPage() {
   return (
     <div className="min-h-screen bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Link>
-
         <div className="bg-gray-800 rounded-xl p-8 border border-gray-700">
           <h1 className="text-3xl font-bold text-white mb-6">
             SMS & Call Terms and Conditions
