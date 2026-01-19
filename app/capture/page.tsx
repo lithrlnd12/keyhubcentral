@@ -19,6 +19,7 @@ interface FormData {
   isHomeowner: string;
   notes: string;
   contactPreference: ContactPreference | '';
+  smsCallOptIn: boolean;
 }
 
 interface FilePreview {
@@ -41,6 +42,7 @@ export default function LeadCapturePage() {
     isHomeowner: '',
     notes: '',
     contactPreference: '',
+    smsCallOptIn: false,
   });
   const [files, setFiles] = useState<FilePreview[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -51,8 +53,9 @@ export default function LeadCapturePage() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,6 +205,9 @@ export default function LeadCapturePage() {
         scheduledSmsAt,
         autoSmsEnabled,
         smsAttempts: 0,
+        // SMS/Call opt-in consent (TCPA/CTIA compliance)
+        smsCallOptIn: formData.smsCallOptIn,
+        smsCallOptInAt: formData.smsCallOptIn ? serverTimestamp() : null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -249,7 +255,7 @@ export default function LeadCapturePage() {
           <button
             onClick={() => {
               setSubmitted(false);
-              setFormData({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', zip: '', isHomeowner: '', notes: '', contactPreference: '' });
+              setFormData({ firstName: '', lastName: '', phone: '', email: '', street: '', city: '', zip: '', isHomeowner: '', notes: '', contactPreference: '', smsCallOptIn: false });
               setFiles([]);
             }}
             className="text-brand-gold hover:text-brand-gold-light transition-colors"
@@ -368,51 +374,81 @@ export default function LeadCapturePage() {
             </div>
           </div>
 
-          {/* Contact Preference - only show if phone is entered */}
+          {/* Contact Preference and Opt-In - only show if phone is entered */}
           {formData.phone.trim() && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                How would you like us to contact you?
-              </label>
-              <div className="flex gap-4">
-                <label
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border cursor-pointer transition-all ${
-                    formData.contactPreference === 'phone'
-                      ? 'bg-brand-gold/10 border-brand-gold text-brand-gold'
-                      : 'bg-brand-black border-gray-700 text-gray-400 hover:border-gray-500'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="contactPreference"
-                    value="phone"
-                    checked={formData.contactPreference === 'phone'}
-                    onChange={handleChange}
-                    className="sr-only"
-                  />
-                  <Phone className="w-5 h-5" />
-                  <span className="font-medium">Phone Call</span>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  How would you like us to contact you?
                 </label>
-                <label
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border cursor-pointer transition-all ${
-                    formData.contactPreference === 'sms'
-                      ? 'bg-brand-gold/10 border-brand-gold text-brand-gold'
-                      : 'bg-brand-black border-gray-700 text-gray-400 hover:border-gray-500'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="contactPreference"
-                    value="sms"
-                    checked={formData.contactPreference === 'sms'}
-                    onChange={handleChange}
-                    className="sr-only"
-                  />
-                  <MessageSquare className="w-5 h-5" />
-                  <span className="font-medium">Text Message</span>
-                </label>
+                <div className="flex gap-4">
+                  <label
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border cursor-pointer transition-all ${
+                      formData.contactPreference === 'phone'
+                        ? 'bg-brand-gold/10 border-brand-gold text-brand-gold'
+                        : 'bg-brand-black border-gray-700 text-gray-400 hover:border-gray-500'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="contactPreference"
+                      value="phone"
+                      checked={formData.contactPreference === 'phone'}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <Phone className="w-5 h-5" />
+                    <span className="font-medium">Phone Call</span>
+                  </label>
+                  <label
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border cursor-pointer transition-all ${
+                      formData.contactPreference === 'sms'
+                        ? 'bg-brand-gold/10 border-brand-gold text-brand-gold'
+                        : 'bg-brand-black border-gray-700 text-gray-400 hover:border-gray-500'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="contactPreference"
+                      value="sms"
+                      checked={formData.contactPreference === 'sms'}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+                    <MessageSquare className="w-5 h-5" />
+                    <span className="font-medium">Text Message</span>
+                  </label>
+                </div>
               </div>
-            </div>
+
+              {/* SMS/Call Opt-In Consent */}
+              <div className="bg-brand-black border border-gray-700 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="smsCallOptIn"
+                    name="smsCallOptIn"
+                    checked={formData.smsCallOptIn}
+                    onChange={handleChange}
+                    className="mt-1 h-5 w-5 rounded border-gray-600 bg-gray-800 text-brand-gold focus:ring-brand-gold/50 cursor-pointer"
+                  />
+                  <label htmlFor="smsCallOptIn" className="text-sm text-gray-300 cursor-pointer">
+                    I agree to receive calls and text messages from KeyHub at the phone number provided.
+                    Message frequency varies. Msg &amp; data rates may apply.
+                    Reply STOP to unsubscribe or HELP for help.
+                    Consent is not required for purchase.{' '}
+                    <a
+                      href="/legal/sms-terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand-gold hover:text-brand-gold-light underline"
+                    >
+                      View SMS Terms
+                    </a>
+                  </label>
+                </div>
+              </div>
+            </>
           )}
 
           <div>
@@ -592,7 +628,10 @@ export default function LeadCapturePage() {
           </button>
 
           <p className="text-xs text-gray-500 text-center mt-4">
-            By submitting, you agree to be contacted about our services.
+            By submitting, you agree to our{' '}
+            <a href="/legal/sms-terms" target="_blank" rel="noopener noreferrer" className="text-brand-gold hover:underline">
+              Terms of Service
+            </a>.
           </p>
         </form>
       </div>
