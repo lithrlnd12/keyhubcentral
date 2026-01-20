@@ -72,7 +72,7 @@ export default function SmsTermsPage() {
               </p>
               <ul className="list-disc list-inside mt-2 ml-4 text-gray-400">
                 <li>Email: support@keyhubcentral.com</li>
-                <li>Phone: (555) 555-5555</li>
+                <li>Phone: (405) 990-7821</li>
               </ul>
             </section>
 
@@ -116,7 +116,7 @@ export default function SmsTermsPage() {
               <p>
                 KeyHub Central<br />
                 Email: support@keyhubcentral.com<br />
-                Phone: (555) 555-5555
+                Phone: (405) 990-7821
               </p>
             </section>
           </div>

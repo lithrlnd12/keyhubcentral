@@ -141,7 +141,7 @@ export default function PrivacyPolicyPage() {
               <p className="mt-3">
                 KeyHub Central<br />
                 Email: privacy@keyhubcentral.com<br />
-                Phone: (555) 555-5555
+                Phone: (405) 990-7821
               </p>
             </section>
           </div>
