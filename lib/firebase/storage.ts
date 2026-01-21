@@ -160,3 +160,111 @@ export async function deleteJobPhoto(url: string): Promise<void> {
     await deleteDocument(path);
   }
 }
+
+// ==========================================
+// JOB DOCUMENT FUNCTIONS
+// ==========================================
+
+export type JobDocumentType = 'contract' | 'down_payment' | 'final_payment';
+
+export function getJobDocumentPath(
+  jobId: string,
+  docType: JobDocumentType,
+  fileName: string
+): string {
+  const timestamp = Date.now();
+  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  return `jobs/${jobId}/documents/${docType}_${timestamp}_${sanitizedFileName}`;
+}
+
+export async function uploadJobDocument(
+  jobId: string,
+  file: File,
+  docType: JobDocumentType
+): Promise<string> {
+  const path = getJobDocumentPath(jobId, docType, file.name);
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file);
+  return getDownloadURL(storageRef);
+}
+
+export function uploadJobDocumentWithProgress(
+  jobId: string,
+  file: File,
+  docType: JobDocumentType,
+  onProgress?: (progress: UploadProgress) => void
+): UploadTask {
+  const path = getJobDocumentPath(jobId, docType, file.name);
+  const storageRef = ref(storage, path);
+  const uploadTask = uploadBytesResumable(storageRef, file);
+
+  uploadTask.on(
+    'state_changed',
+    (snapshot) => {
+      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+      onProgress?.({
+        progress,
+        state: snapshot.state as 'running' | 'paused',
+      });
+    },
+    (error) => {
+      onProgress?.({
+        progress: 0,
+        state: 'error',
+        error,
+      });
+    },
+    async () => {
+      const url = await getDownloadURL(uploadTask.snapshot.ref);
+      onProgress?.({
+        progress: 100,
+        state: 'success',
+        url,
+      });
+    }
+  );
+
+  return uploadTask;
+}
+
+// ==========================================
+// JOB SIGNATURE FUNCTIONS (Completion Certificate)
+// ==========================================
+
+export type SignatureType = 'customer' | 'contractor';
+
+export function getJobSignaturePath(
+  jobId: string,
+  signatureType: SignatureType
+): string {
+  const timestamp = Date.now();
+  return `jobs/${jobId}/signatures/${signatureType}_${timestamp}.png`;
+}
+
+/**
+ * Upload a signature from a canvas data URL
+ * @param jobId The job ID
+ * @param signatureType 'customer' or 'contractor'
+ * @param dataUrl The PNG data URL from the signature canvas
+ */
+export async function uploadJobSignature(
+  jobId: string,
+  signatureType: SignatureType,
+  dataUrl: string
+): Promise<string> {
+  // Convert data URL to Blob
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+
+  const path = getJobSignaturePath(jobId, signatureType);
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, blob, { contentType: 'image/png' });
+  return getDownloadURL(storageRef);
+}
+
+export async function deleteJobDocument(url: string): Promise<void> {
+  const path = extractPathFromUrl(url);
+  if (path) {
+    await deleteDocument(path);
+  }
+}

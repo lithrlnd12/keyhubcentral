@@ -15,3 +15,9 @@ export { ServiceTicketCard } from './ServiceTicketCard';
 export { ServiceTicketList } from './ServiceTicketList';
 export { JobPhotos } from './JobPhotos';
 export { JobCommission } from './JobCommission';
+// New workflow components
+export { MaterialStatusBadge, getMaterialStatusOptions } from './MaterialStatusBadge';
+export { JobMaterials } from './JobMaterials';
+export { SignaturePad } from './SignaturePad';
+export { CompletionCertificate } from './CompletionCertificate';
+export { FinalPaymentForm } from './FinalPaymentForm';

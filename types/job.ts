@@ -69,6 +69,70 @@ export interface JobCommission {
   notes?: string;
 }
 
+// Materials tracking
+export type MaterialStatus = 'pending' | 'ordered' | 'in_transit' | 'arrived' | 'collected';
+
+export interface JobMaterial {
+  id: string;
+  name: string;
+  quantity: number;
+  estimatedCost: number;
+  actualCost?: number;
+  status: MaterialStatus;
+  expectedArrival?: Timestamp | null;
+  arrivalDate?: Timestamp | null;
+  collectedBy?: string | null;
+  collectedAt?: Timestamp | null;
+  supplier?: string;
+  orderNumber?: string;
+  notes?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// Job documents (contract, down payment, completion cert)
+export interface JobDocument {
+  url: string;
+  uploadedAt: Timestamp;
+  uploadedBy: string;
+  fileName?: string;
+}
+
+export interface JobDocuments {
+  contract?: JobDocument;
+  downPayment?: JobDocument & { amount: number };
+  completionCert?: CompletionCertificate;
+}
+
+// Completion certificate with digital signatures
+export interface CompletionCertificate {
+  customerSignatureUrl: string;
+  contractorSignatureUrl: string;
+  signedAt: Timestamp;
+  signedBy: string; // Contractor who captured the signatures
+  customerName: string;
+  notes?: string;
+}
+
+// Final payment tracking
+export type PaymentMethod = 'cash' | 'check' | 'card' | 'financing';
+
+export interface FinalPaymentInfo {
+  amount: number;
+  method: PaymentMethod;
+  receivedAt: Timestamp;
+  receivedBy: string;
+  proofUrl?: string;
+  referenceNumber?: string;
+  notes?: string;
+}
+
+// Linked invoices for payout tracking
+export interface LinkedInvoices {
+  leadFeeInvoiceId?: string | null;
+  laborInvoiceId?: string | null;
+}
+
 export interface Job {
   id: string;
   jobNumber: string;
@@ -85,6 +149,11 @@ export interface Job {
   photos?: JobPhotos;
   commission?: JobCommission;
   leadId?: string | null;  // Reference to source lead
+  // New fields for end-to-end workflow
+  materials?: JobMaterial[];
+  documents?: JobDocuments;
+  finalPayment?: FinalPaymentInfo;
+  linkedInvoices?: LinkedInvoices;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
