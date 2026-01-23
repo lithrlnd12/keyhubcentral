@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Lead, AssignedType } from '@/types/lead';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { assignLead } from '@/lib/firebase/leads';
+import { useUsersByRole } from '@/lib/hooks';
 import { UserPlus, Users, Building2, X } from 'lucide-react';
 
 interface LeadAssignmentProps {
@@ -14,6 +15,8 @@ interface LeadAssignmentProps {
   onClose: () => void;
   onAssigned?: () => void;
 }
+
+const MAX_DISTANCE_MILES = 50;
 
 export function LeadAssignment({
   lead,
@@ -26,11 +29,44 @@ export function LeadAssignment({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Get lead coordinates for distance filtering
+  const leadCoordinates = lead.customer.address?.lat && lead.customer.address?.lng
+    ? { lat: lead.customer.address.lat, lng: lead.customer.address.lng }
+    : undefined;
+
+  // Fetch sales reps for internal assignments (within 50 miles if coordinates available)
+  const { users: salesReps, loading: loadingSalesReps } = useUsersByRole({
+    roles: ['sales_rep', 'admin', 'owner'],
+    coordinates: leadCoordinates,
+    maxDistanceMiles: leadCoordinates ? MAX_DISTANCE_MILES : undefined,
+  });
+
+  // Fetch subscribers for subscriber assignments (within 50 miles if coordinates available)
+  const { users: subscribers, loading: loadingSubscribers } = useUsersByRole({
+    role: 'subscriber',
+    coordinates: leadCoordinates,
+    maxDistanceMiles: leadCoordinates ? MAX_DISTANCE_MILES : undefined,
+  });
+
+  // Build dropdown options based on assignment type
+  const userOptions = useMemo(() => {
+    const users = assignedType === 'internal' ? salesReps : subscribers;
+    return users.map((user) => ({
+      value: user.uid,
+      label: user.distance !== undefined
+        ? `${user.displayName} (${user.distance.toFixed(1)} mi)`
+        : user.displayName,
+    }));
+  }, [assignedType, salesReps, subscribers]);
+
+  const isLoadingUsers = assignedType === 'internal' ? loadingSalesReps : loadingSubscribers;
+  const hasNoUsers = !isLoadingUsers && userOptions.length === 0;
+
   if (!isOpen) return null;
 
   const handleAssign = async () => {
-    if (!assignedTo.trim()) {
-      setError('Please enter an assignee');
+    if (!assignedTo) {
+      setError('Please select an assignee');
       return;
     }
 
@@ -77,7 +113,10 @@ export function LeadAssignment({
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setAssignedType('internal')}
+                onClick={() => {
+                  setAssignedType('internal');
+                  setAssignedTo('');
+                }}
                 className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-colors ${
                   assignedType === 'internal'
                     ? 'bg-brand-gold/20 border-brand-gold text-brand-gold'
@@ -89,7 +128,10 @@ export function LeadAssignment({
               </button>
               <button
                 type="button"
-                onClick={() => setAssignedType('subscriber')}
+                onClick={() => {
+                  setAssignedType('subscriber');
+                  setAssignedTo('');
+                }}
                 className={`flex items-center justify-center gap-2 p-3 rounded-lg border transition-colors ${
                   assignedType === 'subscriber'
                     ? 'bg-brand-gold/20 border-brand-gold text-brand-gold'
@@ -102,20 +144,34 @@ export function LeadAssignment({
             </div>
           </div>
 
-          {/* Assignee ID */}
+          {/* Assignee Selection */}
           <div className="space-y-2">
-            <label className="text-sm text-gray-400 font-medium">
-              {assignedType === 'internal' ? 'Sales Rep ID' : 'Subscriber ID'}
-            </label>
-            <Input
+            <Select
+              label={assignedType === 'internal' ? 'Sales Rep' : 'Subscriber'}
               value={assignedTo}
               onChange={(e) => setAssignedTo(e.target.value)}
+              options={userOptions}
               placeholder={
-                assignedType === 'internal'
-                  ? 'Enter sales rep user ID'
-                  : 'Enter subscriber user ID'
+                isLoadingUsers
+                  ? 'Loading...'
+                  : hasNoUsers
+                  ? `No ${assignedType === 'internal' ? 'sales reps' : 'subscribers'} within ${MAX_DISTANCE_MILES} miles`
+                  : assignedType === 'internal'
+                  ? 'Select a sales rep'
+                  : 'Select a subscriber'
               }
+              disabled={isLoadingUsers || hasNoUsers}
             />
+            {leadCoordinates && !isLoadingUsers && userOptions.length > 0 && (
+              <p className="text-xs text-gray-500">
+                Showing users within {MAX_DISTANCE_MILES} miles of lead location
+              </p>
+            )}
+            {!leadCoordinates && !isLoadingUsers && (
+              <p className="text-xs text-yellow-500">
+                Lead has no coordinates - showing all users
+              </p>
+            )}
           </div>
 
           {/* Error */}
