@@ -25,16 +25,24 @@ export function useUsersByRole(options: UseUsersByRoleOptions = {}): UseUsersByR
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Serialize roles array for stable dependency comparison
+  const rolesKey = roles ? roles.join(',') : '';
+  const coordLat = coordinates?.lat;
+  const coordLng = coordinates?.lng;
+
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const fetchOptions = coordinates ? { coordinates, maxDistanceMiles } : undefined;
+      const fetchOptions = coordLat && coordLng
+        ? { coordinates: { lat: coordLat, lng: coordLng }, maxDistanceMiles }
+        : undefined;
 
       let data: UserWithDistance[];
-      if (roles && roles.length > 0) {
-        data = await getUsersByRoles(roles, fetchOptions);
+      if (rolesKey) {
+        const rolesArray = rolesKey.split(',') as UserRole[];
+        data = await getUsersByRoles(rolesArray, fetchOptions);
       } else if (role) {
         data = await getUsersByRole(role, fetchOptions);
       } else {
@@ -42,7 +50,7 @@ export function useUsersByRole(options: UseUsersByRoleOptions = {}): UseUsersByR
       }
 
       // Already sorted by distance if coordinates provided, otherwise sort by name
-      if (!coordinates) {
+      if (!fetchOptions) {
         data.sort((a, b) => a.displayName.localeCompare(b.displayName));
       }
       setUsers(data);
@@ -51,7 +59,7 @@ export function useUsersByRole(options: UseUsersByRoleOptions = {}): UseUsersByR
     } finally {
       setLoading(false);
     }
-  }, [roles, role, coordinates?.lat, coordinates?.lng, maxDistanceMiles]);
+  }, [rolesKey, role, coordLat, coordLng, maxDistanceMiles]);
 
   useEffect(() => {
     fetchUsers();

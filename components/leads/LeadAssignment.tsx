@@ -17,6 +17,7 @@ interface LeadAssignmentProps {
 }
 
 const MAX_DISTANCE_MILES = 50;
+const INTERNAL_ROLES: ('sales_rep' | 'admin' | 'owner')[] = ['sales_rep', 'admin', 'owner'];
 
 export function LeadAssignment({
   lead,
@@ -29,23 +30,27 @@ export function LeadAssignment({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Get lead coordinates for distance filtering
-  const leadCoordinates = lead.customer.address?.lat && lead.customer.address?.lng
-    ? { lat: lead.customer.address.lat, lng: lead.customer.address.lng }
-    : undefined;
+  // Memoize lead coordinates to prevent hook refetching
+  const leadLat = lead.customer.address?.lat;
+  const leadLng = lead.customer.address?.lng;
+  const leadCoordinates = useMemo(
+    () => (leadLat && leadLng ? { lat: leadLat, lng: leadLng } : undefined),
+    [leadLat, leadLng]
+  );
+  const maxDistance = leadCoordinates ? MAX_DISTANCE_MILES : undefined;
 
   // Fetch sales reps for internal assignments (within 50 miles if coordinates available)
   const { users: salesReps, loading: loadingSalesReps } = useUsersByRole({
-    roles: ['sales_rep', 'admin', 'owner'],
+    roles: INTERNAL_ROLES,
     coordinates: leadCoordinates,
-    maxDistanceMiles: leadCoordinates ? MAX_DISTANCE_MILES : undefined,
+    maxDistanceMiles: maxDistance,
   });
 
   // Fetch subscribers for subscriber assignments (within 50 miles if coordinates available)
   const { users: subscribers, loading: loadingSubscribers } = useUsersByRole({
     role: 'subscriber',
     coordinates: leadCoordinates,
-    maxDistanceMiles: leadCoordinates ? MAX_DISTANCE_MILES : undefined,
+    maxDistanceMiles: maxDistance,
   });
 
   // Build dropdown options based on assignment type
