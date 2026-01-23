@@ -55,12 +55,16 @@ export function LeadAssignment({
       value: user.uid,
       label: user.distance !== undefined
         ? `${user.displayName} (${user.distance.toFixed(1)} mi)`
-        : user.displayName,
+        : `${user.displayName} (no location)`,
     }));
   }, [assignedType, salesReps, subscribers]);
 
   const isLoadingUsers = assignedType === 'internal' ? loadingSalesReps : loadingSubscribers;
   const hasNoUsers = !isLoadingUsers && userOptions.length === 0;
+
+  // Check if we have any users with coordinates (within range)
+  const users = assignedType === 'internal' ? salesReps : subscribers;
+  const hasUsersWithinRange = users.some((u) => u.distance !== undefined);
 
   if (!isOpen) return null;
 
@@ -155,19 +159,24 @@ export function LeadAssignment({
                 isLoadingUsers
                   ? 'Loading...'
                   : hasNoUsers
-                  ? `No ${assignedType === 'internal' ? 'sales reps' : 'subscribers'} within ${MAX_DISTANCE_MILES} miles`
+                  ? `No ${assignedType === 'internal' ? 'sales reps' : 'subscribers'} available`
                   : assignedType === 'internal'
                   ? 'Select a sales rep'
                   : 'Select a subscriber'
               }
               disabled={isLoadingUsers || hasNoUsers}
             />
-            {leadCoordinates && !isLoadingUsers && userOptions.length > 0 && (
+            {leadCoordinates && !isLoadingUsers && hasUsersWithinRange && (
               <p className="text-xs text-gray-500">
                 Showing users within {MAX_DISTANCE_MILES} miles of lead location
               </p>
             )}
-            {!leadCoordinates && !isLoadingUsers && (
+            {leadCoordinates && !isLoadingUsers && !hasUsersWithinRange && userOptions.length > 0 && (
+              <p className="text-xs text-yellow-500">
+                No users within {MAX_DISTANCE_MILES} miles - showing users without location set
+              </p>
+            )}
+            {!leadCoordinates && !isLoadingUsers && userOptions.length > 0 && (
               <p className="text-xs text-yellow-500">
                 Lead has no coordinates - showing all users
               </p>

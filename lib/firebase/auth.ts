@@ -123,37 +123,42 @@ function filterUsersByDistance(
   }
 
   // Calculate distance for each user with coordinates
-  const usersWithDistance: UserWithDistance[] = users
-    .map((user) => {
-      if (!user.baseCoordinates?.lat || !user.baseCoordinates?.lng) {
-        return { ...user, distance: undefined };
-      }
+  const usersWithDistance: UserWithDistance[] = users.map((user) => {
+    if (!user.baseCoordinates?.lat || !user.baseCoordinates?.lng) {
+      return { ...user, distance: undefined };
+    }
 
-      const distance = calculateDistanceMiles(
-        coordinates.lat,
-        coordinates.lng,
-        user.baseCoordinates.lat,
-        user.baseCoordinates.lng
-      );
+    const distance = calculateDistanceMiles(
+      coordinates.lat,
+      coordinates.lng,
+      user.baseCoordinates.lat,
+      user.baseCoordinates.lng
+    );
 
-      return { ...user, distance };
-    })
-    .filter((user) => {
-      // If no max distance, include all users (those with distance calculated)
-      if (!maxDistanceMiles) {
-        return true;
-      }
-      // Filter to only users within max distance
-      return user.distance !== undefined && user.distance <= maxDistanceMiles;
-    });
-
-  // Sort by distance (closest first), users without coordinates at the end
-  usersWithDistance.sort((a, b) => {
-    if (a.distance === undefined && b.distance === undefined) return 0;
-    if (a.distance === undefined) return 1;
-    if (b.distance === undefined) return -1;
-    return a.distance - b.distance;
+    return { ...user, distance };
   });
 
-  return usersWithDistance;
+  // Separate users into: within range, out of range, and no coordinates
+  const withinRange: UserWithDistance[] = [];
+  const noCoordinates: UserWithDistance[] = [];
+
+  for (const user of usersWithDistance) {
+    if (user.distance === undefined) {
+      // User has no coordinates - include as fallback
+      noCoordinates.push(user);
+    } else if (!maxDistanceMiles || user.distance <= maxDistanceMiles) {
+      // User is within range (or no max distance set)
+      withinRange.push(user);
+    }
+    // Users out of range are excluded
+  }
+
+  // Sort within-range users by distance (closest first)
+  withinRange.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
+
+  // Sort no-coordinate users by name
+  noCoordinates.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+  // Return within-range first, then no-coordinates as fallback
+  return [...withinRange, ...noCoordinates];
 }
