@@ -49,6 +49,17 @@ service firebase.storage {
         isUnderSizeLimit(request.resource.size);
     }
 
+    // Job documents (contracts, agreements, etc.)
+    match /jobs/{jobId}/documents/{document} {
+      // Anyone authenticated can view job documents
+      allow read: if isAuthenticated();
+
+      // Authenticated users can upload documents (PDF, Word, images)
+      allow write: if isAuthenticated() &&
+        isValidFileType(request.resource.contentType) &&
+        isUnderSizeLimit(request.resource.size);
+    }
+
     // Service ticket photos
     match /serviceTickets/{ticketId}/photos/{photo} {
       allow read: if isAuthenticated();
