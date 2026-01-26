@@ -50,6 +50,9 @@ export {
 // Lead auto-assignment triggers
 export { onLeadCreatedAutoAssign, onUserGeocode } from './triggers/leadAutoAssign';
 
+// Test user seeding (for Playwright tests)
+export { seedTestUsers, deleteTestUsers } from './triggers/testUserTriggers';
+
 // Admin emails to notify when new users sign up
 const ADMIN_EMAILS = [
   'aaron@innovativeaiconsulting.com',
@@ -101,7 +104,7 @@ export const onUserCreated = functions.firestore
             </div>
 
             <p>
-              <a href="https://keyhubcentral.vercel.app/admin"
+              <a href="https://keyhubcentral.com/admin"
                  style="display: inline-block; background: #D4A84B; color: #1A1A1A; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
                 Review & Approve
               </a>
@@ -165,7 +168,7 @@ export const onUserApproved = functions.firestore
               </div>
 
               <p>
-                <a href="https://keyhubcentral.vercel.app/login"
+                <a href="https://keyhubcentral.com/login"
                    style="display: inline-block; background: #D4A84B; color: #1A1A1A; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
                   Sign In Now
                 </a>

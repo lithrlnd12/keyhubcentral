@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Search, Briefcase, MapPin, Calendar } from 'lucide-react';
+import { ArrowLeft, Search, Briefcase, MapPin, Calendar, Navigation } from 'lucide-react';
 import Link from 'next/link';
 import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
@@ -168,6 +168,20 @@ export default function MyJobsPage() {
                     <span>
                       {job.customer?.address?.street}, {job.customer?.address?.city}
                     </span>
+                    {job.customer?.address && (
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                          `${job.customer.address.street}, ${job.customer.address.city}, ${job.customer.address.state} ${job.customer.address.zip}`
+                        )}&travelmode=driving`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-brand-gold bg-brand-gold/10 hover:bg-brand-gold/20 rounded transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Navigation className="w-3 h-3" />
+                        Navigate
+                      </a>
+                    )}
                   </div>
 
                   {job.dates?.scheduledStart && (

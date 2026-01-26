@@ -101,7 +101,11 @@ test.describe('Signup Form', () => {
     const passwordInput = page.getByLabel(/^password$/i);
     const confirmPasswordInput = page.getByLabel(/confirm password/i);
 
+    // Click and clear before filling for WebKit compatibility
+    await passwordInput.click();
     await passwordInput.fill('testpassword123');
+
+    await confirmPasswordInput.click();
     await confirmPasswordInput.fill('testpassword123');
 
     await expect(passwordInput).toHaveValue('testpassword123');
@@ -117,10 +121,23 @@ test.describe('Signup Form', () => {
   });
 
   test('shows error when passwords do not match', async ({ page }) => {
-    await page.getByLabel(/full name|name/i).fill('John Doe');
-    await page.getByLabel(/email/i).fill('john@example.com');
-    await page.getByLabel(/^password$/i).fill('password123');
-    await page.getByLabel(/confirm password/i).fill('different123');
+    const nameInput = page.getByLabel(/full name|name/i);
+    const emailInput = page.getByLabel(/email/i);
+    const passwordInput = page.getByLabel(/^password$/i);
+    const confirmPasswordInput = page.getByLabel(/confirm password/i);
+
+    // Click each field before filling for WebKit compatibility
+    await nameInput.click();
+    await nameInput.fill('John Doe');
+
+    await emailInput.click();
+    await emailInput.fill('john@example.com');
+
+    await passwordInput.click();
+    await passwordInput.fill('password123');
+
+    await confirmPasswordInput.click();
+    await confirmPasswordInput.fill('different123');
 
     await page.getByRole('button', { name: /create account|sign up/i }).click();
 
@@ -129,10 +146,23 @@ test.describe('Signup Form', () => {
   });
 
   test('shows error when password is too short', async ({ page }) => {
-    await page.getByLabel(/full name|name/i).fill('John Doe');
-    await page.getByLabel(/email/i).fill('john@example.com');
-    await page.getByLabel(/^password$/i).fill('short');
-    await page.getByLabel(/confirm password/i).fill('short');
+    const nameInput = page.getByLabel(/full name|name/i);
+    const emailInput = page.getByLabel(/email/i);
+    const passwordInput = page.getByLabel(/^password$/i);
+    const confirmPasswordInput = page.getByLabel(/confirm password/i);
+
+    // Click each field before filling for WebKit compatibility
+    await nameInput.click();
+    await nameInput.fill('John Doe');
+
+    await emailInput.click();
+    await emailInput.fill('john@example.com');
+
+    await passwordInput.click();
+    await passwordInput.fill('short');
+
+    await confirmPasswordInput.click();
+    await confirmPasswordInput.fill('short');
 
     await page.getByRole('button', { name: /create account|sign up/i }).click();
 

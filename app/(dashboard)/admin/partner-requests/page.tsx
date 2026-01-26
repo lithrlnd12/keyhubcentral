@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Search, Wrench, ClipboardList, Building2, MapPin, Calendar, AlertTriangle } from 'lucide-react';
+import { Search, Wrench, ClipboardList, Building2, MapPin, Calendar, AlertTriangle, Plus } from 'lucide-react';
 import { useLaborRequests, usePartnerTickets } from '@/lib/hooks';
 import { LaborRequestStatus, PartnerTicketStatus, getLaborRequestStatusLabel, getPartnerTicketStatusLabel, Urgency } from '@/types/partner';
 import { Spinner } from '@/components/ui/Spinner';

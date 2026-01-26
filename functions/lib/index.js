@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onUserApproved = exports.onUserCreated = exports.onUserGeocode = exports.onLeadCreatedAutoAssign = exports.testNotification = exports.onPartnerServiceTicket = exports.onPartnerLaborRequest = exports.onInvoiceOverdue = exports.onUserPendingApproval = exports.onJobAssigned = exports.onLeadAssigned = exports.dailyExpirationCheck = exports.manualCalendarSync = exports.syncCalendarToApp = exports.onRatingSubmitted = exports.onInvoicePaid = exports.onJobComplete = exports.onAvailabilityChange = exports.onLeadCreated = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
+exports.onUserApproved = exports.onUserCreated = exports.deleteTestUsers = exports.seedTestUsers = exports.onUserGeocode = exports.onLeadCreatedAutoAssign = exports.testNotification = exports.onPartnerServiceTicket = exports.onPartnerLaborRequest = exports.onInvoiceOverdue = exports.onUserPendingApproval = exports.onJobAssigned = exports.onLeadAssigned = exports.dailyExpirationCheck = exports.manualCalendarSync = exports.syncCalendarToApp = exports.onRatingSubmitted = exports.onInvoicePaid = exports.onJobComplete = exports.onAvailabilityChange = exports.onLeadCreated = exports.sendInvoiceEmail = exports.triggerPnLRebuild = exports.dailyPnLSync = exports.triggerRebuild = exports.manualRebuildSheets = exports.weeklyFullRebuild = exports.dailyOverdueCheck = exports.onInvoiceDeleted = exports.onInvoiceUpdated = exports.onInvoiceCreated = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -50,6 +50,10 @@ Object.defineProperty(exports, "testNotification", { enumerable: true, get: func
 var leadAutoAssign_1 = require("./triggers/leadAutoAssign");
 Object.defineProperty(exports, "onLeadCreatedAutoAssign", { enumerable: true, get: function () { return leadAutoAssign_1.onLeadCreatedAutoAssign; } });
 Object.defineProperty(exports, "onUserGeocode", { enumerable: true, get: function () { return leadAutoAssign_1.onUserGeocode; } });
+// Test user seeding (for Playwright tests)
+var testUserTriggers_1 = require("./triggers/testUserTriggers");
+Object.defineProperty(exports, "seedTestUsers", { enumerable: true, get: function () { return testUserTriggers_1.seedTestUsers; } });
+Object.defineProperty(exports, "deleteTestUsers", { enumerable: true, get: function () { return testUserTriggers_1.deleteTestUsers; } });
 // Admin emails to notify when new users sign up
 const ADMIN_EMAILS = [
     'aaron@innovativeaiconsulting.com',
@@ -97,7 +101,7 @@ exports.onUserCreated = functions.firestore
             </div>
 
             <p>
-              <a href="https://keyhubcentral.vercel.app/admin"
+              <a href="https://keyhubcentral.com/admin"
                  style="display: inline-block; background: #D4A84B; color: #1A1A1A; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
                 Review & Approve
               </a>
@@ -160,7 +164,7 @@ exports.onUserApproved = functions.firestore
               </div>
 
               <p>
-                <a href="https://keyhubcentral.vercel.app/login"
+                <a href="https://keyhubcentral.com/login"
                    style="display: inline-block; background: #D4A84B; color: #1A1A1A; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
                   Sign In Now
                 </a>

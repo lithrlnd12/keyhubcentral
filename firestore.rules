@@ -461,5 +461,75 @@ service cloud.firestore {
       // No deletes allowed
       allow delete: if false;
     }
+
+    // ========================================
+    // PAYOUTS COLLECTION
+    // ========================================
+
+    // Payouts collection - Tracks payments for jobs (lead fees, labor)
+    match /payouts/{payoutId} {
+      // Admins can read all payouts
+      allow read: if isAdmin();
+
+      // Contractors can read payouts where they are the recipient
+      allow read: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
+        resource.data.contractorId == request.auth.uid;
+
+      // Only admins can create payouts (typically from job completion flow)
+      allow create: if isAdmin();
+
+      // Only admins can update payouts (mark as processed, etc.)
+      allow update: if isAdmin();
+
+      // Only owner can delete payouts
+      allow delete: if isOwner();
+    }
+
+    // ========================================
+    // SMS CONVERSATIONS COLLECTION
+    // ========================================
+
+    // SMS Conversations collection - Tracks SMS threads with leads
+    match /smsConversations/{conversationId} {
+      // Admins can read all SMS conversations
+      allow read: if isAdmin();
+
+      // Sales reps can read conversations for leads assigned to them
+      allow read: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'sales_rep' &&
+        get(/databases/$(database)/documents/leads/$(resource.data.leadId)).data.assignedTo == request.auth.uid;
+
+      // Only Cloud Functions (admin SDK) can create/update conversations
+      // Webhook handlers use admin SDK for these operations
+      allow create: if false;
+      allow update: if false;
+
+      // Only owner can delete conversations
+      allow delete: if isOwner();
+    }
+
+    // ========================================
+    // VOICE CALLS COLLECTION
+    // ========================================
+
+    // Voice Calls collection - Tracks VAPI voice call records
+    match /voiceCalls/{callId} {
+      // Admins can read all voice calls
+      allow read: if isAdmin();
+
+      // Sales reps can read calls for leads assigned to them
+      allow read: if isActiveUser() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'sales_rep' &&
+        get(/databases/$(database)/documents/leads/$(resource.data.leadId)).data.assignedTo == request.auth.uid;
+
+      // Only Cloud Functions (admin SDK) can create/update calls
+      // API routes use admin SDK for these operations
+      allow create: if false;
+      allow update: if false;
+
+      // Only owner can delete call records
+      allow delete: if isOwner();
+    }
   }
 }

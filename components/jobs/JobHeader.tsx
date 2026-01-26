@@ -21,6 +21,7 @@ import {
   Mail,
   Calendar,
   AlertTriangle,
+  Navigation,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useState } from 'react';
@@ -122,6 +123,18 @@ export function JobHeader({ job, canEdit, onUpdate }: JobHeaderProps) {
               {job.customer.address.street}, {job.customer.address.city},{' '}
               {job.customer.address.state} {job.customer.address.zip}
             </span>
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                `${job.customer.address.street}, ${job.customer.address.city}, ${job.customer.address.state} ${job.customer.address.zip}`
+              )}&travelmode=driving`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-brand-gold bg-brand-gold/10 hover:bg-brand-gold/20 rounded-md transition-colors"
+              title="Get directions in Google Maps"
+            >
+              <Navigation className="w-3 h-3" />
+              Navigate
+            </a>
           </div>
           <div className="flex items-center gap-2">
             <Phone className="w-4 h-4 text-gray-500" />

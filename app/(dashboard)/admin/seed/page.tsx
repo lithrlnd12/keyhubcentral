@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, addDoc, Timestamp, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Loader2, CheckCircle, XCircle, Users, Briefcase, Target, Megaphone, CreditCard, DollarSign, Trash2, Database } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Users, Briefcase, Target, Megaphone, CreditCard, DollarSign, Trash2, Database, UserPlus, FlaskConical } from 'lucide-react';
 
 // Helper to create dates relative to now
 const daysAgo = (days: number) => Timestamp.fromDate(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
@@ -750,6 +751,9 @@ export default function SeedPage() {
   });
   const [seedingAll, setSeedingAll] = useState(false);
   const [clearingAll, setClearingAll] = useState(false);
+  const [seedingTestUsers, setSeedingTestUsers] = useState(false);
+  const [deletingTestUsers, setDeletingTestUsers] = useState(false);
+  const [testUserResult, setTestUserResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Only allow owner/admin
   if (user?.role !== 'owner' && user?.role !== 'admin') {
@@ -863,6 +867,36 @@ export default function SeedPage() {
     }
 
     setClearingAll(false);
+  };
+
+  const handleSeedTestUsers = async () => {
+    setSeedingTestUsers(true);
+    setTestUserResult(null);
+    try {
+      const seedTestUsers = httpsCallable(functions, 'seedTestUsers');
+      const result = await seedTestUsers({});
+      const data = result.data as { success: boolean; message: string };
+      setTestUserResult({ success: true, message: data.message });
+    } catch (error: any) {
+      console.error('Error seeding test users:', error);
+      setTestUserResult({ success: false, message: error.message || 'Failed to seed test users' });
+    }
+    setSeedingTestUsers(false);
+  };
+
+  const handleDeleteTestUsers = async () => {
+    setDeletingTestUsers(true);
+    setTestUserResult(null);
+    try {
+      const deleteTestUsers = httpsCallable(functions, 'deleteTestUsers');
+      const result = await deleteTestUsers({});
+      const data = result.data as { success: boolean; message: string };
+      setTestUserResult({ success: true, message: data.message });
+    } catch (error: any) {
+      console.error('Error deleting test users:', error);
+      setTestUserResult({ success: false, message: error.message || 'Failed to delete test users' });
+    }
+    setDeletingTestUsers(false);
   };
 
   const totalSeeded = Object.values(results).reduce((acc, r) => acc + r.success, 0);
@@ -982,6 +1016,74 @@ export default function SeedPage() {
           );
         })}
       </div>
+
+      {/* Test Users for Playwright */}
+      <Card className="border-purple-500/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FlaskConical className="w-5 h-5 text-purple-400" />
+            Playwright Test Users
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-400">
+            Create test user accounts for automated Playwright E2E tests. Each role gets a dedicated test account.
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+            <div className="bg-gray-800 rounded px-3 py-2">owner@keyhub.test</div>
+            <div className="bg-gray-800 rounded px-3 py-2">admin@keyhub.test</div>
+            <div className="bg-gray-800 rounded px-3 py-2">salesrep@keyhub.test</div>
+            <div className="bg-gray-800 rounded px-3 py-2">contractor@keyhub.test</div>
+            <div className="bg-gray-800 rounded px-3 py-2">pm@keyhub.test</div>
+            <div className="bg-gray-800 rounded px-3 py-2">subscriber@keyhub.test</div>
+            <div className="bg-gray-800 rounded px-3 py-2">partner@keyhub.test</div>
+            <div className="bg-gray-800 rounded px-3 py-2">pending@keyhub.test</div>
+          </div>
+
+          <p className="text-xs text-gray-500">
+            All accounts use password: <code className="bg-gray-800 px-1 rounded">TestPassword123!</code>
+          </p>
+
+          {testUserResult && (
+            <div className={`flex items-center gap-2 text-sm p-3 rounded ${testUserResult.success ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+              {testUserResult.success ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+              {testUserResult.message}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSeedTestUsers}
+              disabled={seedingTestUsers || deletingTestUsers}
+              className="flex-1"
+            >
+              {seedingTestUsers ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Create Test Users
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleDeleteTestUsers}
+              disabled={seedingTestUsers || deletingTestUsers}
+            >
+              {deletingTestUsers ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* What This Creates */}
       <Card>

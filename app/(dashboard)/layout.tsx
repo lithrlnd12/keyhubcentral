@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { SideNav, BottomNav, TopBar } from '@/components/navigation';
 import { AIChatWidget } from '@/components/chat';
 import { useAuth } from '@/lib/hooks';
+import { ADMIN_ROLES, UserRole } from '@/types/user';
 
 const PAGE_TITLES: Record<string, string> = {
   '/overview': 'Dashboard',
@@ -17,6 +18,59 @@ const PAGE_TITLES: Record<string, string> = {
   '/settings': 'Settings',
 };
 
+// Roles that should use the main dashboard (not special portals)
+const DASHBOARD_ROLES: UserRole[] = ['owner', 'admin', 'sales_rep', 'pm'];
+
+// Routes that require admin role
+const ADMIN_ONLY_ROUTES = ['/admin'];
+
+// Routes that require admin role for full access
+const ADMIN_FINANCIAL_ROUTES = ['/financials/pnl', '/financials/payouts'];
+
+// Check if user can access the current route based on their role
+function canAccessRoute(role: UserRole, pathname: string): boolean {
+  // Subscriber can only access /subscriber routes
+  if (role === 'subscriber') {
+    return pathname.startsWith('/subscriber');
+  }
+
+  // Admin-only routes
+  if (ADMIN_ONLY_ROUTES.some(route => pathname.startsWith(route))) {
+    return ADMIN_ROLES.includes(role);
+  }
+
+  // Admin-only financial routes
+  if (ADMIN_FINANCIAL_ROUTES.some(route => pathname.startsWith(route))) {
+    return ADMIN_ROLES.includes(role);
+  }
+
+  // KD campaigns - admin only
+  if (pathname.startsWith('/kd/campaigns')) {
+    return ADMIN_ROLES.includes(role);
+  }
+
+  // Subscriber routes - only for subscribers
+  if (pathname.startsWith('/subscriber')) {
+    return role === 'subscriber';
+  }
+
+  return true;
+}
+
+// Get the appropriate redirect for a role
+function getRedirectForRole(role: UserRole): string {
+  switch (role) {
+    case 'contractor':
+      return '/portal';
+    case 'subscriber':
+      return '/subscriber';
+    case 'partner':
+      return '/partner';
+    default:
+      return '/overview';
+  }
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -27,16 +81,42 @@ export default function DashboardLayout({
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push('/login');
-      } else if (user.status === 'pending') {
+    if (!loading && user) {
+      // Check authentication and status first
+      if (user.status === 'pending') {
         router.push('/pending');
-      } else if (user.status === 'suspended') {
-        router.push('/login');
+        return;
       }
+      if (user.status === 'suspended') {
+        router.push('/login');
+        return;
+      }
+
+      // Contractors and partners have separate layouts - redirect them
+      if (user.role === 'contractor') {
+        router.push('/portal');
+        return;
+      }
+      if (user.role === 'partner') {
+        router.push('/partner');
+        return;
+      }
+
+      // Subscriber trying to access non-subscriber routes
+      if (user.role === 'subscriber' && !pathname.startsWith('/subscriber')) {
+        router.push('/subscriber');
+        return;
+      }
+
+      // Check route permissions for dashboard users
+      if (!canAccessRoute(user.role, pathname)) {
+        router.push('/overview');
+        return;
+      }
+    } else if (!loading && !user) {
+      router.push('/login');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
 
   // Show loading while checking auth
   if (loading) {
@@ -70,6 +150,16 @@ export default function DashboardLayout({
 
   // Don't render if not authenticated
   if (!user || user.status !== 'active') {
+    return null;
+  }
+
+  // Don't render for roles that have their own separate layouts
+  if (['contractor', 'partner'].includes(user.role)) {
+    return null;
+  }
+
+  // Don't render if user doesn't have permission for this route
+  if (!canAccessRoute(user.role, pathname)) {
     return null;
   }
 
