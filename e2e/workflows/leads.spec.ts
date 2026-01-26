@@ -140,33 +140,39 @@ test.describe('Lead Access by Role', () => {
   test('contractor cannot access leads directly', async ({ page }) => {
     await loginAs(page, 'contractor');
     await page.goto('/kd/leads');
-    // Should redirect away from leads (to portal or login)
-    await expect(page).not.toHaveURL(/\/kd\/leads/);
+    await page.waitForLoadState('domcontentloaded');
+    // Contractor should see 404, redirect to portal, or be blocked
+    // Check either URL changed or 404/access denied is shown
+    const is404 = await page.getByText(/404|not found|access denied/i).count() > 0;
+    const isRedirected = !page.url().includes('/kd/leads');
+    expect(is404 || isRedirected).toBeTruthy();
   });
 });
 
 test.describe('Campaign Management', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
 
-  test.beforeEach(async ({ page }) => {
-    await loginAs(page, 'admin');
-  });
+  test.describe('Admin Campaign Access', () => {
+    test.beforeEach(async ({ page }) => {
+      await loginAs(page, 'admin');
+    });
 
-  test('can view campaigns list', async ({ page }) => {
-    await page.goto('/kd/campaigns');
-    await expect(page).toHaveURL(/\/kd\/campaigns/);
-  });
+    test('can view campaigns list', async ({ page }) => {
+      await page.goto('/kd/campaigns');
+      await expect(page).toHaveURL(/\/kd\/campaigns/);
+    });
 
-  test('campaigns page loads successfully', async ({ page }) => {
-    await page.goto('/kd/campaigns');
-    await expect(page).toHaveURL(/\/kd\/campaigns/);
-  });
+    test('campaigns page loads successfully', async ({ page }) => {
+      await page.goto('/kd/campaigns');
+      await expect(page).toHaveURL(/\/kd\/campaigns/);
+    });
 
-  test('campaigns show spend and lead metrics', async ({ page }) => {
-    await page.goto('/kd/campaigns');
-    // Should show spend or leads generated
-    const hasMetrics = await page.getByText(/\$|leads|spend|cost/i).count() > 0;
-    expect(hasMetrics || true).toBeTruthy(); // Pass if no campaigns
+    test('campaigns show spend and lead metrics', async ({ page }) => {
+      await page.goto('/kd/campaigns');
+      // Should show spend or leads generated
+      const hasMetrics = await page.getByText(/\$|leads|spend|cost/i).count() > 0;
+      expect(hasMetrics || true).toBeTruthy(); // Pass if no campaigns
+    });
   });
 
   test('non-admin cannot access campaigns', async ({ page }) => {

@@ -53,11 +53,24 @@ export type TestUserRole = keyof typeof TEST_USERS;
 export async function loginAs(page: Page, role: TestUserRole): Promise<void> {
   const user = TEST_USERS[role];
 
+  // Clear any existing session to ensure clean login
+  await page.context().clearCookies();
+
+  // Small delay to avoid Firebase rate limiting (auth/quota-exceeded)
+  await page.waitForTimeout(500);
+
   // Navigate to login page
   await page.goto('/login');
 
   // Wait for form to be ready
-  await page.waitForSelector('input[type="email"]');
+  await page.waitForSelector('input[type="email"]', { timeout: 15000 });
+
+  // Dismiss any modal that might be blocking (PWA install prompt, etc.)
+  const maybeLater = page.getByRole('button', { name: /maybe later|close|dismiss/i });
+  if (await maybeLater.count() > 0) {
+    await maybeLater.first().click();
+    await page.waitForTimeout(300);
+  }
 
   // Fill in credentials
   const emailInput = page.getByLabel(/email/i);
@@ -72,10 +85,42 @@ export async function loginAs(page: Page, role: TestUserRole): Promise<void> {
   // Submit form
   await page.getByRole('button', { name: /sign in|log in/i }).click();
 
-  // Wait for navigation away from login page
-  await page.waitForURL((url) => !url.pathname.includes('/login'), {
-    timeout: 10000,
-  });
+  // Wait for navigation away from login page (or error message for rate limiting)
+  try {
+    await page.waitForURL((url) => !url.pathname.includes('/login'), {
+      timeout: 15000,
+    });
+  } catch {
+    // Check if we hit rate limiting
+    const errorText = await page.getByText(/quota|rate limit|too many/i).count();
+    if (errorText > 0) {
+      // Wait much longer for quota reset and retry multiple times
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await page.waitForTimeout(5000 * (attempt + 1)); // 5s, 10s, 15s
+
+        // Dismiss modal if present
+        const maybeLater = page.getByRole('button', { name: /maybe later|close|dismiss/i });
+        if (await maybeLater.count() > 0) {
+          await maybeLater.first().click();
+          await page.waitForTimeout(300);
+        }
+
+        await page.getByRole('button', { name: /sign in|log in/i }).click();
+
+        try {
+          await page.waitForURL((url) => !url.pathname.includes('/login'), {
+            timeout: 10000,
+          });
+          return; // Success
+        } catch {
+          // Continue to next attempt
+        }
+      }
+      throw new Error('Login failed after multiple retries - Firebase quota exceeded');
+    } else {
+      throw new Error('Login timeout - not rate limiting');
+    }
+  }
 }
 
 /**
