@@ -49,9 +49,9 @@ function canAccessRoute(role: UserRole, pathname: string): boolean {
     return ADMIN_ROLES.includes(role);
   }
 
-  // Subscriber routes - only for subscribers
+  // Subscriber routes - block non-subscribers (subscribers already handled above)
   if (pathname.startsWith('/subscriber')) {
-    return role === 'subscriber';
+    return false;
   }
 
   return true;
