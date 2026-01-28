@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PDFViewer } from '@react-pdf/renderer';
+import { pdf } from '@react-pdf/renderer';
 import { ContractFormData, ContractDocumentType } from '@/types/contract';
 import { ContractPDFDocument } from '@/components/pdf/ContractPDFDocument';
 import { DisclosurePDFDocument } from '@/components/pdf/DisclosurePDFDocument';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
-import { ArrowLeft, ArrowRight, FileText, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileText, ExternalLink, RefreshCw } from 'lucide-react';
 
 interface ContractPreviewStepProps {
   formData: ContractFormData;
@@ -25,48 +25,73 @@ export function ContractPreviewStep({
   onBack,
   onNext,
 }: ContractPreviewStepProps) {
-  const [isClient, setIsClient] = useState(false);
-  const [showMobileWarning, setShowMobileWarning] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setIsClient(true);
-    // Check if mobile device
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    setShowMobileWarning(isMobile);
-  }, []);
+  const generatePdf = async () => {
+    setLoading(true);
+    setError(null);
 
-  const renderDocument = () => {
-    if (documentType === 'remodeling_agreement') {
-      return (
-        <ContractPDFDocument
-          formData={formData}
-          signatures={{}}
-          salesRepName={salesRepName}
-        />
-      );
+    try {
+      let doc;
+      if (documentType === 'remodeling_agreement') {
+        doc = (
+          <ContractPDFDocument
+            formData={formData}
+            signatures={{}}
+            salesRepName={salesRepName}
+          />
+        );
+      } else {
+        doc = (
+          <DisclosurePDFDocument
+            formData={formData}
+            signatures={{}}
+          />
+        );
+      }
+
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+
+      // Clean up previous URL if exists
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+
+      setPdfUrl(url);
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+      setError('Failed to generate PDF preview. You can still proceed to sign.');
+    } finally {
+      setLoading(false);
     }
-    return (
-      <DisclosurePDFDocument
-        formData={formData}
-        signatures={{}}
-      />
-    );
   };
 
-  if (!isClient) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    generatePdf();
+
+    // Cleanup on unmount
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, []);
+
+  const handleOpenInNewTab = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <Card>
         <CardContent className="py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <FileText className="w-6 h-6 text-blue-500" />
               <div>
@@ -76,41 +101,36 @@ export function ContractPreviewStep({
                 </p>
               </div>
             </div>
+            <div className="flex gap-2">
+              {pdfUrl && (
+                <Button variant="outline" size="sm" onClick={handleOpenInNewTab}>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open in New Tab
+                </Button>
+              )}
+              {error && (
+                <Button variant="outline" size="sm" onClick={generatePdf}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Mobile Warning */}
-      {showMobileWarning && (
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-yellow-500 font-medium">Mobile Device Detected</p>
-            <p className="text-sm text-yellow-500/80 mt-1">
-              PDF preview may not display properly on mobile devices. You can proceed to sign the
-              contract, and a full PDF will be generated after signing.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* PDF Preview */}
       <div className="bg-gray-800 rounded-xl overflow-hidden">
-        {!showMobileWarning ? (
-          <div className="h-[600px]">
-            <PDFViewer width="100%" height="100%" showToolbar={true}>
-              {renderDocument()}
-            </PDFViewer>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Spinner size="lg" />
+            <p className="mt-4 text-gray-400">Generating preview...</p>
           </div>
-        ) : (
+        ) : error ? (
           <div className="p-8 text-center">
             <FileText className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Document Preview</h3>
-            <p className="text-gray-400 text-sm mb-4">
-              {documentType === 'remodeling_agreement'
-                ? 'Custom Remodeling Agreement (5 pages)'
-                : 'Disclosure Statement (4 pages)'}
-            </p>
+            <h3 className="text-lg font-medium mb-2">Preview Unavailable</h3>
+            <p className="text-gray-400 text-sm mb-4">{error}</p>
             <div className="text-left bg-gray-900 rounded-lg p-4 max-w-md mx-auto">
               <p className="text-sm text-gray-400 mb-2">Contract Summary:</p>
               <ul className="text-sm space-y-1">
@@ -130,39 +150,30 @@ export function ContractPreviewStep({
                     {formData.address.street}, {formData.address.city}
                   </span>
                 </li>
-                <li>
-                  <span className="text-gray-500">Contract Date:</span>{' '}
-                  <span className="text-white">
-                    {formData.contractDate
-                      ? new Date(formData.contractDate).toLocaleDateString()
-                      : 'Not set'}
-                  </span>
-                </li>
                 {documentType === 'remodeling_agreement' && (
-                  <>
-                    <li>
-                      <span className="text-gray-500">Purchase Price:</span>{' '}
-                      <span className="text-white">
-                        ${formData.purchasePrice.toLocaleString()}
-                      </span>
-                    </li>
-                    <li>
-                      <span className="text-gray-500">Down Payment:</span>{' '}
-                      <span className="text-white">
-                        ${formData.downPayment.toLocaleString()}
-                      </span>
-                    </li>
-                    <li>
-                      <span className="text-gray-500">Balance Due:</span>{' '}
-                      <span className="text-white">${formData.balanceDue.toLocaleString()}</span>
-                    </li>
-                  </>
+                  <li>
+                    <span className="text-gray-500">Purchase Price:</span>{' '}
+                    <span className="text-white">
+                      ${formData.purchasePrice.toLocaleString()}
+                    </span>
+                  </li>
                 )}
               </ul>
             </div>
           </div>
-        )}
+        ) : pdfUrl ? (
+          <iframe
+            src={pdfUrl}
+            className="w-full h-[500px] sm:h-[600px] md:h-[700px] border-0"
+            title="Contract Preview"
+          />
+        ) : null}
       </div>
+
+      {/* Mobile tip */}
+      <p className="text-xs text-gray-500 text-center">
+        Tip: If the preview doesn&apos;t load properly, tap &quot;Open in New Tab&quot; to view the full PDF.
+      </p>
 
       {/* Actions */}
       <div className="flex justify-between pt-4">
