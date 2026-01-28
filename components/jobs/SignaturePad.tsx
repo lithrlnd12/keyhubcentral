@@ -61,10 +61,27 @@ export function SignaturePad({
 
   const handleSave = () => {
     if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
-      const dataUrl = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
-      setSavedDataUrl(dataUrl);
-      setIsSaved(true);
-      onSave(dataUrl);
+      try {
+        // Try getTrimmedCanvas first, fall back to getCanvas if it fails
+        let canvas;
+        try {
+          canvas = sigCanvas.current.getTrimmedCanvas();
+        } catch {
+          // Fallback: get the raw canvas
+          canvas = sigCanvas.current.getCanvas();
+        }
+        const dataUrl = canvas.toDataURL('image/png');
+        setSavedDataUrl(dataUrl);
+        setIsSaved(true);
+        onSave(dataUrl);
+      } catch (error) {
+        console.error('Error saving signature:', error);
+        // Last resort fallback - get data URL directly
+        const dataUrl = sigCanvas.current.toDataURL('image/png');
+        setSavedDataUrl(dataUrl);
+        setIsSaved(true);
+        onSave(dataUrl);
+      }
     }
   };
 

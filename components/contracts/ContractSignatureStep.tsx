@@ -58,7 +58,7 @@ export function ContractSignatureStep({
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(true);
-  const [showDocument, setShowDocument] = useState(false);
+  const [showDocument, setShowDocument] = useState(true); // Show document by default
 
   const hasBuyer2 = !!formData.buyerName2;
   const needsCancellation = documentType === 'remodeling_agreement';
@@ -239,11 +239,16 @@ export function ContractSignatureStep({
                 <p className="mt-2 text-sm text-gray-400">Loading document...</p>
               </div>
             ) : pdfUrl ? (
-              <iframe
-                src={pdfUrl}
-                className="w-full h-[400px] sm:h-[500px] md:h-[600px] border border-gray-700 rounded-lg"
-                title="Contract Document"
-              />
+              <>
+                <iframe
+                  src={pdfUrl}
+                  className="w-full h-[400px] sm:h-[500px] md:h-[600px] border border-gray-700 rounded-lg"
+                  title="Contract Document"
+                />
+                <p className="text-xs text-gray-500 text-center mt-3">
+                  Please review the entire document above before signing below. Tap header to collapse.
+                </p>
+              </>
             ) : (
               <p className="text-gray-400 text-center py-8">
                 Unable to load document preview. Use the button above to open in a new tab.
@@ -257,8 +262,8 @@ export function ContractSignatureStep({
               Tap to expand and review the full{' '}
               {documentType === 'remodeling_agreement'
                 ? 'Remodeling Agreement (5 pages)'
-                : 'Disclosure Statement (4 pages)'}{' '}
-              before signing.
+                : 'Disclosure Statement (4 pages)'}
+              .
             </p>
           </CardContent>
         )}
