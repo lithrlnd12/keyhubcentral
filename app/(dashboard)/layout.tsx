@@ -5,7 +5,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { SideNav, BottomNav, TopBar } from '@/components/navigation';
 import { AIChatWidget } from '@/components/chat';
 import { useAuth } from '@/lib/hooks';
+import { SidebarProvider, useSidebar } from '@/lib/contexts';
 import { ADMIN_ROLES, UserRole } from '@/types/user';
+import { cn } from '@/lib/utils';
 
 const PAGE_TITLES: Record<string, string> = {
   '/overview': 'Dashboard',
@@ -71,14 +73,11 @@ function getRedirectForRole(role: UserRole): string {
   }
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading } = useAuth();
+  const { isCollapsed } = useSidebar();
 
   useEffect(() => {
     if (!loading && user) {
@@ -178,8 +177,13 @@ export default function DashboardLayout({
       {/* Desktop side navigation */}
       <SideNav />
 
-      {/* Main content area */}
-      <div className="md:pl-64">
+      {/* Main content area - adjusts based on sidebar state */}
+      <div
+        className={cn(
+          "transition-all duration-300",
+          isCollapsed ? "md:pl-16" : "md:pl-64"
+        )}
+      >
         {/* Top bar */}
         <TopBar title={getPageTitle()} />
 
@@ -195,5 +199,17 @@ export default function DashboardLayout({
       {/* AI Chat Widget */}
       <AIChatWidget />
     </div>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <SidebarProvider>
+      <DashboardContent>{children}</DashboardContent>
+    </SidebarProvider>
   );
 }

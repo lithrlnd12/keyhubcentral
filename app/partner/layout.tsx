@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { SideNav, BottomNav, TopBar } from '@/components/navigation';
 import { useAuth } from '@/lib/hooks';
+import { SidebarProvider, useSidebar } from '@/lib/contexts';
+import { cn } from '@/lib/utils';
 
 const PAGE_TITLES: Record<string, string> = {
   '/partner': 'Dashboard',
@@ -12,14 +14,11 @@ const PAGE_TITLES: Record<string, string> = {
   '/partner/history': 'History',
 };
 
-export default function PartnerLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function PartnerContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading } = useAuth();
+  const { isCollapsed } = useSidebar();
 
   useEffect(() => {
     if (!loading) {
@@ -68,8 +67,13 @@ export default function PartnerLayout({
       {/* Desktop side navigation */}
       <SideNav />
 
-      {/* Main content area */}
-      <div className="md:pl-64">
+      {/* Main content area - adjusts based on sidebar state */}
+      <div
+        className={cn(
+          "transition-all duration-300",
+          isCollapsed ? "md:pl-16" : "md:pl-64"
+        )}
+      >
         {/* Top bar */}
         <TopBar title={getPageTitle()} />
 
@@ -82,5 +86,17 @@ export default function PartnerLayout({
       {/* Mobile bottom navigation */}
       <BottomNav />
     </div>
+  );
+}
+
+export default function PartnerLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <SidebarProvider>
+      <PartnerContent>{children}</PartnerContent>
+    </SidebarProvider>
   );
 }
