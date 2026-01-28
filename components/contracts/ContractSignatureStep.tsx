@@ -1,11 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { pdf } from '@react-pdf/renderer';
 import { ContractFormData, ContractDocumentType } from '@/types/contract';
+import { ContractPDFDocument } from '@/components/pdf/ContractPDFDocument';
+import { DisclosurePDFDocument } from '@/components/pdf/DisclosurePDFDocument';
 import { SignaturePad } from '@/components/jobs/SignaturePad';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Spinner } from '@/components/ui/Spinner';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+} from 'lucide-react';
 
 export interface SignatureCollectionData {
   salesRepSignature: string;
@@ -44,8 +56,60 @@ export function ContractSignatureStep({
     cancellation: null,
   });
 
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(true);
+  const [showDocument, setShowDocument] = useState(false);
+
   const hasBuyer2 = !!formData.buyerName2;
   const needsCancellation = documentType === 'remodeling_agreement';
+
+  // Generate PDF for viewing
+  useEffect(() => {
+    const generatePdf = async () => {
+      setPdfLoading(true);
+      try {
+        let doc;
+        if (documentType === 'remodeling_agreement') {
+          doc = (
+            <ContractPDFDocument
+              formData={formData}
+              signatures={{}}
+              salesRepName={salesRepName}
+            />
+          );
+        } else {
+          doc = (
+            <DisclosurePDFDocument
+              formData={formData}
+              signatures={{}}
+            />
+          );
+        }
+
+        const blob = await pdf(doc).toBlob();
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(url);
+      } catch (err) {
+        console.error('Failed to generate PDF:', err);
+      } finally {
+        setPdfLoading(false);
+      }
+    };
+
+    generatePdf();
+
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, []);
+
+  const handleOpenInNewTab = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
 
   const handleSignatureSave = (key: keyof typeof signatures, dataUrl: string) => {
     setSignatures((prev) => ({
@@ -108,7 +172,7 @@ export function ContractSignatureStep({
       {/* Progress Header */}
       <Card>
         <CardContent className="py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <h2 className="text-lg font-semibold">Collect Signatures</h2>
               <p className="text-sm text-gray-400">
@@ -130,6 +194,69 @@ export function ContractSignatureStep({
             </div>
           </div>
         </CardContent>
+      </Card>
+
+      {/* Document Viewer - Collapsible */}
+      <Card>
+        <CardHeader className="cursor-pointer" onClick={() => setShowDocument(!showDocument)}>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-500" />
+              View Document Before Signing
+            </span>
+            <div className="flex items-center gap-2">
+              {pdfUrl && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenInNewTab();
+                  }}
+                >
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  <span className="hidden sm:inline">Open in New Tab</span>
+                </Button>
+              )}
+              {showDocument ? (
+                <ChevronUp className="w-5 h-5 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-400" />
+              )}
+            </div>
+          </CardTitle>
+        </CardHeader>
+        {showDocument && (
+          <CardContent>
+            {pdfLoading ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <Spinner size="md" />
+                <p className="mt-2 text-sm text-gray-400">Loading document...</p>
+              </div>
+            ) : pdfUrl ? (
+              <iframe
+                src={pdfUrl}
+                className="w-full h-[400px] sm:h-[500px] md:h-[600px] border border-gray-700 rounded-lg"
+                title="Contract Document"
+              />
+            ) : (
+              <p className="text-gray-400 text-center py-8">
+                Unable to load document preview. Use the button above to open in a new tab.
+              </p>
+            )}
+          </CardContent>
+        )}
+        {!showDocument && (
+          <CardContent className="pt-0">
+            <p className="text-sm text-gray-500">
+              Tap to expand and review the full{' '}
+              {documentType === 'remodeling_agreement'
+                ? 'Remodeling Agreement (5 pages)'
+                : 'Disclosure Statement (4 pages)'}{' '}
+              before signing.
+            </p>
+          </CardContent>
+        )}
       </Card>
 
       {/* Sales Rep Signature */}
