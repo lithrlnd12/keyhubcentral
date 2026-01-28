@@ -13,6 +13,7 @@ import {
   CommunicationFeed,
   JobPhotos,
   JobCommission,
+  JobContracts,
 } from '@/components/jobs';
 import { useJob } from '@/lib/hooks/useJob';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -98,6 +99,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
       <Tabs defaultValue="info">
         <TabsList>
           <TabsTrigger value="info">Details</TabsTrigger>
+          <TabsTrigger value="contracts">Contracts</TabsTrigger>
           <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="commission">Commission</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
@@ -108,6 +110,14 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
 
         <TabsContent value="info">
           <JobInfo job={job} />
+        </TabsContent>
+
+        <TabsContent value="contracts">
+          <JobContracts
+            job={job}
+            userId={user?.uid || ''}
+            userRole={user?.role}
+          />
         </TabsContent>
 
         <TabsContent value="photos">

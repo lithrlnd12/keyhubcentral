@@ -531,5 +531,30 @@ service cloud.firestore {
       // Only owner can delete call records
       allow delete: if isOwner();
     }
+
+    // ========================================
+    // CONTRACTS COLLECTION
+    // ========================================
+
+    // Contracts collection - Signed contracts for jobs
+    match /contracts/{contractId} {
+      // Internal users can read all contracts
+      allow read: if isInternalUser();
+
+      // Admins can create any contract
+      // Sales reps can create contracts for jobs where they are the sales rep
+      allow create: if isAdmin() ||
+        (isActiveUser() &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'sales_rep' &&
+          get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.salesRepId == request.auth.uid);
+
+      // Admins can update any contract
+      // Sales reps can update their own contracts (created by them)
+      allow update: if isAdmin() ||
+        (isActiveUser() && resource.data.createdBy == request.auth.uid);
+
+      // Only owner can delete contracts
+      allow delete: if isOwner();
+    }
   }
 }

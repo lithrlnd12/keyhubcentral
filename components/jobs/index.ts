@@ -21,3 +21,4 @@ export { JobMaterials } from './JobMaterials';
 export { SignaturePad } from './SignaturePad';
 export { CompletionCertificate } from './CompletionCertificate';
 export { FinalPaymentForm } from './FinalPaymentForm';
+export { JobContracts } from './JobContracts';

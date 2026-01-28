@@ -98,10 +98,21 @@ export interface JobDocument {
   fileName?: string;
 }
 
+// Reference to a signed contract stored in the contracts collection
+export interface SignedContractRef {
+  contractId: string;
+  pdfUrl: string;
+  signedAt: Timestamp;
+}
+
 export interface JobDocuments {
   contract?: JobDocument;
   downPayment?: JobDocument & { amount: number };
   completionCert?: CompletionCertificate;
+  signedContracts?: {
+    remodelingAgreement?: SignedContractRef;
+    disclosureStatement?: SignedContractRef;
+  };
 }
 
 // Completion certificate with digital signatures

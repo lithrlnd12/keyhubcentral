@@ -101,5 +101,17 @@ service firebase.storage {
         isValidFileType(request.resource.contentType) &&
         isUnderSizeLimit(request.resource.size);
     }
+
+    // Contract signatures and PDFs
+    match /jobs/{jobId}/contracts/{contractId}/{path=**} {
+      // Anyone authenticated can view contract files
+      allow read: if isAuthenticated();
+
+      // Authenticated users can upload signatures and PDFs
+      allow write: if isAuthenticated() &&
+        (request.resource.contentType.matches('image/.*') ||
+         request.resource.contentType == 'application/pdf') &&
+        isUnderSizeLimit(request.resource.size);
+    }
   }
 }

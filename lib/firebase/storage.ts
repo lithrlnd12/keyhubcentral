@@ -268,3 +268,62 @@ export async function deleteJobDocument(url: string): Promise<void> {
     await deleteDocument(path);
   }
 }
+
+// ==========================================
+// CONTRACT FUNCTIONS (Signed Contracts)
+// ==========================================
+
+export type ContractSignatureType = 'salesrep' | 'buyer1' | 'buyer2' | 'cancellation';
+
+export function getContractSignaturePath(
+  jobId: string,
+  contractId: string,
+  signatureType: ContractSignatureType
+): string {
+  const timestamp = Date.now();
+  return `jobs/${jobId}/contracts/${contractId}/signatures/${signatureType}_${timestamp}.png`;
+}
+
+export function getContractPDFPath(
+  jobId: string,
+  contractId: string,
+  documentType: string
+): string {
+  const timestamp = Date.now();
+  const sanitizedType = documentType.replace(/_/g, '-');
+  return `jobs/${jobId}/contracts/${contractId}/documents/${sanitizedType}_${timestamp}.pdf`;
+}
+
+/**
+ * Upload a contract signature from a canvas data URL
+ */
+export async function uploadContractSignature(
+  jobId: string,
+  contractId: string,
+  signatureType: ContractSignatureType,
+  dataUrl: string
+): Promise<string> {
+  // Convert data URL to Blob
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+
+  const path = getContractSignaturePath(jobId, contractId, signatureType);
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, blob, { contentType: 'image/png' });
+  return getDownloadURL(storageRef);
+}
+
+/**
+ * Upload a generated contract PDF
+ */
+export async function uploadContractPDF(
+  jobId: string,
+  contractId: string,
+  documentType: string,
+  pdfBlob: Blob
+): Promise<string> {
+  const path = getContractPDFPath(jobId, contractId, documentType);
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, pdfBlob, { contentType: 'application/pdf' });
+  return getDownloadURL(storageRef);
+}
