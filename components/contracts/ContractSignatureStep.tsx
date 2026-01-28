@@ -198,34 +198,39 @@ export function ContractSignatureStep({
 
       {/* Document Viewer - Collapsible */}
       <Card>
-        <CardHeader className="cursor-pointer" onClick={() => setShowDocument(!showDocument)}>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-500" />
-              View Document Before Signing
-            </span>
-            <div className="flex items-center gap-2">
-              {pdfUrl && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenInNewTab();
-                  }}
-                >
-                  <ExternalLink className="w-4 h-4 mr-1" />
-                  <span className="hidden sm:inline">Open in New Tab</span>
-                </Button>
-              )}
-              {showDocument ? (
-                <ChevronUp className="w-5 h-5 text-gray-400" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-gray-400" />
-              )}
-            </div>
-          </CardTitle>
-        </CardHeader>
+        <div
+          className="cursor-pointer"
+          onClick={() => setShowDocument(!showDocument)}
+        >
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-500" />
+                View Document Before Signing
+              </span>
+              <div className="flex items-center gap-2">
+                {pdfUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenInNewTab();
+                    }}
+                  >
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    <span className="hidden sm:inline">Open in New Tab</span>
+                  </Button>
+                )}
+                {showDocument ? (
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
+                )}
+              </div>
+            </CardTitle>
+          </CardHeader>
+        </div>
         {showDocument && (
           <CardContent>
             {pdfLoading ? (
