@@ -17,6 +17,7 @@ import {
   ContractDocumentType,
   ContractFormData,
   ContractSignature,
+  ContractInitials,
 } from '@/types/contract';
 import { SignedContractRef } from '@/types/job';
 import {
@@ -51,6 +52,10 @@ export async function createContract(
     documentType,
     formData,
     signatures: {} as SignedContract['signatures'],
+    electronicConsent: {
+      agreed: false,
+      agreedAt: new Date(),
+    },
     pdfUrl: '',
     createdBy,
     createdAt: Timestamp.now(),
@@ -103,6 +108,14 @@ export interface SignatureData {
   buyer2Signature?: string;  // Data URL (optional)
   buyer2Name?: string;
   cancellationSignature?: string;  // Data URL (for remodeling agreement)
+  // Initials for acknowledgments
+  leadHazardInitials?: string;  // Data URL
+  termsAcknowledgmentInitials?: string;  // Data URL
+  // Electronic consent
+  electronicConsent: {
+    agreed: boolean;
+    agreedAt: Date;
+  };
 }
 
 export async function saveContractSignatures(
@@ -143,6 +156,21 @@ export async function saveContractSignatures(
     );
   }
 
+  // Upload initials
+  if (signatureData.leadHazardInitials) {
+    uploadPromises.push(
+      uploadContractSignature(jobId, contractId, 'initials_lead', signatureData.leadHazardInitials)
+        .then((url) => ({ type: 'initials_lead' as ContractSignatureType, url }))
+    );
+  }
+
+  if (signatureData.termsAcknowledgmentInitials) {
+    uploadPromises.push(
+      uploadContractSignature(jobId, contractId, 'initials_terms', signatureData.termsAcknowledgmentInitials)
+        .then((url) => ({ type: 'initials_terms' as ContractSignatureType, url }))
+    );
+  }
+
   const signatureResults = await Promise.all(uploadPromises);
 
   // Build signatures object
@@ -177,12 +205,34 @@ export async function saveContractSignatures(
     };
   }
 
+  // Build initials object
+  const initials: SignedContract['initials'] = {};
+  const leadHazardResult = signatureResults.find((r) => r.type === 'initials_lead');
+  if (leadHazardResult) {
+    initials.leadHazard = {
+      initialsUrl: leadHazardResult.url,
+      signedAt: now,
+    };
+  }
+  const termsResult = signatureResults.find((r) => r.type === 'initials_terms');
+  if (termsResult) {
+    initials.termsAcknowledgment = {
+      initialsUrl: termsResult.url,
+      signedAt: now,
+    };
+  }
+
   // Upload PDF
   const pdfUrl = await uploadContractPDF(jobId, contractId, documentType, pdfBlob);
 
-  // Update contract with signatures and PDF
+  // Update contract with signatures, initials, consent, and PDF
   await updateDoc(contractRef, {
     signatures,
+    initials: Object.keys(initials).length > 0 ? initials : null,
+    electronicConsent: {
+      agreed: signatureData.electronicConsent.agreed,
+      agreedAt: signatureData.electronicConsent.agreedAt,
+    },
     pdfUrl,
     status: 'signed',
     updatedAt: serverTimestamp(),

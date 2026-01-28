@@ -17,6 +17,8 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  Shield,
+  PenLine,
 } from 'lucide-react';
 
 export interface SignatureCollectionData {
@@ -27,6 +29,14 @@ export interface SignatureCollectionData {
   buyer2Signature?: string;
   buyer2Name?: string;
   cancellationSignature?: string;
+  // New initials fields
+  leadHazardInitials?: string;
+  termsAcknowledgmentInitials?: string;
+  // Electronic consent
+  electronicConsent: {
+    agreed: boolean;
+    agreedAt: Date;
+  };
 }
 
 interface ContractSignatureStepProps {
@@ -56,12 +66,26 @@ export function ContractSignatureStep({
     cancellation: null,
   });
 
+  // Initials state (drawn initials for acknowledgments)
+  const [initials, setInitials] = useState<{
+    leadHazard: string | null;
+    termsAcknowledgment: string | null;
+  }>({
+    leadHazard: null,
+    termsAcknowledgment: null,
+  });
+
+  // Electronic consent state
+  const [electronicConsent, setElectronicConsent] = useState(false);
+  const [consentTimestamp, setConsentTimestamp] = useState<Date | null>(null);
+
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(true);
   const [showDocument, setShowDocument] = useState(true); // Show document by default
 
   const hasBuyer2 = !!formData.buyerName2;
   const needsCancellation = documentType === 'remodeling_agreement';
+  const needsInitials = documentType === 'remodeling_agreement'; // Initials needed for remodeling agreement
 
   // Generate PDF for viewing
   useEffect(() => {
@@ -125,22 +149,62 @@ export function ContractSignatureStep({
     }));
   };
 
+  // Initials handlers
+  const handleInitialsSave = (key: keyof typeof initials, dataUrl: string) => {
+    setInitials((prev) => ({
+      ...prev,
+      [key]: dataUrl,
+    }));
+  };
+
+  const handleInitialsClear = (key: keyof typeof initials) => {
+    setInitials((prev) => ({
+      ...prev,
+      [key]: null,
+    }));
+  };
+
+  // Handle consent checkbox
+  const handleConsentChange = (checked: boolean) => {
+    setElectronicConsent(checked);
+    if (checked) {
+      setConsentTimestamp(new Date());
+    } else {
+      setConsentTimestamp(null);
+    }
+  };
+
   const isComplete = (): boolean => {
+    // Must agree to electronic signing
+    if (!electronicConsent) return false;
+    // Must have required signatures
     if (!signatures.salesRep || !signatures.buyer) return false;
     if (hasBuyer2 && !signatures.buyer2) return false;
     if (needsCancellation && !signatures.cancellation) return false;
+    // Must have initials for remodeling agreement
+    if (needsInitials && (!initials.leadHazard || !initials.termsAcknowledgment)) return false;
     return true;
   };
 
   const getCompletionStatus = () => {
-    const required = ['salesRep', 'buyer'];
+    const required: string[] = ['consent', 'salesRep', 'buyer'];
     if (hasBuyer2) required.push('buyer2');
     if (needsCancellation) required.push('cancellation');
+    if (needsInitials) {
+      required.push('leadHazardInitials');
+      required.push('termsInitials');
+    }
 
-    const completed = required.filter(
-      (key) => signatures[key as keyof typeof signatures] !== null
-    );
-    return { completed: completed.length, total: required.length };
+    let completed = 0;
+    if (electronicConsent) completed++;
+    if (signatures.salesRep) completed++;
+    if (signatures.buyer) completed++;
+    if (hasBuyer2 && signatures.buyer2) completed++;
+    if (needsCancellation && signatures.cancellation) completed++;
+    if (needsInitials && initials.leadHazard) completed++;
+    if (needsInitials && initials.termsAcknowledgment) completed++;
+
+    return { completed, total: required.length };
   };
 
   const handleSubmit = () => {
@@ -151,6 +215,10 @@ export function ContractSignatureStep({
       salesRepName,
       buyerSignature: signatures.buyer!,
       buyerName: formData.buyerName,
+      electronicConsent: {
+        agreed: true,
+        agreedAt: consentTimestamp!,
+      },
     };
 
     if (hasBuyer2 && signatures.buyer2) {
@@ -160,6 +228,12 @@ export function ContractSignatureStep({
 
     if (needsCancellation && signatures.cancellation) {
       signatureData.cancellationSignature = signatures.cancellation;
+    }
+
+    // Add initials if applicable
+    if (needsInitials) {
+      signatureData.leadHazardInitials = initials.leadHazard!;
+      signatureData.termsAcknowledgmentInitials = initials.termsAcknowledgment!;
     }
 
     onComplete(signatureData);
@@ -269,6 +343,74 @@ export function ContractSignatureStep({
         )}
       </Card>
 
+      {/* Electronic Consent */}
+      <Card className={electronicConsent ? 'border-green-500/30' : 'border-yellow-500/30'}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-blue-500" />
+            Electronic Signature Consent
+            {electronicConsent && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-gray-800 rounded-lg p-4 mb-4">
+            <p className="text-sm text-gray-300">
+              By checking the box below, you agree to sign this document electronically. Electronic
+              signatures are legally binding under the Electronic Signatures in Global and National
+              Commerce Act (ESIGN Act) and the Uniform Electronic Transactions Act (UETA).
+            </p>
+          </div>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={electronicConsent}
+              onChange={(e) => handleConsentChange(e.target.checked)}
+              className="mt-1 w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900"
+            />
+            <span className="text-sm text-gray-300">
+              I agree to sign this document electronically and understand that my electronic
+              signature will be legally binding.
+            </span>
+          </label>
+          {electronicConsent && consentTimestamp && (
+            <p className="text-xs text-green-500 mt-2">
+              Consent given at {consentTimestamp.toLocaleString()}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Lead Hazard Initials (Remodeling Agreement Only) */}
+      {needsInitials && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PenLine className="w-5 h-5 text-orange-500" />
+              Lead-Based Paint Disclosure Initials
+              {initials.leadHazard && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-orange-500/10 rounded-lg p-4 mb-4">
+              <p className="text-sm text-orange-400">
+                <strong>Lead-Based Paint Disclosure:</strong> For homes built before 1978, buyer
+                acknowledges receipt of EPA pamphlet &quot;Protect Your Family From Lead in Your Home&quot;
+                and any known lead-based paint hazard information.
+              </p>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">
+              {formData.buyerName} - Please initial to acknowledge the lead hazard disclosure.
+            </p>
+            <SignaturePad
+              label="Lead Hazard Initials"
+              onSave={(dataUrl) => handleInitialsSave('leadHazard', dataUrl)}
+              onClear={() => handleInitialsClear('leadHazard')}
+              initialSignature={initials.leadHazard || undefined}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Sales Rep Signature */}
       <Card>
         <CardHeader>
@@ -359,6 +501,37 @@ export function ContractSignatureStep({
               onSave={(dataUrl) => handleSignatureSave('cancellation', dataUrl)}
               onClear={() => handleSignatureClear('cancellation')}
               initialSignature={signatures.cancellation || undefined}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Terms Acknowledgment Initials (Remodeling Agreement Only - Page 5) */}
+      {needsInitials && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PenLine className="w-5 h-5 text-blue-500" />
+              Terms &amp; Conditions Acknowledgment
+              {initials.termsAcknowledgment && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-blue-500/10 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-400">
+                By initialing below, customer acknowledges that they have read, understood, and
+                agree to all terms and conditions stated in this agreement. Customer has had the
+                opportunity to ask questions and seek independent advice.
+              </p>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">
+              {formData.buyerName} - Please initial to acknowledge the terms and conditions.
+            </p>
+            <SignaturePad
+              label="Terms Acknowledgment Initials"
+              onSave={(dataUrl) => handleInitialsSave('termsAcknowledgment', dataUrl)}
+              onClear={() => handleInitialsClear('termsAcknowledgment')}
+              initialSignature={initials.termsAcknowledgment || undefined}
             />
           </CardContent>
         </Card>

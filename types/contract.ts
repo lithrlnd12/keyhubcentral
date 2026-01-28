@@ -31,8 +31,14 @@ export interface ContractFormData {
   paymentMethods: ContractPaymentMethod[];
   otherPaymentMethod?: string;  // If "other" is selected
 
-  // Acknowledgments
-  leadHazardInitials: string;  // Initials for lead hazard disclosure
+  // Acknowledgments (legacy - kept for backwards compatibility)
+  leadHazardInitials: string;  // Typed initials for lead hazard disclosure
+}
+
+// Initials signature data (drawn initials captured as images)
+export interface ContractInitials {
+  initialsUrl: string;  // Firebase Storage URL for initials image
+  signedAt: Date;
 }
 
 // Individual signature data
@@ -54,10 +60,25 @@ export interface SignedContract {
     buyer2?: ContractSignature;  // Optional second buyer
     cancellation?: ContractSignature;  // For remodeling agreement page 2 (Notice of Cancellation)
   };
+  // Drawn initials for acknowledgments
+  initials?: {
+    leadHazard?: ContractInitials;  // Lead hazard disclosure (Page 1)
+    termsAcknowledgment?: ContractInitials;  // Terms acknowledgment (Page 5)
+  };
+  // Electronic signing consent
+  electronicConsent: {
+    agreed: boolean;
+    agreedAt: Date;
+    ipAddress?: string;
+    userAgent?: string;
+  };
   pdfUrl: string;  // Generated PDF in Firebase Storage
   createdBy: string;  // User ID of sales rep who created
   createdAt: Timestamp;
   status: 'draft' | 'signed' | 'voided';
+  // Email tracking
+  emailedTo?: string;  // Customer email if sent
+  emailedAt?: Timestamp;
 }
 
 // Reference stored in job.documents.signedContracts

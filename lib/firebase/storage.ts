@@ -273,7 +273,7 @@ export async function deleteJobDocument(url: string): Promise<void> {
 // CONTRACT FUNCTIONS (Signed Contracts)
 // ==========================================
 
-export type ContractSignatureType = 'salesrep' | 'buyer1' | 'buyer2' | 'cancellation';
+export type ContractSignatureType = 'salesrep' | 'buyer1' | 'buyer2' | 'cancellation' | 'initials_lead' | 'initials_terms';
 
 export function getContractSignaturePath(
   jobId: string,

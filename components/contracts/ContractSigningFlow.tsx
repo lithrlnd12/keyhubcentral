@@ -36,6 +36,7 @@ export function ContractSigningFlow({
   const [step, setStep] = useState<Step>('form');
   const [formData, setFormData] = useState<ContractFormData | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string>('');
+  const [contractId, setContractId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,7 +74,9 @@ export function ContractSigningFlow({
 
     try {
       // Create contract record
-      const contractId = await createContract(job.id, documentType, formData, salesRepId);
+      const newContractId = await createContract(job.id, documentType, formData, salesRepId);
+      setContractId(newContractId);
+      const contractId = newContractId;
 
       // Generate PDF with signatures
       const signatureUrls = {
@@ -86,6 +89,12 @@ export function ContractSigningFlow({
         cancellationUrl: signatures.cancellationSignature,
       };
 
+      // Initials URLs (for remodeling agreement)
+      const initialsUrls = {
+        leadHazardUrl: signatures.leadHazardInitials,
+        termsAcknowledgmentUrl: signatures.termsAcknowledgmentInitials,
+      };
+
       let pdfBlob: Blob;
 
       if (documentType === 'remodeling_agreement') {
@@ -93,6 +102,7 @@ export function ContractSigningFlow({
           <ContractPDFDocument
             formData={formData}
             signatures={signatureUrls}
+            initials={initialsUrls}
             salesRepName={salesRepName}
           />
         );
@@ -226,10 +236,13 @@ export function ContractSigningFlow({
           />
         )}
 
-        {step === 'confirm' && (
+        {step === 'confirm' && formData && (
           <ContractConfirmationStep
             documentType={documentType}
             pdfUrl={pdfUrl}
+            contractId={contractId}
+            customerEmail={formData.email}
+            customerName={formData.buyerName}
             onDone={onComplete}
           />
         )}

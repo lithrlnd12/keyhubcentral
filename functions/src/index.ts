@@ -23,7 +23,7 @@ export {
 } from './scheduled/dailySheetsTasks';
 
 // Email triggers
-export { sendInvoiceEmail } from './triggers/emailTriggers';
+export { sendInvoiceEmail, sendContractEmail } from './triggers/emailTriggers';
 export { onLeadCreated } from './triggers/leadEmailTriggers';
 
 // Availability & Calendar sync triggers

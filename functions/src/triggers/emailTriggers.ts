@@ -52,6 +52,11 @@ interface SendInvoiceData {
   recipientEmail?: string; // Override email if provided
 }
 
+interface SendContractData {
+  contractId: string;
+  recipientEmail?: string; // Override email if provided
+}
+
 /**
  * Send invoice email to recipient
  */
@@ -231,6 +236,179 @@ export const sendInvoiceEmail = functions
       return { success: true, message: `Invoice sent to ${toEmail}` };
     } catch (error) {
       console.error('Error sending invoice email:', error);
+      throw new functions.https.HttpsError('internal', 'Failed to send email. Check email configuration.');
+    }
+  });
+
+// Contract type labels
+function getContractTypeLabel(documentType: string): string {
+  switch (documentType) {
+    case 'remodeling_agreement':
+      return 'Custom Remodeling Agreement';
+    case 'disclosure_statement':
+      return 'Disclosure Statement';
+    default:
+      return documentType;
+  }
+}
+
+/**
+ * Send signed contract email to customer
+ */
+export const sendContractEmail = functions
+  .runWith(runtimeOpts)
+  .https.onCall(async (data: SendContractData, context: functions.https.CallableContext) => {
+    // Check authentication
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+    }
+
+    const { contractId, recipientEmail } = data;
+
+    if (!contractId) {
+      throw new functions.https.HttpsError('invalid-argument', 'Contract ID is required');
+    }
+
+    const db = admin.firestore();
+
+    // Get contract
+    const contractDoc = await db.collection('contracts').doc(contractId).get();
+    if (!contractDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Contract not found');
+    }
+
+    const contract = contractDoc.data()!;
+    const toEmail = recipientEmail || contract.formData?.email;
+
+    if (!toEmail) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'No recipient email address. Please add an email to the contract.'
+      );
+    }
+
+    // Get job info for context
+    const jobDoc = await db.collection('jobs').doc(contract.jobId).get();
+    const job = jobDoc.exists ? jobDoc.data() : null;
+    const jobNumber = job?.jobNumber || 'N/A';
+
+    const documentTypeLabel = getContractTypeLabel(contract.documentType);
+    const customerName = contract.formData?.buyerName || 'Customer';
+    const signedDate = contract.createdAt?.toDate()?.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }) || 'Unknown date';
+
+    // Build email HTML
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+
+        <!-- Header -->
+        <div style="background: #1A1A1A; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="color: #D4A84B; margin: 0; font-size: 24px;">Key Renovations</h1>
+          <p style="color: #888; margin: 10px 0 0 0;">Signed Contract</p>
+        </div>
+
+        <!-- Content -->
+        <div style="background: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-top: none;">
+
+          <p style="font-size: 16px; margin-bottom: 20px;">Dear ${customerName},</p>
+
+          <p style="margin-bottom: 20px;">
+            Thank you for choosing Key Renovations for your home improvement project.
+            Please find attached your signed <strong>${documentTypeLabel}</strong>.
+          </p>
+
+          <!-- Contract Details Box -->
+          <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 1px solid #eee;">
+            <h3 style="margin: 0 0 15px 0; color: #1A1A1A; font-size: 16px;">Contract Details</h3>
+            <table style="width: 100%; font-size: 14px;">
+              <tr>
+                <td style="padding: 8px 0; color: #666;">Document Type:</td>
+                <td style="padding: 8px 0; font-weight: bold;">${documentTypeLabel}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #666;">Job Number:</td>
+                <td style="padding: 8px 0; font-weight: bold;">${jobNumber}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #666;">Signed Date:</td>
+                <td style="padding: 8px 0; font-weight: bold;">${signedDate}</td>
+              </tr>
+              ${contract.formData?.purchasePrice ? `
+              <tr>
+                <td style="padding: 8px 0; color: #666;">Contract Amount:</td>
+                <td style="padding: 8px 0; font-weight: bold; color: #D4A84B;">${formatCurrency(contract.formData.purchasePrice)}</td>
+              </tr>
+              ` : ''}
+            </table>
+          </div>
+
+          <!-- View Contract Button -->
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${contract.pdfUrl}"
+               style="display: inline-block; background: #D4A84B; color: #1A1A1A; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              View Signed Contract
+            </a>
+          </div>
+
+          <p style="color: #666; font-size: 14px; margin-top: 30px;">
+            Please keep this email for your records. If you have any questions about your contract or project,
+            don't hesitate to reach out to us.
+          </p>
+
+          <p style="margin-top: 30px;">
+            Best regards,<br>
+            <strong>Key Renovations Team</strong>
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #1A1A1A; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+          <p style="color: #D4A84B; margin: 0; font-size: 14px; font-weight: bold;">
+            Key Renovations
+          </p>
+          <p style="color: #888; margin: 10px 0 0 0; font-size: 12px;">
+            Professional Home Remodeling Services
+          </p>
+          <p style="color: #666; margin: 10px 0 0 0; font-size: 11px;">
+            This is an automated message. Please do not reply directly to this email.
+          </p>
+        </div>
+
+      </body>
+      </html>
+    `;
+
+    // Send email
+    const transporter = getTransporter();
+    const mailOptions = {
+      from: `"Key Renovations" <${process.env.GMAIL_USER}>`,
+      to: toEmail,
+      subject: `Your Signed ${documentTypeLabel} - Job #${jobNumber}`,
+      html: emailHtml,
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`Contract ${contractId} sent to ${toEmail}`);
+
+      // Update contract with email sent info
+      await db.collection('contracts').doc(contractId).update({
+        emailedTo: toEmail,
+        emailedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return { success: true, message: `Contract sent to ${toEmail}` };
+    } catch (error) {
+      console.error('Error sending contract email:', error);
       throw new functions.https.HttpsError('internal', 'Failed to send email. Check email configuration.');
     }
   });

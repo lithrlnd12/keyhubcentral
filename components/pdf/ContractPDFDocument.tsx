@@ -225,12 +225,17 @@ interface ContractPDFDocumentProps {
     buyer2Name?: string;
     cancellationUrl?: string;
   };
+  initials?: {
+    leadHazardUrl?: string;
+    termsAcknowledgmentUrl?: string;
+  };
   salesRepName: string;
 }
 
 export function ContractPDFDocument({
   formData,
   signatures,
+  initials,
   salesRepName,
 }: ContractPDFDocumentProps) {
   const formatDate = (date: Date | null): string => {
@@ -382,9 +387,13 @@ export function ContractPDFDocument({
           </Text>
           <View style={styles.initialLine}>
             <Text>Buyer Initials: </Text>
-            <View style={styles.initialBox}>
-              <Text>{formData.leadHazardInitials || ''}</Text>
-            </View>
+            {initials?.leadHazardUrl ? (
+              <Image src={initials.leadHazardUrl} style={{ width: 60, height: 30, objectFit: 'contain' }} />
+            ) : (
+              <View style={styles.initialBox}>
+                <Text>{formData.leadHazardInitials || ''}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -690,9 +699,19 @@ export function ContractPDFDocument({
             questions and seek independent advice. Customer acknowledges receipt of a complete copy
             of this signed agreement.
           </Text>
-          <Text style={[styles.termsText, { fontFamily: 'Helvetica-Bold' }]}>
-            Customer initials: ________ Date: {signedDate}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+            <Text style={[styles.termsText, { fontFamily: 'Helvetica-Bold', marginRight: 10 }]}>
+              Customer initials:
+            </Text>
+            {initials?.termsAcknowledgmentUrl ? (
+              <Image src={initials.termsAcknowledgmentUrl} style={{ width: 60, height: 30, objectFit: 'contain' }} />
+            ) : (
+              <Text style={styles.termsText}>________</Text>
+            )}
+            <Text style={[styles.termsText, { marginLeft: 20, fontFamily: 'Helvetica-Bold' }]}>
+              Date: {signedDate}
+            </Text>
+          </View>
         </View>
 
         <Text style={styles.footer}>
