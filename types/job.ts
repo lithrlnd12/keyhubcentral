@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 import { Address } from './contractor';
+import { JobMeasurementsData } from './measurements';
 
 export type JobType = 'bathroom' | 'kitchen' | 'exterior' | 'other';
 
@@ -165,6 +166,8 @@ export interface Job {
   documents?: JobDocuments;
   finalPayment?: FinalPaymentInfo;
   linkedInvoices?: LinkedInvoices;
+  // Wall measurements (bathroom jobs only)
+  measurements?: JobMeasurementsData;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

@@ -7,3 +7,4 @@ export * from './invoice';
 export * from './availability';
 export * from './notifications';
 export * from './chat';
+export * from './measurements';

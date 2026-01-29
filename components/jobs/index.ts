@@ -22,3 +22,9 @@ export { SignaturePad } from './SignaturePad';
 export { CompletionCertificate } from './CompletionCertificate';
 export { FinalPaymentForm } from './FinalPaymentForm';
 export { JobContracts } from './JobContracts';
+// Measurements components
+export { JobMeasurements } from './JobMeasurements';
+export { MeasurementSetCard } from './MeasurementSetCard';
+export { MeasurementForm } from './MeasurementForm';
+export { MeasurementDiagram } from './MeasurementDiagram';
+export { MeasurementUploadModal } from './MeasurementUploadModal';

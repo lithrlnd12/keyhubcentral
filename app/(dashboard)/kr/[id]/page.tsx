@@ -14,6 +14,7 @@ import {
   JobPhotos,
   JobCommission,
   JobContracts,
+  JobMeasurements,
 } from '@/components/jobs';
 import { useJob } from '@/lib/hooks/useJob';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -100,6 +101,9 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
         <TabsList>
           <TabsTrigger value="info">Details</TabsTrigger>
           <TabsTrigger value="contracts">Contracts</TabsTrigger>
+          {job.type === 'bathroom' && (
+            <TabsTrigger value="measurements">Measurements</TabsTrigger>
+          )}
           <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="commission">Commission</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
@@ -119,6 +123,18 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
             userRole={user?.role}
           />
         </TabsContent>
+
+        {job.type === 'bathroom' && (
+          <TabsContent value="measurements">
+            <JobMeasurements
+              job={job}
+              canEdit={canEdit}
+              userId={user?.uid || ''}
+              userName={user?.displayName || 'Unknown'}
+              onUpdate={() => {}}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="photos">
           <JobPhotos
