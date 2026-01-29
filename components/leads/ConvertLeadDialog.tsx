@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Lead } from '@/types/lead';
 import { JobType } from '@/types/job';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { convertLeadToJob } from '@/lib/firebase/leads';
-import { uploadJobDocument } from '@/lib/firebase/storage';
 import { useAuth } from '@/lib/hooks';
 import {
   ArrowRightCircle,
@@ -15,11 +15,8 @@ import {
   ChefHat,
   PaintBucket,
   Wrench,
-  Upload,
-  FileText,
   DollarSign,
-  Check,
-  Loader2,
+  FileSignature,
 } from 'lucide-react';
 
 interface ConvertLeadDialogProps {
@@ -42,28 +39,14 @@ export function ConvertLeadDialog({
   onClose,
   onConverted,
 }: ConvertLeadDialogProps) {
+  const router = useRouter();
   const { user } = useAuth();
   const [jobType, setJobType] = useState<JobType | ''>('');
   const [contractValue, setContractValue] = useState<string>('');
-  const [downPaymentAmount, setDownPaymentAmount] = useState<string>('');
-  const [contractFile, setContractFile] = useState<File | null>(null);
-  const [downPaymentFile, setDownPaymentFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
-  const contractInputRef = useRef<HTMLInputElement>(null);
-  const downPaymentInputRef = useRef<HTMLInputElement>(null);
-
   if (!isOpen) return null;
-
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setter: (file: File | null) => void
-  ) => {
-    const file = e.target.files?.[0] || null;
-    setter(file);
-  };
 
   const handleConvert = async () => {
     if (!jobType) {
@@ -76,25 +59,9 @@ export function ConvertLeadDialog({
       return;
     }
 
-    if (!contractFile) {
-      setError('Please upload the signed contract');
-      return;
-    }
-
-    if (!downPaymentFile) {
-      setError('Please upload proof of down payment');
-      return;
-    }
-
     const contractValueNum = parseFloat(contractValue);
     if (!contractValue || isNaN(contractValueNum) || contractValueNum <= 0) {
       setError('Please enter a valid contract value');
-      return;
-    }
-
-    const downPaymentNum = parseFloat(downPaymentAmount);
-    if (!downPaymentAmount || isNaN(downPaymentNum) || downPaymentNum < 0) {
-      setError('Please enter a valid down payment amount');
       return;
     }
 
@@ -102,33 +69,18 @@ export function ConvertLeadDialog({
       setLoading(true);
       setError(null);
 
-      // We need a temporary job ID for upload paths - use lead ID as prefix
-      const tempJobId = `temp_${lead.id}`;
-
-      // Upload contract
-      setUploadProgress('Uploading contract...');
-      const contractUrl = await uploadJobDocument(tempJobId, contractFile, 'contract');
-
-      // Upload down payment proof
-      setUploadProgress('Uploading down payment proof...');
-      const downPaymentUrl = await uploadJobDocument(tempJobId, downPaymentFile, 'down_payment');
-
-      // Convert lead to job with documents
-      setUploadProgress('Creating job...');
+      // Convert lead to job
       const jobId = await convertLeadToJob(lead.id, jobType, user.uid, {
-        contractUrl,
-        contractFileName: contractFile.name,
-        downPaymentUrl,
-        downPaymentAmount: downPaymentNum,
         contractValue: contractValueNum,
       });
 
-      setUploadProgress('');
       onConverted?.(jobId);
       onClose();
+
+      // Redirect to contract signing page
+      router.push(`/kr/${jobId}/sign`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to convert lead');
-      setUploadProgress('');
     } finally {
       setLoading(false);
     }
@@ -219,116 +171,17 @@ export function ConvertLeadDialog({
             </div>
           </div>
 
-          {/* Down Payment Amount */}
-          <div className="space-y-2">
-            <label className="text-sm text-gray-400 font-medium">Down Payment Amount *</label>
-            <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                value={downPaymentAmount}
-                onChange={(e) => setDownPaymentAmount(formatCurrency(e.target.value))}
-                placeholder="0.00"
-                className="w-full pl-9 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          {/* Contract Upload */}
-          <div className="space-y-2">
-            <label className="text-sm text-gray-400 font-medium">Signed Contract *</label>
-            <input
-              ref={contractInputRef}
-              type="file"
-              accept=".pdf,.png,.jpg,.jpeg"
-              onChange={(e) => handleFileChange(e, setContractFile)}
-              className="hidden"
-              disabled={loading}
-            />
-            <button
-              type="button"
-              onClick={() => contractInputRef.current?.click()}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                contractFile
-                  ? 'bg-green-500/10 border-green-500/30'
-                  : 'bg-gray-800 border-gray-700 hover:border-gray-600'
-              }`}
-              disabled={loading}
-            >
-              {contractFile ? (
-                <>
-                  <Check className="w-5 h-5 text-green-400" />
-                  <span className="text-green-400 text-sm truncate flex-1 text-left">
-                    {contractFile.name}
-                  </span>
-                  <FileText className="w-4 h-4 text-gray-400" />
-                </>
-              ) : (
-                <>
-                  <Upload className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-400 text-sm">Upload signed contract (PDF/Image)</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Down Payment Proof Upload */}
-          <div className="space-y-2">
-            <label className="text-sm text-gray-400 font-medium">Down Payment Proof *</label>
-            <input
-              ref={downPaymentInputRef}
-              type="file"
-              accept=".pdf,.png,.jpg,.jpeg"
-              onChange={(e) => handleFileChange(e, setDownPaymentFile)}
-              className="hidden"
-              disabled={loading}
-            />
-            <button
-              type="button"
-              onClick={() => downPaymentInputRef.current?.click()}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                downPaymentFile
-                  ? 'bg-green-500/10 border-green-500/30'
-                  : 'bg-gray-800 border-gray-700 hover:border-gray-600'
-              }`}
-              disabled={loading}
-            >
-              {downPaymentFile ? (
-                <>
-                  <Check className="w-5 h-5 text-green-400" />
-                  <span className="text-green-400 text-sm truncate flex-1 text-left">
-                    {downPaymentFile.name}
-                  </span>
-                  <FileText className="w-4 h-4 text-gray-400" />
-                </>
-              ) : (
-                <>
-                  <Upload className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-400 text-sm">Upload receipt/screenshot</span>
-                </>
-              )}
-            </button>
-          </div>
-
           {/* Info Notice */}
-          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-start gap-3">
+            <FileSignature className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-blue-400">
-              Both the signed contract and down payment proof are required to convert a lead
-              to a job.
+              After creating the job, you&apos;ll be taken to the contract signing page to complete
+              the Remodeling Agreement and Disclosure Statement with the customer.
             </p>
           </div>
 
           {/* Error */}
           {error && <p className="text-red-400 text-sm">{error}</p>}
-
-          {/* Upload Progress */}
-          {uploadProgress && (
-            <div className="flex items-center gap-2 text-sm text-brand-gold">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              {uploadProgress}
-            </div>
-          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
