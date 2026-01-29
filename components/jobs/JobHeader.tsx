@@ -129,10 +129,10 @@ export function JobHeader({ job, canEdit, onUpdate }: JobHeaderProps) {
               )}&travelmode=driving`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-brand-gold bg-brand-gold/10 hover:bg-brand-gold/20 rounded-md transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-brand-black bg-brand-gold hover:bg-brand-gold-light rounded-lg transition-colors shadow-sm"
               title="Get directions in Google Maps"
             >
-              <Navigation className="w-3 h-3" />
+              <Navigation className="w-4 h-4" />
               Navigate
             </a>
           </div>
