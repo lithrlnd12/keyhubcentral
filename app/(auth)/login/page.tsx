@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Input } from '@/components/ui';
@@ -8,21 +8,31 @@ import { useAuth } from '@/lib/hooks';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, loading, error } = useAuth();
+  const { user, signIn, loading, error } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Redirect when user is authenticated
+  useEffect(() => {
+    if (user && !loading) {
+      router.push('/overview');
+    }
+  }, [user, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError('');
+    setIsSubmitting(true);
 
     try {
       await signIn(email, password);
-      router.push('/overview');
+      // Don't navigate here - let the useEffect handle it when user state updates
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setLocalError(errorMessage);
+      setIsSubmitting(false);
     }
   };
 
@@ -58,7 +68,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <Button type="submit" className="w-full" loading={loading}>
+        <Button type="submit" className="w-full" loading={loading || isSubmitting}>
           Sign in
         </Button>
       </form>
