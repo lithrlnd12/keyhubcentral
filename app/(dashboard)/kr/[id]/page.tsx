@@ -33,9 +33,13 @@ function canViewJob(userRole: string | undefined, job: { salesRepId: string | nu
   return false;
 }
 
-function canEditJob(userRole: string | undefined): boolean {
+function canEditJob(userRole: string | undefined, job: { salesRepId: string | null }, userId: string | undefined): boolean {
   if (!userRole) return false;
-  return ['owner', 'admin', 'pm'].includes(userRole);
+  // Admins and PMs can edit any job
+  if (['owner', 'admin', 'pm'].includes(userRole)) return true;
+  // Sales rep can edit jobs they're assigned to
+  if (userRole === 'sales_rep' && job.salesRepId === userId) return true;
+  return false;
 }
 
 function canEditCommission(userRole: string | undefined, job: { salesRepId: string | null }, userId: string | undefined): boolean {
@@ -56,8 +60,8 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
   const { user } = useAuth();
   const { job, loading, error, update } = useJob(params.id);
 
-  const canView = job && canViewJob(user?.role, job, user?.uid);
-  const canEdit = canEditJob(user?.role);
+  const canView = job ? canViewJob(user?.role, job, user?.uid) : false;
+  const canEdit = job ? canEditJob(user?.role, job, user?.uid) : false;
 
   useEffect(() => {
     if (!loading && !job) {
