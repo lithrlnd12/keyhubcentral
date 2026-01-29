@@ -8,8 +8,8 @@ export interface Address {
   city: string;
   state: string;
   zip: string;
-  lat?: number;
-  lng?: number;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface License {
