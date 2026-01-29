@@ -15,13 +15,13 @@ import { formatCurrency } from '@/lib/utils/formatters';
 import {
   User,
   MapPin,
-  Phone,
   Calendar,
   DollarSign,
   AlertTriangle,
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { PhoneLink } from '@/components/ui/PhoneLink';
 
 interface JobCardProps {
   job: Job;
@@ -77,10 +77,9 @@ export function JobCard({ job, showDetails = true, className }: JobCardProps) {
                 {job.customer.address.city}, {job.customer.address.state}
               </span>
             </div>
-            {showDetails && (
+            {showDetails && job.customer.phone && (
               <div className="flex items-center gap-2 text-sm">
-                <Phone className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                <span className="text-gray-400">{job.customer.phone}</span>
+                <PhoneLink phone={job.customer.phone} showIcon iconClassName="text-gray-500" />
               </div>
             )}
           </div>

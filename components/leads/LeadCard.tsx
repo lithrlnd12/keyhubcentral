@@ -11,7 +11,6 @@ import { formatDistanceToNow } from '@/lib/utils/formatters';
 import {
   User,
   MapPin,
-  Phone,
   Mail,
   Clock,
   Wrench,
@@ -19,6 +18,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { PhoneLink } from '@/components/ui/PhoneLink';
 
 interface LeadCardProps {
   lead: Lead;
@@ -67,8 +67,7 @@ export function LeadCard({ lead, showDetails = true, className }: LeadCardProps)
             </div>
             {showDetails && lead.customer.phone && (
               <div className="flex items-center gap-2 text-sm">
-                <Phone className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                <span className="text-gray-400">{lead.customer.phone}</span>
+                <PhoneLink phone={lead.customer.phone} showIcon iconClassName="text-gray-500" />
               </div>
             )}
             {showDetails && lead.customer.email && (

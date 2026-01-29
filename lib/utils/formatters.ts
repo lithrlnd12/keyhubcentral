@@ -34,6 +34,25 @@ export function formatPhone(phone: string): string {
   return phone;
 }
 
+/**
+ * Extract digits from a phone number for use in tel: links.
+ * Handles various formats: (555) 123-4567, 555.123.4567, 555-123-4567, etc.
+ * Returns the number with country code prefix if 10 digits (assumes US).
+ */
+export function getPhoneHref(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  // If 10 digits, add US country code
+  if (digits.length === 10) {
+    return `tel:+1${digits}`;
+  }
+  // If 11 digits starting with 1, it's already US format
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return `tel:+${digits}`;
+  }
+  // Otherwise just return what we have
+  return `tel:${digits}`;
+}
+
 export function formatPercentage(value: number, decimals = 1): string {
   return `${(value * 100).toFixed(decimals)}%`;
 }

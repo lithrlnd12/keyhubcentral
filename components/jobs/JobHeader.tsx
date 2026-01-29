@@ -11,6 +11,7 @@ import {
   JOB_TYPE_ICONS,
   JOB_STATUS_LABELS,
 } from '@/lib/utils/jobs';
+import { formatPhone, getPhoneHref } from '@/lib/utils/formatters';
 import {
   ArrowLeft,
   Edit,
@@ -139,10 +140,10 @@ export function JobHeader({ job, canEdit, onUpdate }: JobHeaderProps) {
           <div className="flex items-center gap-2">
             <Phone className="w-4 h-4 text-gray-500" />
             <a
-              href={`tel:${job.customer.phone}`}
-              className="text-gray-400 hover:text-white"
+              href={getPhoneHref(job.customer.phone)}
+              className="text-brand-gold hover:text-brand-gold-light hover:underline"
             >
-              {job.customer.phone}
+              {formatPhone(job.customer.phone)}
             </a>
           </div>
           {job.customer.email && (

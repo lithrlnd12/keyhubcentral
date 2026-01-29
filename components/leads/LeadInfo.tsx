@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Lead, CallAnalysis } from '@/types/lead';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { formatDateTime, formatPhone } from '@/lib/utils/formatters';
+import { formatDateTime, formatPhone, getPhoneHref } from '@/lib/utils/formatters';
 import {
   User,
   Mail,
@@ -240,7 +240,7 @@ export function LeadInfo({ lead, className }: LeadInfoProps) {
                   <div>
                     <p className="text-sm text-gray-400">Phone</p>
                     <a
-                      href={`tel:${lead.customer.phone}`}
+                      href={getPhoneHref(lead.customer.phone)}
                       className="text-brand-gold hover:underline"
                     >
                       {formatPhone(lead.customer.phone)}
