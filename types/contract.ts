@@ -48,11 +48,15 @@ export interface ContractSignature {
   signedAt: Date;
 }
 
+// Contract source type - digital (signed in app) or uploaded (paper contract scanned)
+export type ContractSource = 'digital' | 'uploaded';
+
 // Stored contract record
 export interface SignedContract {
   id: string;
   jobId: string;
   documentType: ContractDocumentType;
+  source: ContractSource;  // How the contract was collected
   formData: ContractFormData;
   signatures: {
     salesRep: ContractSignature;
@@ -65,20 +69,22 @@ export interface SignedContract {
     leadHazard?: ContractInitials;  // Lead hazard disclosure (Page 1)
     termsAcknowledgment?: ContractInitials;  // Terms acknowledgment (Page 5)
   };
-  // Electronic signing consent
+  // Electronic signing consent (only for digital contracts)
   electronicConsent: {
     agreed: boolean;
     agreedAt: Date;
     ipAddress?: string;
     userAgent?: string;
   };
-  pdfUrl: string;  // Generated PDF in Firebase Storage
+  pdfUrl: string;  // Generated or uploaded PDF in Firebase Storage
   createdBy: string;  // User ID of sales rep who created
   createdAt: Timestamp;
   status: 'draft' | 'signed' | 'voided';
   // Email tracking
   emailedTo?: string;  // Customer email if sent
   emailedAt?: Timestamp;
+  // Upload metadata (only for uploaded contracts)
+  uploadedFileName?: string;
 }
 
 // Reference stored in job.documents.signedContracts

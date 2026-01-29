@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types/job';
-import { SignedContract, CONTRACT_TYPE_LABELS, CONTRACT_STATUS_LABELS } from '@/types/contract';
+import { SignedContract, CONTRACT_TYPE_LABELS, CONTRACT_STATUS_LABELS, ContractDocumentType } from '@/types/contract';
 import { getJobContracts } from '@/lib/firebase/contracts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
+import { ContractUploadModal } from '@/components/contracts/ContractUploadModal';
 import {
   FileText,
   Download,
@@ -18,6 +19,7 @@ import {
   Clock,
   AlertCircle,
   Plus,
+  Upload,
 } from 'lucide-react';
 
 interface JobContractsProps {
@@ -30,6 +32,7 @@ export function JobContracts({ job, userId, userRole }: JobContractsProps) {
   const [contracts, setContracts] = useState<SignedContract[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
     loadContracts();
@@ -141,12 +144,18 @@ export function JobContracts({ job, userId, userRole }: JobContractsProps) {
               Contract Status
             </span>
             {canSignContracts() && !allContractsSigned && (
-              <Link href={`/kr/${job.id}/sign`}>
-                <Button size="sm">
-                  <PenTool className="w-4 h-4 mr-2" />
-                  Sign Contract
+              <div className="flex gap-2">
+                <Link href={`/kr/${job.id}/sign`}>
+                  <Button size="sm">
+                    <PenTool className="w-4 h-4 mr-2" />
+                    Sign Digitally
+                  </Button>
+                </Link>
+                <Button size="sm" variant="outline" onClick={() => setShowUploadModal(true)}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload
                 </Button>
-              </Link>
+              </div>
             )}
           </CardTitle>
         </CardHeader>
@@ -226,9 +235,16 @@ export function JobContracts({ job, userId, userRole }: JobContractsProps) {
                       <FileText className="w-5 h-5 text-blue-500" />
                     </div>
                     <div>
-                      <p className="font-medium">{CONTRACT_TYPE_LABELS[contract.documentType]}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{CONTRACT_TYPE_LABELS[contract.documentType]}</p>
+                        {contract.source === 'uploaded' && (
+                          <span className="text-xs px-1.5 py-0.5 bg-gray-700 rounded text-gray-400">
+                            Uploaded
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-400">
-                        Signed {formatDate(contract.createdAt)}
+                        {contract.source === 'uploaded' ? 'Uploaded' : 'Signed'} {formatDate(contract.createdAt)}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Buyer: {contract.signatures.buyer?.name}
@@ -262,12 +278,18 @@ export function JobContracts({ job, userId, userRole }: JobContractsProps) {
               Contracts haven&apos;t been signed for this job yet.
             </p>
             {canSignContracts() && (
-              <Link href={`/kr/${job.id}/sign`}>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Sign First Contract
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href={`/kr/${job.id}/sign`}>
+                  <Button>
+                    <PenTool className="w-4 h-4 mr-2" />
+                    Sign Digitally
+                  </Button>
+                </Link>
+                <Button variant="outline" onClick={() => setShowUploadModal(true)}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Signed Contract
                 </Button>
-              </Link>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -275,14 +297,33 @@ export function JobContracts({ job, userId, userRole }: JobContractsProps) {
 
       {/* Quick Actions */}
       {canSignContracts() && !allContractsSigned && contracts.length > 0 && (
-        <div className="flex justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href={`/kr/${job.id}/sign`}>
             <Button variant="outline">
-              <Plus className="w-4 h-4 mr-2" />
+              <PenTool className="w-4 h-4 mr-2" />
               {hasRemodelingAgreement ? 'Sign Disclosure Statement' : 'Sign Remaining Contract'}
             </Button>
           </Link>
+          <Button variant="ghost" onClick={() => setShowUploadModal(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            Upload Instead
+          </Button>
         </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <ContractUploadModal
+          jobId={job.id}
+          userId={userId}
+          buyerName={job.customer.name}
+          existingTypes={signedContracts.map((c) => c.documentType)}
+          onClose={() => setShowUploadModal(false)}
+          onSuccess={() => {
+            setShowUploadModal(false);
+            loadContracts();
+          }}
+        />
       )}
     </div>
   );

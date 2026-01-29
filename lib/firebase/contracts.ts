@@ -18,6 +18,7 @@ import {
   ContractFormData,
   ContractSignature,
   ContractInitials,
+  ContractSource,
 } from '@/types/contract';
 import { SignedContractRef } from '@/types/job';
 import {
@@ -50,6 +51,7 @@ export async function createContract(
   const contract: Omit<SignedContract, 'id'> = {
     jobId,
     documentType,
+    source: 'digital',
     formData,
     signatures: {} as SignedContract['signatures'],
     electronicConsent: {
@@ -64,6 +66,81 @@ export async function createContract(
 
   await setDoc(contractRef, contract);
   return contractId;
+}
+
+/**
+ * Upload a signed contract file (for paper contracts that were signed offline)
+ */
+export async function uploadSignedContract(
+  jobId: string,
+  documentType: ContractDocumentType,
+  file: File,
+  buyerName: string,
+  createdBy: string
+): Promise<{ contractId: string; pdfUrl: string }> {
+  const contractId = generateContractId();
+  const contractRef = doc(db, COLLECTION, contractId);
+
+  // Upload the PDF file
+  const pdfUrl = await uploadContractPDF(jobId, contractId, documentType, file);
+
+  // Create minimal form data for uploaded contracts
+  const formData: ContractFormData = {
+    buyerName,
+    address: { street: '', city: '', state: '', zip: '' },
+    homePhone: '',
+    cellPhone: '',
+    email: '',
+    contractDate: new Date(),
+    estimatedStartDate: null,
+    estimatedCompletionTime: '',
+    purchasePrice: 0,
+    downPayment: 0,
+    balanceDue: 0,
+    paymentMethods: [],
+    leadHazardInitials: '',
+  };
+
+  const contract: Omit<SignedContract, 'id'> = {
+    jobId,
+    documentType,
+    source: 'uploaded',
+    formData,
+    signatures: {
+      salesRep: { name: '', signatureUrl: '', signedAt: new Date() },
+      buyer: { name: buyerName, signatureUrl: '', signedAt: new Date() },
+    },
+    electronicConsent: {
+      agreed: false,
+      agreedAt: new Date(),
+    },
+    pdfUrl,
+    createdBy,
+    createdAt: Timestamp.now(),
+    status: 'signed',
+    uploadedFileName: file.name,
+  };
+
+  await setDoc(contractRef, contract);
+
+  // Update job with signed contract reference
+  const jobRef = doc(db, 'jobs', jobId);
+  const fieldPath = documentType === 'remodeling_agreement'
+    ? 'documents.signedContracts.remodelingAgreement'
+    : 'documents.signedContracts.disclosureStatement';
+
+  const signedContractRef: SignedContractRef = {
+    contractId,
+    pdfUrl,
+    signedAt: Timestamp.now(),
+  };
+
+  await updateDoc(jobRef, {
+    [fieldPath]: signedContractRef,
+    updatedAt: serverTimestamp(),
+  });
+
+  return { contractId, pdfUrl };
 }
 
 /**
@@ -233,6 +310,7 @@ export async function saveContractSignatures(
       agreed: signatureData.electronicConsent.agreed,
       agreedAt: signatureData.electronicConsent.agreedAt,
     },
+    source: 'digital',
     pdfUrl,
     status: 'signed',
     updatedAt: serverTimestamp(),
