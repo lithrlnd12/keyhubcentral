@@ -54,6 +54,7 @@ export { useExpenses, useExpenseMutations } from './useExpenses';
 export { useContractorInvoices } from './useContractorInvoices';
 export { useContractorJobs } from './useContractorJobs';
 export { useContractorExpenses } from './useContractorExpenses';
+export { useContractorSchedule } from './useContractorSchedule';
 
 // User hooks
 export { useUsersByRole } from './useUsersByRole';
