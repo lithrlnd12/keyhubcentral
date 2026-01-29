@@ -157,7 +157,7 @@ function filterUsersByDistance(
   withinRange.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0));
 
   // Sort no-coordinate users by name
-  noCoordinates.sort((a, b) => a.displayName.localeCompare(b.displayName));
+  noCoordinates.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
 
   // Return within-range first, then no-coordinates as fallback
   return [...withinRange, ...noCoordinates];

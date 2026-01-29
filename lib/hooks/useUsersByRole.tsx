@@ -51,7 +51,7 @@ export function useUsersByRole(options: UseUsersByRoleOptions = {}): UseUsersByR
 
       // Already sorted by distance if coordinates provided, otherwise sort by name
       if (!fetchOptions) {
-        data.sort((a, b) => a.displayName.localeCompare(b.displayName));
+        data.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
       }
       setUsers(data);
     } catch (err) {

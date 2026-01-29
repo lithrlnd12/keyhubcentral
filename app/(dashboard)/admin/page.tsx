@@ -77,7 +77,7 @@ export default function AdminPage() {
       const snapshot = await getDocs(q);
       const users = snapshot.docs
         .map((doc) => doc.data() as UserProfile)
-        .sort((a, b) => a.displayName.localeCompare(b.displayName));
+        .sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
       setActiveUsers(users);
       // Initialize roles for editing
       const userRoles: Record<string, UserRole> = {};
@@ -96,7 +96,7 @@ export default function AdminPage() {
       const snapshot = await getDocs(q);
       const partnerList = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() } as Partner))
-        .sort((a, b) => a.companyName.localeCompare(b.companyName));
+        .sort((a, b) => (a.companyName || '').localeCompare(b.companyName || ''));
       setPartners(partnerList);
     } catch (error) {
       console.error('Error fetching partners:', error);
