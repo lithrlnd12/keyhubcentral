@@ -88,9 +88,7 @@ export function useContractorSchedule(
   const jobsThisMonth = useMemo(() => {
     return jobs.filter((job) => {
       if (!job.dates?.scheduledStart) return false;
-      const scheduledDate = job.dates.scheduledStart.toDate
-        ? job.dates.scheduledStart.toDate()
-        : new Date(job.dates.scheduledStart);
+      const scheduledDate = job.dates.scheduledStart.toDate();
       return scheduledDate >= monthStart && scheduledDate <= monthEnd;
     });
   }, [jobs, monthStart, monthEnd]);
@@ -101,9 +99,7 @@ export function useContractorSchedule(
 
     jobsThisMonth.forEach((job) => {
       if (!job.dates?.scheduledStart) return;
-      const scheduledDate = job.dates.scheduledStart.toDate
-        ? job.dates.scheduledStart.toDate()
-        : new Date(job.dates.scheduledStart);
+      const scheduledDate = job.dates.scheduledStart.toDate();
       const dateKey = formatDateKey(scheduledDate);
 
       if (!map.has(dateKey)) {
