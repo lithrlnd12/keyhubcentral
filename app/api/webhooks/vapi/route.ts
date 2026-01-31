@@ -25,9 +25,11 @@ function extractStructuredData(
   call: VapiCall & { analysis?: { structuredData?: Record<string, unknown> } }
 ): Record<string, unknown> | undefined {
   let structuredData: Record<string, unknown> | undefined;
+  const messageAny = message as Record<string, unknown>;
+  const callAny = call as Record<string, unknown>;
 
   // Check message-level artifact first (where Vapi actually puts it)
-  const artifact = message.artifact as Record<string, unknown> | undefined;
+  const artifact = messageAny.artifact as Record<string, unknown> | undefined;
   const structuredOutputs = artifact?.structuredOutputs as Record<string, unknown> | undefined;
 
   if (structuredOutputs) {
@@ -36,9 +38,40 @@ function extractStructuredData(
       const output = structuredOutputs[key] as Record<string, unknown> | undefined;
       if (output?.result && typeof output.result === 'object') {
         structuredData = output.result as Record<string, unknown>;
+        console.log(`Found structured data in artifact.structuredOutputs.${key}.result`);
         break;
       }
+      // Also check if the output itself is the data (without .result wrapper)
+      if (output && !output.result && typeof output === 'object' && Object.keys(output).length > 0) {
+        const hasDataFields = 'callerName' in output || 'projectType' in output || 'urgency' in output;
+        if (hasDataFields) {
+          structuredData = output;
+          console.log(`Found structured data directly in artifact.structuredOutputs.${key}`);
+          break;
+        }
+      }
     }
+  }
+
+  // Check message.analysis (another Vapi format)
+  if (!structuredData) {
+    const messageAnalysis = messageAny.analysis as Record<string, unknown> | undefined;
+    if (messageAnalysis?.structuredData) {
+      structuredData = messageAnalysis.structuredData as Record<string, unknown>;
+      console.log('Found structured data in message.analysis.structuredData');
+    }
+  }
+
+  // Check message.structuredData directly
+  if (!structuredData && messageAny.structuredData) {
+    structuredData = messageAny.structuredData as Record<string, unknown>;
+    console.log('Found structured data in message.structuredData');
+  }
+
+  // Check call.structuredData directly
+  if (!structuredData && callAny.structuredData) {
+    structuredData = callAny.structuredData as Record<string, unknown>;
+    console.log('Found structured data in call.structuredData');
   }
 
   // Fallback: check call.analysis.structuredData (older Vapi format)
@@ -49,9 +82,20 @@ function extractStructuredData(
       const firstValue = rawStructuredData[firstKey] as Record<string, unknown> | undefined;
       if (firstValue?.result && typeof firstValue.result === 'object') {
         structuredData = firstValue.result as Record<string, unknown>;
+        console.log('Found structured data in call.analysis.structuredData[key].result');
       } else if (rawStructuredData.timeline || rawStructuredData.projectType || rawStructuredData.callOutcome) {
         structuredData = rawStructuredData;
+        console.log('Found structured data directly in call.analysis.structuredData');
       }
+    }
+  }
+
+  // Check call.analysis directly for inbound call fields
+  if (!structuredData && call.analysis) {
+    const analysis = call.analysis as Record<string, unknown>;
+    if (analysis.callerName || analysis.projectType || analysis.urgency) {
+      structuredData = analysis;
+      console.log('Found structured data directly in call.analysis');
     }
   }
 
@@ -67,8 +111,20 @@ async function handleInboundCall(
   // Extended call data from Vapi (includes analysis field not in our types)
   const vapiCall = call as VapiCall & { analysis?: { structuredData?: Record<string, unknown> } };
 
+  // Debug logging for inbound call data
+  console.log('=== INBOUND CALL DEBUG ===');
+  console.log('Message type:', message.type);
+  console.log('Call ID:', call.id);
+  console.log('Message artifact:', JSON.stringify((message as Record<string, unknown>).artifact, null, 2));
+  console.log('Call analysis:', JSON.stringify(vapiCall.analysis, null, 2));
+  console.log('Call structuredDataPlan:', JSON.stringify((vapiCall as Record<string, unknown>).structuredDataPlan, null, 2));
+  console.log('Full message keys:', Object.keys(message));
+  console.log('Full call keys:', Object.keys(call));
+  console.log('=== END DEBUG ===');
+
   // Extract structured data
   const structuredData = extractStructuredData(message, vapiCall);
+  console.log('Extracted structured data for inbound call:', JSON.stringify(structuredData, null, 2));
 
   // Get caller phone from customer object
   const callerPhone = (call.customer as { number?: string })?.number || 'Unknown';

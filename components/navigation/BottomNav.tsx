@@ -31,7 +31,7 @@ interface NavItem {
 const internalNavItems: NavItem[] = [
   { label: 'Home', href: '/overview', icon: LayoutDashboard },
   { label: 'KTS', href: '/kts', icon: Wrench },
-  { label: 'KR', href: '/kr', icon: Building2 },
+  { label: 'Calls', href: '/kts/calls', icon: Phone },
   { label: 'KD', href: '/kd', icon: Target },
   { label: 'Profile', href: '/profile', icon: User },
 ];
