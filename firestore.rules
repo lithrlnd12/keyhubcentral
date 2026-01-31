@@ -533,6 +533,26 @@ service cloud.firestore {
     }
 
     // ========================================
+    // INBOUND CALLS COLLECTION
+    // ========================================
+
+    // Inbound Calls collection - Customer calls captured via VAPI
+    match /inboundCalls/{callId} {
+      // Internal users can read all inbound calls
+      allow read: if isInternalUser();
+
+      // Only Cloud Functions (admin SDK) can create calls
+      // Webhook handlers use admin SDK for these operations
+      allow create: if false;
+
+      // Internal users can update calls (mark reviewed, contacted, convert, close)
+      allow update: if isInternalUser() && isActiveUser();
+
+      // Only owner can delete call records
+      allow delete: if isOwner();
+    }
+
+    // ========================================
     // CONTRACTS COLLECTION
     // ========================================
 
