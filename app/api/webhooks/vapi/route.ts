@@ -264,7 +264,7 @@ async function handleInboundCall(
   console.log('Call ID:', call.id);
   console.log('Message artifact:', JSON.stringify((message as Record<string, unknown>).artifact, null, 2));
   console.log('Call analysis:', JSON.stringify(vapiCall.analysis, null, 2));
-  console.log('Call structuredDataPlan:', JSON.stringify((vapiCall as Record<string, unknown>).structuredDataPlan, null, 2));
+  console.log('Call structuredDataPlan:', JSON.stringify((vapiCall as unknown as Record<string, unknown>).structuredDataPlan, null, 2));
   console.log('Full message keys:', Object.keys(message));
   console.log('Full call keys:', Object.keys(call));
   console.log('=== END DEBUG ===');
