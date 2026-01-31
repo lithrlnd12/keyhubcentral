@@ -26,7 +26,7 @@ function extractStructuredData(
 ): Record<string, unknown> | undefined {
   let structuredData: Record<string, unknown> | undefined;
   const messageAny = message as Record<string, unknown>;
-  const callAny = call as Record<string, unknown>;
+  const callAny = call as unknown as Record<string, unknown>;
 
   // Check message-level artifact first (where Vapi actually puts it)
   const artifact = messageAny.artifact as Record<string, unknown> | undefined;
