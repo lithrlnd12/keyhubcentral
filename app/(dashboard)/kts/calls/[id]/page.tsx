@@ -17,7 +17,7 @@ export default function CallDetailPage() {
 
   const handleConvertSuccess = (leadId: string) => {
     // Navigate to the new lead
-    router.push(`/kr/leads/${leadId}`);
+    router.push(`/kd/leads/${leadId}`);
   };
 
   if (loading) {
