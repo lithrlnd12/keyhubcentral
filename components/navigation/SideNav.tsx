@@ -25,9 +25,10 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Phone,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
-import { useAuth } from '@/lib/hooks';
+import { useAuth, useNewCallsCount } from '@/lib/hooks';
 import { useSidebar } from '@/lib/contexts';
 import { cn } from '@/lib/utils';
 import { canManageUsers, canViewFinancials, canManageCampaigns, canManagePartnerRequests, isPartner, canViewInventory, UserRole } from '@/types/user';
@@ -46,6 +47,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: (role: UserRole) => boolean;
+  badgeKey?: 'newCalls'; // Key for dynamic badge count
 }
 
 // Can access settings (staff with calendar sync capability)
@@ -56,6 +58,7 @@ const navItems: NavItem[] = [
   // Internal staff items
   { label: 'Overview', href: '/overview', icon: LayoutDashboard, permission: isInternalStaff },
   { label: 'KTS', href: '/kts', icon: Wrench, permission: isInternalStaff },
+  { label: 'Calls', href: '/kts/calls', icon: Phone, permission: isInternalStaff, badgeKey: 'newCalls' },
   { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: canViewInventory },
   { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: canViewInventory },
   { label: 'Key Renovations', href: '/kr', icon: Building2, permission: isInternalStaff },
@@ -89,6 +92,12 @@ export function SideNav() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const { isCollapsed, isMobileOpen, toggleCollapsed, closeMobile } = useSidebar();
+  const { count: newCallsCount } = useNewCallsCount();
+
+  // Badge counts lookup
+  const badgeCounts: Record<string, number> = {
+    newCalls: newCallsCount,
+  };
 
   const filteredNavItems = navItems.filter(
     (item) => !item.permission || (user?.role && item.permission(user.role))
@@ -137,6 +146,7 @@ export function SideNav() {
         {filteredNavItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
+          const badgeCount = item.badgeKey ? badgeCounts[item.badgeKey] : 0;
 
           return (
             <Link
@@ -152,9 +162,23 @@ export function SideNav() {
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               )}
             >
-              <Icon className="w-5 h-5 flex-shrink-0" />
+              <div className="relative flex-shrink-0">
+                <Icon className="w-5 h-5" />
+                {badgeCount > 0 && isCollapsed && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
+                    {badgeCount > 9 ? '9+' : badgeCount}
+                  </span>
+                )}
+              </div>
               {!isCollapsed && (
-                <span className="truncate">{item.label}</span>
+                <>
+                  <span className="truncate flex-1">{item.label}</span>
+                  {badgeCount > 0 && (
+                    <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-xs font-medium rounded-full">
+                      {badgeCount > 99 ? '99+' : badgeCount}
+                    </span>
+                  )}
+                </>
               )}
             </Link>
           );

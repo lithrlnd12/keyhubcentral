@@ -16,6 +16,7 @@ import {
   Package,
   Calendar,
   DollarSign,
+  Phone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks';

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { VapiWebhookPayload, VapiCall } from '@/lib/vapi/types';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Firestore } from 'firebase-admin/firestore';
+import {
+  InboundCallAnalysis,
+  PrimaryConcern,
+  Urgency,
+  EmotionalSignal,
+} from '@/types/inboundCall';
 
 // Vapi webhook secret for signature verification
 const VAPI_WEBHOOK_SECRET = process.env.VAPI_WEBHOOK_SECRET;
@@ -11,6 +17,126 @@ function removeUndefined(obj: Record<string, unknown>): Record<string, unknown> 
   return Object.fromEntries(
     Object.entries(obj).filter(([, value]) => value !== undefined)
   );
+}
+
+// Extract structured data from Vapi webhook message
+function extractStructuredData(
+  message: VapiWebhookPayload['message'],
+  call: VapiCall & { analysis?: { structuredData?: Record<string, unknown> } }
+): Record<string, unknown> | undefined {
+  let structuredData: Record<string, unknown> | undefined;
+
+  // Check message-level artifact first (where Vapi actually puts it)
+  const artifact = message.artifact as Record<string, unknown> | undefined;
+  const structuredOutputs = artifact?.structuredOutputs as Record<string, unknown> | undefined;
+
+  if (structuredOutputs) {
+    // structuredOutputs is keyed by UUID, find the first one with a result
+    for (const key of Object.keys(structuredOutputs)) {
+      const output = structuredOutputs[key] as Record<string, unknown> | undefined;
+      if (output?.result && typeof output.result === 'object') {
+        structuredData = output.result as Record<string, unknown>;
+        break;
+      }
+    }
+  }
+
+  // Fallback: check call.analysis.structuredData (older Vapi format)
+  if (!structuredData) {
+    const rawStructuredData = call.analysis?.structuredData as Record<string, unknown> | undefined;
+    if (rawStructuredData) {
+      const firstKey = Object.keys(rawStructuredData)[0];
+      const firstValue = rawStructuredData[firstKey] as Record<string, unknown> | undefined;
+      if (firstValue?.result && typeof firstValue.result === 'object') {
+        structuredData = firstValue.result as Record<string, unknown>;
+      } else if (rawStructuredData.timeline || rawStructuredData.projectType || rawStructuredData.callOutcome) {
+        structuredData = rawStructuredData;
+      }
+    }
+  }
+
+  return structuredData;
+}
+
+// Handle inbound phone calls
+async function handleInboundCall(
+  db: Firestore,
+  call: VapiCall,
+  message: VapiWebhookPayload['message']
+): Promise<void> {
+  // Extended call data from Vapi (includes analysis field not in our types)
+  const vapiCall = call as VapiCall & { analysis?: { structuredData?: Record<string, unknown> } };
+
+  // Extract structured data
+  const structuredData = extractStructuredData(message, vapiCall);
+
+  // Get caller phone from customer object
+  const callerPhone = (call.customer as { number?: string })?.number || 'Unknown';
+  const callerName = structuredData?.callerName as string | null || null;
+
+  // Parse analysis fields with proper type validation
+  const projectType = structuredData?.projectType as string | null || null;
+
+  // Validate urgency enum
+  const rawUrgency = structuredData?.urgency as string | undefined;
+  const urgency: Urgency | null =
+    rawUrgency === 'exploring' || rawUrgency === 'ready' || rawUrgency === 'urgent'
+      ? rawUrgency
+      : null;
+
+  // Validate primary concern enum
+  const rawConcern = structuredData?.primaryConcern as string | undefined;
+  const primaryConcern: PrimaryConcern | null =
+    rawConcern === 'price' || rawConcern === 'timeline' || rawConcern === 'warranty' || rawConcern === 'trust'
+      ? rawConcern
+      : null;
+
+  // Validate emotional signal enum
+  const rawSignal = structuredData?.emotionalSignal as string | undefined;
+  const emotionalSignal: EmotionalSignal | null =
+    rawSignal === 'frustrated' || rawSignal === 'excited' || rawSignal === 'skeptical' || rawSignal === 'neutral'
+      ? rawSignal
+      : null;
+
+  const timeline = structuredData?.timeline as string | null || null;
+  const notes = structuredData?.notes as string | null || structuredData?.additionalNotes as string | null || null;
+
+  // Calculate duration from messages
+  const duration = call.messages
+    ? Math.max(...call.messages.map((m) => m.secondsFromStart || 0))
+    : 0;
+
+  const analysis: InboundCallAnalysis = {
+    projectType,
+    primaryConcern,
+    urgency,
+    emotionalSignal,
+    timeline,
+    notes,
+  };
+
+  const inboundCallData = {
+    vapiCallId: call.id,
+    caller: {
+      phone: callerPhone,
+      name: callerName,
+    },
+    analysis,
+    duration,
+    recordingUrl: call.recordingUrl || (message as { recordingUrl?: string }).recordingUrl || null,
+    transcript: call.transcript || message.transcript || null,
+    summary: call.summary || message.summary || null,
+    status: 'new',
+    closedReason: null,
+    linkedLeadId: null,
+    reviewedBy: null,
+    reviewedAt: null,
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+
+  await db.collection('inboundCalls').add(removeUndefined(inboundCallData as Record<string, unknown>));
+  console.log(`Inbound call from ${callerPhone} saved. Project: ${projectType || 'Unknown'}, Urgency: ${urgency || 'Unknown'}`);
 }
 
 // POST - Receive webhook events from Vapi
@@ -43,7 +169,15 @@ export async function POST(request: NextRequest) {
 
     const db = getAdminDb();
 
-    // Find the voice call record by Vapi call ID
+    // Check if this is an inbound call (no existing voiceCalls record expected)
+    // Vapi sends call.type = 'inboundPhoneCall' for inbound calls
+    const callType = (call as { type?: string }).type;
+    if (callType === 'inboundPhoneCall' && message.type === 'end-of-call-report') {
+      await handleInboundCall(db, call, message);
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    // Find the voice call record by Vapi call ID (for outbound calls)
     const callsSnapshot = await db
       .collection('voiceCalls')
       .where('vapiCallId', '==', call.id)
@@ -51,6 +185,11 @@ export async function POST(request: NextRequest) {
       .get();
 
     if (callsSnapshot.empty) {
+      // Check if this might be an inbound call that wasn't caught above
+      if (callType === 'inboundPhoneCall') {
+        console.log('Inbound call webhook received (non end-of-call-report):', message.type);
+        return NextResponse.json({ status: 'ok' });
+      }
       console.log('No matching call record found for:', call.id);
       return NextResponse.json({ status: 'ok' });
     }
@@ -90,42 +229,12 @@ export async function POST(request: NextRequest) {
           updatedAt: FieldValue.serverTimestamp(),
         };
 
-        // Extract structured data from Vapi webhook
-        // Vapi puts it in message.artifact.structuredOutputs.{uuid}.result
-        let structuredData: Record<string, unknown> | undefined;
+        // Extract structured data using shared helper
+        const structuredData = extractStructuredData(message, vapiCall);
 
-        // Check message-level artifact first (where Vapi actually puts it)
-        const artifact = message.artifact as Record<string, unknown> | undefined;
-        const structuredOutputs = artifact?.structuredOutputs as Record<string, unknown> | undefined;
-
-        console.log('Vapi artifact:', JSON.stringify(artifact ? Object.keys(artifact) : null, null, 2));
-        console.log('Vapi structuredOutputs:', JSON.stringify(structuredOutputs, null, 2));
         console.log('Vapi endedReason:', call.endedReason);
-
-        if (structuredOutputs) {
-          // structuredOutputs is keyed by UUID, find the first one with a result
-          for (const key of Object.keys(structuredOutputs)) {
-            const output = structuredOutputs[key] as Record<string, unknown> | undefined;
-            if (output?.result && typeof output.result === 'object') {
-              structuredData = output.result as Record<string, unknown>;
-              console.log(`Extracted structured data from structuredOutputs.${key}.result:`, JSON.stringify(structuredData, null, 2));
-              break;
-            }
-          }
-        }
-
-        // Fallback: check call.analysis.structuredData (older Vapi format)
-        if (!structuredData) {
-          const rawStructuredData = vapiCall.analysis?.structuredData as Record<string, unknown> | undefined;
-          if (rawStructuredData) {
-            const firstKey = Object.keys(rawStructuredData)[0];
-            const firstValue = rawStructuredData[firstKey] as Record<string, unknown> | undefined;
-            if (firstValue?.result && typeof firstValue.result === 'object') {
-              structuredData = firstValue.result as Record<string, unknown>;
-            } else if (rawStructuredData.timeline || rawStructuredData.projectType || rawStructuredData.callOutcome) {
-              structuredData = rawStructuredData;
-            }
-          }
+        if (structuredData) {
+          console.log('Extracted structured data:', JSON.stringify(structuredData, null, 2));
         }
 
         // Determine call outcome - prefer structured data's callOutcome if available

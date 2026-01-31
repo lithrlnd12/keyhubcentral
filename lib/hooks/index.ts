@@ -58,3 +58,11 @@ export { useContractorSchedule } from './useContractorSchedule';
 
 // User hooks
 export { useUsersByRole } from './useUsersByRole';
+
+// Inbound calls hooks
+export {
+  useInboundCalls,
+  useInboundCall,
+  useNewCallsCount,
+  useInboundCallMutations,
+} from './useInboundCalls';
