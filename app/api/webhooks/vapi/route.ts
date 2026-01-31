@@ -408,11 +408,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ status: 'ok' });
       }
 
-      // Ignore other message types for inbound calls
-      if (message.type !== 'end-of-call-report') {
-        console.log('Inbound call webhook received (non end-of-call-report):', message.type);
-        return NextResponse.json({ status: 'ok' });
-      }
     }
 
     // Find the voice call record by Vapi call ID (for outbound calls)
