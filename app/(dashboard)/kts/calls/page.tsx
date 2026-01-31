@@ -13,7 +13,13 @@ export default function CallsPage() {
     setStatus,
     setSearch,
     setFilters,
-  } = useInboundCalls({ realtime: true });
+  } = useInboundCalls({
+    realtime: true,
+    initialFilters: {
+      // Exclude converted and closed calls from default view
+      excludeStatuses: ['converted', 'closed'],
+    },
+  });
 
   const { count: newCallsCount } = useNewCallsCount();
 

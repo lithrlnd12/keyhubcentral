@@ -175,11 +175,19 @@ export function useNewCallsCount(): UseNewCallsCountReturn {
   return { count, loading };
 }
 
+interface ConvertToLeadOptions {
+  userLocation?: {
+    zip: string;
+    lat: number | null;
+    lng: number | null;
+  };
+}
+
 interface UseInboundCallMutationsReturn {
   markAsReviewed: (id: string) => Promise<void>;
   markAsContacted: (id: string) => Promise<void>;
   closeCall: (id: string, reason: ClosedReason) => Promise<void>;
-  convertToLead: (id: string) => Promise<string>;
+  convertToLead: (id: string, options?: ConvertToLeadOptions) => Promise<string>;
   loading: boolean;
   error: string | null;
 }
@@ -240,13 +248,13 @@ export function useInboundCallMutations(): UseInboundCallMutationsReturn {
     }
   }, [user?.uid]);
 
-  const convertToLead = useCallback(async (id: string): Promise<string> => {
+  const convertToLead = useCallback(async (id: string, options?: ConvertToLeadOptions): Promise<string> => {
     if (!user?.uid) throw new Error('User not authenticated');
 
     try {
       setLoading(true);
       setError(null);
-      const leadId = await convertInboundCallToLead(id, user.uid);
+      const leadId = await convertInboundCallToLead(id, user.uid, options?.userLocation);
       return leadId;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to convert to lead';

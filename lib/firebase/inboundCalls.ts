@@ -31,6 +31,7 @@ export interface InboundCallFilters {
   dateFrom?: Date;
   dateTo?: Date;
   search?: string;
+  excludeStatuses?: InboundCallStatus[];
 }
 
 /**
@@ -149,7 +150,12 @@ export async function closeInboundCall(
  */
 export async function convertInboundCallToLead(
   id: string,
-  userId: string
+  userId: string,
+  userLocation?: {
+    zip: string;
+    lat: number | null;
+    lng: number | null;
+  }
 ): Promise<string> {
   // Get the call data
   const call = await getInboundCall(id);
@@ -179,9 +185,9 @@ export async function convertInboundCallToLead(
         street: '',
         city: '',
         state: '',
-        zip: '',
-        lat: null,
-        lng: null,
+        zip: userLocation?.zip || '',
+        lat: userLocation?.lat || null,
+        lng: userLocation?.lng || null,
       },
       notes: call.analysis.notes || call.summary || null,
     },
@@ -245,6 +251,13 @@ export function subscribeToInboundCalls(
           call.caller.phone.includes(searchLower) ||
           call.analysis.projectType?.toLowerCase().includes(searchLower) ||
           call.summary?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Client-side exclusion filter for converted/closed calls
+    if (filters?.excludeStatuses && filters.excludeStatuses.length > 0) {
+      calls = calls.filter(
+        (call) => !filters.excludeStatuses!.includes(call.status)
       );
     }
 

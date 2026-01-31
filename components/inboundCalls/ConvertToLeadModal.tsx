@@ -5,6 +5,7 @@ import { X, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { InboundCall } from '@/types/inboundCall';
 import { useInboundCallMutations } from '@/lib/hooks/useInboundCalls';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { formatPhoneNumber } from '@/lib/utils/inboundCalls';
 
 interface ConvertToLeadModalProps {
@@ -15,6 +16,7 @@ interface ConvertToLeadModalProps {
 }
 
 export function ConvertToLeadModal({ call, isOpen, onClose, onSuccess }: ConvertToLeadModalProps) {
+  const { user } = useAuth();
   const { convertToLead, loading, error } = useInboundCallMutations();
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -23,7 +25,14 @@ export function ConvertToLeadModal({ call, isOpen, onClose, onSuccess }: Convert
   const handleConvert = async () => {
     try {
       setLocalError(null);
-      const leadId = await convertToLead(call.id);
+      // Pass user's location data to populate the lead's address
+      const userLocation = user?.baseZipCode ? {
+        zip: user.baseZipCode,
+        lat: user.baseCoordinates?.lat ?? null,
+        lng: user.baseCoordinates?.lng ?? null,
+      } : undefined;
+
+      const leadId = await convertToLead(call.id, { userLocation });
       onSuccess(leadId);
       onClose();
     } catch (err) {
