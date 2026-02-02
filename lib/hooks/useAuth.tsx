@@ -5,9 +5,11 @@ import {
   useContext,
   useEffect,
   useState,
+  useCallback,
   ReactNode,
 } from 'react';
 import { User } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
 import {
   signIn as firebaseSignIn,
   signUp as firebaseSignUp,
@@ -16,7 +18,7 @@ import {
   getUserProfile,
   onAuthChange,
 } from '@/lib/firebase/auth';
-import { auth } from '@/lib/firebase/config';
+import { auth, db } from '@/lib/firebase/config';
 import { UserProfile, AuthContextType, UserRole } from '@/types/user';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,27 +29,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthChange(async (firebaseUser: User | null) => {
-      setLoading(true);
-      setError(null);
+    let unsubscribeProfile: (() => void) | null = null;
 
-      if (firebaseUser) {
-        try {
-          const profile = await getUserProfile(firebaseUser.uid);
-          setUser(profile);
-        } catch (err) {
-          console.error('Error fetching user profile:', err);
-          setError('Failed to load user profile');
-          setUser(null);
-        }
-      } else {
-        setUser(null);
+    const unsubscribeAuth = onAuthChange(async (firebaseUser: User | null) => {
+      // Clean up previous profile subscription
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
       }
 
-      setLoading(false);
+      if (firebaseUser) {
+        setLoading(true);
+        setError(null);
+
+        // Subscribe to user profile in realtime
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        unsubscribeProfile = onSnapshot(
+          userRef,
+          (docSnap) => {
+            if (docSnap.exists()) {
+              setUser({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
+            } else {
+              setUser(null);
+            }
+            setLoading(false);
+          },
+          (err) => {
+            console.error('Error subscribing to user profile:', err);
+            setError('Failed to load user profile');
+            setUser(null);
+            setLoading(false);
+          }
+        );
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+      }
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
