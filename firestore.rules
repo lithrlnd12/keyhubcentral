@@ -161,12 +161,19 @@ service cloud.firestore {
 
       // Sales reps can update leads assigned to them
       // Also allow updating to 'converted' status when linking to a job
+      // Also allow sales reps to CLAIM unassigned leads (assignedTo is null)
       allow update: if isAdmin() ||
         (isActiveUser() && resource.data.assignedTo == request.auth.uid) ||
         (isActiveUser() &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'sales_rep' &&
           request.resource.data.status == 'converted' &&
-          request.resource.data.linkedJobId != null);
+          request.resource.data.linkedJobId != null) ||
+        (isActiveUser() &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'sales_rep' &&
+          resource.data.assignedTo == null &&
+          resource.data.status == 'new' &&
+          request.resource.data.assignedTo == request.auth.uid &&
+          request.resource.data.status == 'assigned');
       allow delete: if isOwner();
     }
 
