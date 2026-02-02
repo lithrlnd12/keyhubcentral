@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Timestamp } from 'firebase/firestore';
 import { getDownloadURL } from 'firebase/storage';
@@ -81,6 +81,13 @@ export function OnboardingWizard() {
   >({});
   const [documentsErrors, setDocumentsErrors] = useState<Record<string, string>>({});
   const [parsedFromDocuments, setParsedFromDocuments] = useState(false);
+
+  // Pre-fill email from logged-in user
+  useEffect(() => {
+    if (user?.email && !basicInfo.email) {
+      setBasicInfo(prev => ({ ...prev, email: user.email || '' }));
+    }
+  }, [user?.email]);
 
   // Handle parsed data from W-9 document
   const handleParsedInfo = (info: ParsedContractorInfo) => {
@@ -173,12 +180,17 @@ export function OnboardingWizard() {
       return;
     }
 
+    if (!user?.uid) {
+      setError('You must be logged in to create a contractor profile');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
     try {
-      // Generate a temporary userId (in real app, this might come from creating a user first)
-      const tempUserId = `contractor_${Date.now()}`;
+      // Use the logged-in user's actual UID for proper linking
+      const contractorUserId = user.uid;
 
       // Upload files if present
       let w9Url = documents.w9Url;
@@ -186,7 +198,7 @@ export function OnboardingWizard() {
 
       if (documents.w9File) {
         const uploadTask = uploadContractorDocument(
-          tempUserId,
+          contractorUserId,
           documents.w9File,
           'w9'
         );
@@ -196,7 +208,7 @@ export function OnboardingWizard() {
 
       if (documents.insuranceFile) {
         const uploadTask = uploadContractorDocument(
-          tempUserId,
+          contractorUserId,
           documents.insuranceFile,
           'insurance'
         );
@@ -204,10 +216,10 @@ export function OnboardingWizard() {
         insuranceUrl = await getDownloadURL(uploadTask.snapshot.ref);
       }
 
-      // Create contractor document
+      // Create contractor document - use logged-in user's UID and email
       const contractorData = {
-        userId: tempUserId,
-        email: basicInfo.email.toLowerCase(),
+        userId: contractorUserId,
+        email: (basicInfo.email || user.email || '').toLowerCase(),
         phone: basicInfo.phone,
         businessName: basicInfo.businessName || null,
         address: {
