@@ -57,17 +57,30 @@ export default function KDPage() {
         // "All Leads" mode - show all unassigned leads
         if (leadScope === 'all') return true;
 
-        // "Nearby" mode - filter by distance
-        if (!user.baseCoordinates || !lead.customer.address.lat || !lead.customer.address.lng) {
-          return false;
+        // "Nearby" mode - filter by distance or zip code match
+        const hasCoordinates =
+          user.baseCoordinates &&
+          lead.customer.address.lat &&
+          lead.customer.address.lng;
+
+        if (hasCoordinates) {
+          // Use distance calculation
+          const distance = calculateDistanceMiles(
+            user.baseCoordinates!.lat,
+            user.baseCoordinates!.lng,
+            lead.customer.address.lat!,
+            lead.customer.address.lng!
+          );
+          return distance <= MAX_CLAIM_DISTANCE_MILES;
         }
-        const distance = calculateDistanceMiles(
-          user.baseCoordinates.lat,
-          user.baseCoordinates.lng,
-          lead.customer.address.lat,
-          lead.customer.address.lng
-        );
-        return distance <= MAX_CLAIM_DISTANCE_MILES;
+
+        // Fallback: match by zip code if coordinates aren't available
+        if (user.baseZipCode && lead.customer.address.zip) {
+          return user.baseZipCode === lead.customer.address.zip;
+        }
+
+        // No coordinates and no zip match - don't show
+        return false;
       }
 
       return false;
