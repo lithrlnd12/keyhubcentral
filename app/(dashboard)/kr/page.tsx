@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useJobs } from '@/lib/hooks/useJobs';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { JobList, JobFilters } from '@/components/jobs';
@@ -10,8 +11,12 @@ import { getJobCountSummary } from '@/lib/utils/jobs';
 
 export default function KRPage() {
   const { user } = useAuth();
+
+  // Sales reps only see jobs assigned to them, up through front_end_hold stage
+  const isSalesRep = user?.role === 'sales_rep';
+
   const {
-    jobs,
+    jobs: allJobs,
     loading,
     error,
     filters,
@@ -19,6 +24,19 @@ export default function KRPage() {
     setType,
     setSearch,
   } = useJobs({ realtime: true });
+
+  // Filter jobs for sales reps: only their jobs in lead/sold stages
+  // Once a job hits front_end_hold, it's handed off to operations
+  const jobs = useMemo(() => {
+    if (!isSalesRep || !user?.uid) return allJobs;
+
+    const salesRepStages = ['lead', 'sold'];
+    return allJobs.filter(
+      (job) =>
+        job.salesRepId === user.uid &&
+        salesRepStages.includes(job.status)
+    );
+  }, [allJobs, isSalesRep, user?.uid]);
 
   const summary = getJobCountSummary(jobs);
   const canCreate = user?.role && ['owner', 'admin', 'pm', 'sales_rep'].includes(user.role);
@@ -29,7 +47,11 @@ export default function KRPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Key Renovations</h1>
-          <p className="text-gray-400 mt-1">Manage jobs, pipeline, and customer projects</p>
+          <p className="text-gray-400 mt-1">
+            {isSalesRep
+              ? 'Your active deals in Lead and Sold stages'
+              : 'Manage jobs, pipeline, and customer projects'}
+          </p>
         </div>
         {canCreate && (
           <Link href="/kr/new">
@@ -93,7 +115,9 @@ export default function KRPage() {
         emptyMessage={
           filters.status || filters.type || filters.search
             ? 'No jobs match your filters'
-            : 'No jobs yet. Create your first job to get started.'
+            : isSalesRep
+              ? 'No active deals. Jobs appear here when you convert leads.'
+              : 'No jobs yet. Create your first job to get started.'
         }
       />
     </div>
