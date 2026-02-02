@@ -97,7 +97,8 @@ interface UseClaimLeadReturn {
   claimLead: (
     leadId: string,
     userId: string,
-    userCoordinates: { lat: number; lng: number }
+    userCoordinates: { lat: number; lng: number } | null,
+    userZipCode: string | null
   ) => Promise<void>;
   loading: boolean;
   error: string | null;
@@ -111,12 +112,13 @@ export function useClaimLead(): UseClaimLeadReturn {
     async (
       leadId: string,
       userId: string,
-      userCoordinates: { lat: number; lng: number }
+      userCoordinates: { lat: number; lng: number } | null,
+      userZipCode: string | null
     ) => {
       try {
         setLoading(true);
         setError(null);
-        await claimLeadFn(leadId, userId, userCoordinates);
+        await claimLeadFn(leadId, userId, userCoordinates, userZipCode);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to claim lead';
         setError(message);

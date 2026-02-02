@@ -69,15 +69,20 @@ export default function LeadDetailPage() {
   const handleClaim = async () => {
     if (!user?.uid || !lead) return;
 
-    // Check if user has base coordinates set
-    if (!user?.baseCoordinates) {
+    // Check if user has base location set (coordinates or zip code)
+    if (!user?.baseCoordinates && !user?.baseZipCode) {
       setLocalClaimError('Please set your base zip code in your profile to claim leads.');
       return;
     }
 
     setLocalClaimError(null);
     try {
-      await claimLead(lead.id, user.uid, user.baseCoordinates);
+      await claimLead(
+        lead.id,
+        user.uid,
+        user.baseCoordinates || null,
+        user.baseZipCode || null
+      );
     } catch (err) {
       console.error('Failed to claim lead:', err);
     }

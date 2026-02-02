@@ -567,12 +567,14 @@ const MAX_CLAIM_DISTANCE_MILES = 50;
 /**
  * Allow a sales rep to claim an unassigned lead
  * - Lead must be status 'new' and unassigned
- * - Lead must be within 50 miles of sales rep's base location
+ * - Lead must be within 50 miles of sales rep's base location (if coordinates available)
+ * - Or lead must match user's base zip code (fallback when no coordinates)
  */
 export async function claimLead(
   id: string,
   userId: string,
-  userCoordinates: { lat: number; lng: number }
+  userCoordinates: { lat: number; lng: number } | null,
+  userZipCode: string | null
 ): Promise<void> {
   const docRef = doc(db, COLLECTION, id);
 
@@ -582,18 +584,28 @@ export async function claimLead(
   if (lead.assignedTo) throw new Error('Lead is already assigned');
   if (lead.status !== 'new') throw new Error('Lead cannot be claimed');
 
-  // Check distance (50 mile max)
-  if (lead.customer.address.lat && lead.customer.address.lng) {
+  // Check location - prioritize coordinate-based distance check
+  const hasUserCoordinates = userCoordinates?.lat && userCoordinates?.lng;
+  const hasLeadCoordinates = lead.customer.address.lat && lead.customer.address.lng;
+
+  if (hasUserCoordinates && hasLeadCoordinates) {
+    // Distance check when both have coordinates
     const distance = calculateDistanceMiles(
       userCoordinates.lat,
       userCoordinates.lng,
-      lead.customer.address.lat,
-      lead.customer.address.lng
+      lead.customer.address.lat!,
+      lead.customer.address.lng!
     );
     if (distance > MAX_CLAIM_DISTANCE_MILES) {
       throw new Error('Lead is outside your service area (50 mile limit)');
     }
+  } else if (userZipCode && lead.customer.address.zip) {
+    // Fallback: zip code match when coordinates aren't available
+    if (userZipCode !== lead.customer.address.zip) {
+      throw new Error('Lead is not in your service area (zip code does not match)');
+    }
   }
+  // If neither check applies, allow the claim (no location restriction)
 
   await updateDoc(docRef, {
     assignedTo: userId,
