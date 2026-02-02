@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { LeadList, LeadFilters } from '@/components/leads';
 import { KDStats, LeadSourceChart, CampaignPerformance, SubscriberBreakdown } from '@/components/kd';
 import { Button } from '@/components/ui/Button';
-import { Plus, LayoutDashboard, Users } from 'lucide-react';
+import { Plus, LayoutDashboard, Users, MapPin, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils/cn';
 import { calculateDistanceMiles } from '@/lib/utils/distance';
@@ -16,10 +16,12 @@ import { calculateDistanceMiles } from '@/lib/utils/distance';
 const MAX_CLAIM_DISTANCE_MILES = 50;
 
 type TabType = 'dashboard' | 'leads';
+type LeadScope = 'nearby' | 'all';
 
 export default function KDPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [leadScope, setLeadScope] = useState<LeadScope>('nearby');
 
   const {
     leads,
@@ -42,7 +44,7 @@ export default function KDPage() {
   const canViewAll = user?.role && ['owner', 'admin'].includes(user.role);
   const isSalesRep = user?.role === 'sales_rep';
 
-  // Filter leads for sales reps: show assigned leads + claimable leads within 50 miles
+  // Filter leads for sales reps: show assigned leads + claimable leads
   const visibleLeads = useMemo(() => {
     if (!isSalesRep || !user?.uid) return leads;
 
@@ -50,8 +52,12 @@ export default function KDPage() {
       // Show leads assigned to this sales rep
       if (lead.assignedTo === user.uid) return true;
 
-      // Show unassigned leads within 50 miles
+      // Show unassigned leads
       if (lead.status === 'new' && !lead.assignedTo) {
+        // "All Leads" mode - show all unassigned leads
+        if (leadScope === 'all') return true;
+
+        // "Nearby" mode - filter by distance
         if (!user.baseCoordinates || !lead.customer.address.lat || !lead.customer.address.lng) {
           return false;
         }
@@ -66,7 +72,7 @@ export default function KDPage() {
 
       return false;
     });
-  }, [leads, isSalesRep, user]);
+  }, [leads, isSalesRep, user, leadScope]);
 
   const isLoading = leadsLoading || campaignsLoading || subscriptionsLoading;
 
@@ -152,6 +158,39 @@ export default function KDPage() {
         </>
       ) : (
         <>
+          {/* Lead Scope Toggle for Sales Reps */}
+          {isSalesRep && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-400">Show:</span>
+              <div className="flex gap-1 bg-gray-800/50 p-1 rounded-lg">
+                <button
+                  onClick={() => setLeadScope('nearby')}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                    leadScope === 'nearby'
+                      ? 'bg-brand-gold text-black'
+                      : 'text-gray-400 hover:text-white'
+                  )}
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  Nearby (50 mi)
+                </button>
+                <button
+                  onClick={() => setLeadScope('all')}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
+                    leadScope === 'all'
+                      ? 'bg-brand-gold text-black'
+                      : 'text-gray-400 hover:text-white'
+                  )}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  All Leads
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Filters */}
           <LeadFilters
             status={filters.status}
@@ -174,7 +213,9 @@ export default function KDPage() {
               filters.status || filters.source || filters.quality || filters.search
                 ? 'No leads match your filters'
                 : isSalesRep
-                  ? 'No leads available. Claimable leads will appear when they are within 50 miles of your location.'
+                  ? leadScope === 'nearby'
+                    ? 'No nearby leads available. Try switching to "All Leads" to see leads outside your area.'
+                    : 'No unassigned leads available.'
                   : 'No leads yet. Add your first lead to get started.'
             }
           />
