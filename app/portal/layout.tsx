@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 
 const PAGE_TITLES: Record<string, string> = {
   '/portal': 'Dashboard',
+  '/portal/calendar': 'My Calendar',
   '/portal/availability': 'Availability',
   '/portal/jobs': 'My Jobs',
   '/portal/financials': 'Financials',

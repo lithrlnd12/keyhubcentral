@@ -66,3 +66,10 @@ export {
   useNewCallsCount,
   useInboundCallMutations,
 } from './useInboundCalls';
+
+// Google Calendar hooks
+export {
+  useGoogleCalendarEvents,
+  getEventsForDate,
+} from './useGoogleCalendarEvents';
+export type { GoogleCalendarEvent } from './useGoogleCalendarEvents';

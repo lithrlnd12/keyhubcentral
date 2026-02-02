@@ -1,9 +1,10 @@
 'use client';
 
-import { X, Calendar, Settings } from 'lucide-react';
+import { X, Calendar, Settings, ExternalLink, MapPin, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Job } from '@/types/job';
+import { GoogleCalendarEvent } from '@/lib/hooks/useGoogleCalendarEvents';
 import {
   BlockStatus,
   TIME_BLOCKS,
@@ -17,6 +18,7 @@ interface CalendarDayDetailProps {
   date: Date;
   jobs: Job[];
   availability: BlockStatus | null;
+  googleCalendarEvents?: GoogleCalendarEvent[];
   onClose: () => void;
   isMobile?: boolean;
 }
@@ -33,10 +35,14 @@ export function CalendarDayDetail({
   date,
   jobs,
   availability,
+  googleCalendarEvents = [],
   onClose,
   isMobile = false,
 }: CalendarDayDetailProps) {
   const blocks = availability || getDefaultBlocks();
+
+  // Filter out KeyHub-synced events (they're just availability mirrors)
+  const externalGCalEvents = googleCalendarEvents.filter(e => !e.isKeyHubEvent);
 
   const content = (
     <>
@@ -107,6 +113,26 @@ export function CalendarDayDetail({
           </div>
         )}
       </div>
+
+      {/* Google Calendar Events Section */}
+      {externalGCalEvents.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-gray-700">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-400 flex items-center gap-2">
+              <svg className="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z" />
+              </svg>
+              Google Calendar ({externalGCalEvents.length})
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {externalGCalEvents.map((event) => (
+              <GoogleCalendarEventCard key={event.id} event={event} />
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 
@@ -127,6 +153,53 @@ export function CalendarDayDetail({
   return (
     <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-4 h-fit">
       {content}
+    </div>
+  );
+}
+
+// Google Calendar Event Card Component
+function GoogleCalendarEventCard({ event }: { event: GoogleCalendarEvent }) {
+  const formatTime = (dateStr: string, isAllDay: boolean) => {
+    if (isAllDay) return 'All day';
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  return (
+    <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-medium text-white text-sm truncate">{event.summary}</h4>
+          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {formatTime(event.start, event.isAllDay)}
+              {!event.isAllDay && ` - ${formatTime(event.end, event.isAllDay)}`}
+            </span>
+          </div>
+          {event.location && (
+            <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
+              <MapPin className="w-3 h-3" />
+              <span className="truncate">{event.location}</span>
+            </div>
+          )}
+        </div>
+        {event.htmlLink && (
+          <a
+            href={event.htmlLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded transition-colors"
+            title="Open in Google Calendar"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        )}
+      </div>
     </div>
   );
 }

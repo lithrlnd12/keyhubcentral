@@ -1,16 +1,16 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Briefcase } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Briefcase, CalendarDays } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Contractor } from '@/types/contractor';
-import { useContractorSchedule, ScheduleDay } from '@/lib/hooks/useContractorSchedule';
+import { useContractorSchedule } from '@/lib/hooks/useContractorSchedule';
+import { useGoogleCalendarEvents, getEventsForDate } from '@/lib/hooks/useGoogleCalendarEvents';
 import {
   TIME_BLOCKS,
   TIME_BLOCK_CONFIG,
   getAvailabilityInfo,
-  formatDateKey,
   getDefaultBlocks,
 } from '@/types/availability';
 import { CalendarDayDetail } from './CalendarDayDetail';
@@ -37,6 +37,18 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
     contractorId: contractor.id,
     year,
     month,
+  });
+
+  // Google Calendar events for the month
+  const monthStart = useMemo(() => new Date(year, month, 1), [year, month]);
+  const monthEnd = useMemo(() => new Date(year, month + 1, 0, 23, 59, 59), [year, month]);
+
+  const {
+    events: googleCalendarEvents,
+    loading: gcalLoading,
+  } = useGoogleCalendarEvents({
+    startDate: monthStart,
+    endDate: monthEnd,
   });
 
   // Check if mobile on mount
@@ -105,6 +117,7 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
   };
 
   const selectedSchedule = selectedDate ? getScheduleDay(selectedDate) : null;
+  const selectedGCalEvents = selectedDate ? getEventsForDate(googleCalendarEvents, selectedDate) : [];
 
   return (
     <div className="space-y-4">
@@ -141,6 +154,10 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
         <div className="flex items-center gap-1.5 text-xs text-gray-400">
           <div className="w-5 h-3 rounded bg-brand-gold/30 border border-brand-gold/50" />
           <span>Has Jobs</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+          <div className="w-5 h-3 rounded bg-blue-500/30 border border-blue-500/50" />
+          <span>Google Calendar</span>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-gray-400">
           <div className="flex gap-0.5">
@@ -185,6 +202,10 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
                 const today = isToday(day);
                 const selected = isSelected(day);
 
+                // Get Google Calendar events for this day
+                const dayGCalEvents = getEventsForDate(googleCalendarEvents, day);
+                const hasGCalEvents = dayGCalEvents.length > 0;
+
                 return (
                   <button
                     key={index}
@@ -192,7 +213,7 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
                     className={`
                       aspect-square rounded-lg flex flex-col items-center justify-center
                       transition-all text-sm relative
-                      ${hasJobs ? 'bg-brand-gold/10 border border-brand-gold/30' : 'bg-gray-800/50'}
+                      ${hasJobs ? 'bg-brand-gold/10 border border-brand-gold/30' : hasGCalEvents ? 'bg-blue-500/10 border border-blue-500/30' : 'bg-gray-800/50'}
                       cursor-pointer hover:ring-2 hover:ring-brand-gold/50
                       ${selected ? 'ring-2 ring-brand-gold' : ''}
                       ${today ? 'font-bold' : ''}
@@ -202,6 +223,20 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
                     {hasJobs && (
                       <div className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-brand-gold text-black text-[10px] font-bold flex items-center justify-center">
                         {schedule.jobs.length}
+                      </div>
+                    )}
+
+                    {/* Google Calendar events badge */}
+                    {hasGCalEvents && !hasJobs && (
+                      <div className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
+                        {dayGCalEvents.length}
+                      </div>
+                    )}
+
+                    {/* Both jobs and gcal events */}
+                    {hasGCalEvents && hasJobs && (
+                      <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center">
+                        {dayGCalEvents.length}
                       </div>
                     )}
 
@@ -235,6 +270,7 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
               date={selectedDate!}
               jobs={selectedSchedule.jobs}
               availability={selectedSchedule.availability}
+              googleCalendarEvents={selectedGCalEvents}
               onClose={() => setSelectedDate(null)}
             />
           )}
@@ -263,6 +299,7 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
             date={selectedDate!}
             jobs={selectedSchedule.jobs}
             availability={selectedSchedule.availability}
+            googleCalendarEvents={selectedGCalEvents}
             onClose={() => setSelectedDate(null)}
             isMobile
           />
