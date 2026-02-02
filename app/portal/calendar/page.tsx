@@ -6,7 +6,8 @@ import { BackButton } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
 import { getContractorByUserId } from '@/lib/firebase/contractors';
 import { Contractor } from '@/types/contractor';
-import { ContractorCalendar } from '@/components/portal';
+import { ContractorCalendar, GoogleCalendarOnlyView } from '@/components/portal';
+import { AlertCircle } from 'lucide-react';
 
 export default function PortalCalendarPage() {
   const { user } = useAuth();
@@ -37,16 +38,6 @@ export default function PortalCalendarPage() {
     );
   }
 
-  if (!contractor) {
-    return (
-      <Card className="p-6">
-        <p className="text-gray-400">
-          Your contractor profile has not been set up yet. Please contact an administrator.
-        </p>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -54,12 +45,31 @@ export default function PortalCalendarPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">My Calendar</h1>
           <p className="text-gray-400 mt-1">
-            View your scheduled jobs and availability
+            View your scheduled jobs and Google Calendar events
           </p>
         </div>
       </div>
 
-      <ContractorCalendar contractor={contractor} />
+      {!contractor && (
+        <Card className="p-4 border-yellow-500/30 bg-yellow-500/10">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-yellow-400 font-medium">Contractor profile not linked</p>
+              <p className="text-gray-400 text-sm mt-1">
+                Your user account is not linked to a contractor profile. You can still view your Google Calendar events below.
+                Contact an administrator to link your contractor profile to see assigned jobs.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {contractor ? (
+        <ContractorCalendar contractor={contractor} />
+      ) : (
+        <GoogleCalendarOnlyView />
+      )}
     </div>
   );
 }
