@@ -1,12 +1,15 @@
 'use client';
 
-import { X, Calendar, Settings, ExternalLink, MapPin, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { X, Calendar, Settings, ExternalLink, MapPin, Clock, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Job } from '@/types/job';
 import { GoogleCalendarEvent } from '@/lib/hooks/useGoogleCalendarEvents';
 import {
   BlockStatus,
+  TimeBlock,
+  AvailabilityStatus,
   TIME_BLOCKS,
   TIME_BLOCK_CONFIG,
   getAvailabilityInfo,
@@ -20,7 +23,9 @@ interface CalendarDayDetailProps {
   availability: BlockStatus | null;
   googleCalendarEvents?: GoogleCalendarEvent[];
   onClose: () => void;
+  onAvailabilityChange?: (block: TimeBlock, status: AvailabilityStatus) => Promise<void>;
   isMobile?: boolean;
+  canEdit?: boolean;
 }
 
 function formatDate(date: Date): string {
@@ -37,12 +42,32 @@ export function CalendarDayDetail({
   availability,
   googleCalendarEvents = [],
   onClose,
+  onAvailabilityChange,
   isMobile = false,
+  canEdit = true,
 }: CalendarDayDetailProps) {
   const blocks = availability || getDefaultBlocks();
+  const [updatingBlock, setUpdatingBlock] = useState<TimeBlock | null>(null);
 
   // Filter out KeyHub-synced events (they're just availability mirrors)
   const externalGCalEvents = googleCalendarEvents.filter(e => !e.isKeyHubEvent);
+
+  // Cycle through availability statuses
+  const handleBlockClick = async (block: TimeBlock) => {
+    if (!canEdit || !onAvailabilityChange) return;
+
+    const currentStatus = blocks[block];
+    const statusOrder: AvailabilityStatus[] = ['available', 'busy', 'unavailable', 'on_leave'];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
+
+    setUpdatingBlock(block);
+    try {
+      await onAvailabilityChange(block, nextStatus);
+    } finally {
+      setUpdatingBlock(null);
+    }
+  };
 
   const content = (
     <>
@@ -63,7 +88,9 @@ export function CalendarDayDetail({
       {/* Availability Blocks */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-gray-400">Availability</span>
+          <span className="text-sm text-gray-400">
+            Availability {canEdit && onAvailabilityChange && <span className="text-xs text-gray-500">(tap to change)</span>}
+          </span>
           <Link href="/portal/availability">
             <Button variant="ghost" size="sm" className="text-xs gap-1">
               <Settings className="w-3 h-3" />
@@ -75,18 +102,34 @@ export function CalendarDayDetail({
           {TIME_BLOCKS.map((block) => {
             const status = blocks[block];
             const info = getAvailabilityInfo(status);
+            const isUpdating = updatingBlock === block;
+            const isClickable = canEdit && onAvailabilityChange && !isUpdating;
+
             return (
-              <div
+              <button
                 key={block}
-                className={`p-2 rounded-lg ${info.bgColor} border border-gray-700`}
+                onClick={() => handleBlockClick(block)}
+                disabled={!isClickable}
+                className={`p-2 rounded-lg ${info.bgColor} border border-gray-700 text-left transition-all ${
+                  isClickable
+                    ? 'cursor-pointer hover:border-brand-gold/50 hover:ring-1 hover:ring-brand-gold/30 active:scale-95'
+                    : 'cursor-default'
+                } ${isUpdating ? 'opacity-50' : ''}`}
               >
                 <div className="text-xs font-medium text-gray-400 mb-1">
                   {TIME_BLOCK_CONFIG[block].label}
                 </div>
-                <div className={`text-sm font-medium ${info.color}`}>
-                  {info.label}
+                <div className={`text-sm font-medium ${info.color} flex items-center gap-1`}>
+                  {isUpdating ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    info.label
+                  )}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

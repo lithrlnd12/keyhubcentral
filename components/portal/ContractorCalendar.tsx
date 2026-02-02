@@ -12,7 +12,10 @@ import {
   TIME_BLOCK_CONFIG,
   getAvailabilityInfo,
   getDefaultBlocks,
+  TimeBlock,
+  AvailabilityStatus,
 } from '@/types/availability';
+import { setBlockAvailability } from '@/lib/firebase/availability';
 import { CalendarDayDetail } from './CalendarDayDetail';
 
 interface ContractorCalendarProps {
@@ -118,6 +121,13 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
 
   const selectedSchedule = selectedDate ? getScheduleDay(selectedDate) : null;
   const selectedGCalEvents = selectedDate ? getEventsForDate(googleCalendarEvents, selectedDate) : [];
+
+  // Handle availability change from calendar detail
+  const handleAvailabilityChange = async (block: TimeBlock, status: AvailabilityStatus) => {
+    if (!selectedDate) return;
+    await setBlockAvailability(contractor.id, selectedDate, block, status);
+    // The useContractorSchedule hook should auto-refresh via subscription
+  };
 
   return (
     <div className="space-y-4">
@@ -272,6 +282,8 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
               availability={selectedSchedule.availability}
               googleCalendarEvents={selectedGCalEvents}
               onClose={() => setSelectedDate(null)}
+              onAvailabilityChange={handleAvailabilityChange}
+              canEdit={true}
             />
           )}
 
@@ -301,6 +313,8 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
             availability={selectedSchedule.availability}
             googleCalendarEvents={selectedGCalEvents}
             onClose={() => setSelectedDate(null)}
+            onAvailabilityChange={handleAvailabilityChange}
+            canEdit={true}
             isMobile
           />
         </>
