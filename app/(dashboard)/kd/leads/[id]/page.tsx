@@ -33,7 +33,10 @@ export default function LeadDetailPage() {
 
   const { claimLead, loading: claimLoading, error: claimError } = useClaimLead();
 
-  const canEdit = user?.role && ['owner', 'admin'].includes(user.role);
+  // Admins can edit any lead, sales reps can edit leads assigned to them
+  const canEdit =
+    (user?.role && ['owner', 'admin'].includes(user.role)) ||
+    (user?.role === 'sales_rep' && lead?.assignedTo === user?.uid);
   const canAssign = user?.role && ['owner', 'admin'].includes(user.role);
 
   // Sales reps can claim unassigned leads

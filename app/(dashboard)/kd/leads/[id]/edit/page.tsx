@@ -13,8 +13,12 @@ export default function EditLeadPage() {
   const { user, loading: authLoading } = useAuth();
   const { lead, loading, error } = useLead(id);
 
-  // Only owners and admins can edit leads
-  if (!authLoading && user?.role && !['owner', 'admin'].includes(user.role)) {
+  // Admins can edit any lead, sales reps can edit leads assigned to them
+  const isAdmin = user?.role && ['owner', 'admin'].includes(user.role);
+  const isAssignedSalesRep = user?.role === 'sales_rep' && lead?.assignedTo === user?.uid;
+  const canEdit = isAdmin || isAssignedSalesRep;
+
+  if (!authLoading && !loading && user && !canEdit) {
     redirect(`/kd/leads/${id}`);
   }
 
