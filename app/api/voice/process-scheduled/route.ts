@@ -3,11 +3,26 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { createOutboundCall } from '@/lib/vapi/client';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 
+// ===========================================
+// FEATURE FLAG - Set to true to re-enable Vapi auto-calls
+// ===========================================
+const ENABLE_VAPI_AUTO_CALLS = false;
+// ===========================================
+
 // Verify cron secret to prevent unauthorized access
 const CRON_SECRET = process.env.CRON_SECRET;
 
 // POST - Process scheduled calls (called by cron job)
 export async function POST(request: NextRequest) {
+  // Feature flag - return early if auto-calls disabled
+  if (!ENABLE_VAPI_AUTO_CALLS) {
+    return NextResponse.json({
+      message: 'Vapi auto-calls are currently disabled',
+      processed: 0,
+      results: []
+    });
+  }
+
   try {
     // Verify the request is from an authorized source
     const authHeader = request.headers.get('authorization');
@@ -142,6 +157,15 @@ export async function POST(request: NextRequest) {
 
 // GET - Process scheduled calls (used by Vercel cron)
 export async function GET(request: NextRequest) {
+  // Feature flag - return early if auto-calls disabled
+  if (!ENABLE_VAPI_AUTO_CALLS) {
+    return NextResponse.json({
+      message: 'Vapi auto-calls are currently disabled',
+      processed: 0,
+      results: []
+    });
+  }
+
   try {
     // Vercel cron sends authorization header automatically
     const authHeader = request.headers.get('authorization');

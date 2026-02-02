@@ -8,6 +8,13 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
 import { LeadAttachment, ContactPreference } from '@/types/lead';
 
+// ===========================================
+// FEATURE FLAGS - Set to true to re-enable
+// ===========================================
+const ENABLE_PHONE_CONTACT = false;  // Phone field, text/call preference, opt-in checkbox
+const ENABLE_AUTO_CALL = false;      // Vapi auto-call functionality
+// ===========================================
+
 interface FormData {
   firstName: string;
   lastName: string;
@@ -154,7 +161,8 @@ export default function LeadCapturePage() {
       let autoCallEnabled = false;
       let autoSmsEnabled = false;
 
-      if (phoneNumber) {
+      // Auto-call/SMS feature - temporarily disabled via ENABLE_AUTO_CALL flag
+      if (ENABLE_AUTO_CALL && phoneNumber) {
         const contactTime = new Date();
         // contactTime.setMinutes(contactTime.getMinutes() + 10); // Production: 10 min delay
 
@@ -350,32 +358,35 @@ export default function LeadCapturePage() {
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="phone"
-              className="block text-sm font-medium text-gray-300 mb-1"
-            >
-              Phone
-            </label>
-            <div className="flex">
-              <span className="inline-flex items-center px-3 bg-gray-800 border border-r-0 border-gray-700 rounded-l-lg text-gray-400 text-sm">
-                +1
-              </span>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="flex-1 px-4 py-3 bg-brand-black border border-gray-700 rounded-r-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold transition-colors"
-                placeholder="(555) 123-4567"
-                autoComplete="tel"
-              />
+          {/* Phone field - temporarily disabled */}
+          {ENABLE_PHONE_CONTACT && (
+            <div>
+              <label
+                htmlFor="phone"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
+                Phone
+              </label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 bg-gray-800 border border-r-0 border-gray-700 rounded-l-lg text-gray-400 text-sm">
+                  +1
+                </span>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="flex-1 px-4 py-3 bg-brand-black border border-gray-700 rounded-r-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold transition-colors"
+                  placeholder="(555) 123-4567"
+                  autoComplete="tel"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Contact Preference and Opt-In - only show if phone is entered */}
-          {formData.phone.trim() && (
+          {/* Contact Preference and Opt-In - only show if phone is entered and feature enabled */}
+          {ENABLE_PHONE_CONTACT && formData.phone.trim() && (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
