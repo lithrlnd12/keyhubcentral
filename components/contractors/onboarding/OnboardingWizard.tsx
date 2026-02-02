@@ -207,6 +207,8 @@ export function OnboardingWizard() {
       // Create contractor document
       const contractorData = {
         userId: tempUserId,
+        email: basicInfo.email.toLowerCase(),
+        phone: basicInfo.phone,
         businessName: basicInfo.businessName || null,
         address: {
           street: basicInfo.street,

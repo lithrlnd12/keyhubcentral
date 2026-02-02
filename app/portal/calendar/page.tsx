@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { BackButton } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
-import { getContractorByUserId } from '@/lib/firebase/contractors';
+import { findAndLinkContractor } from '@/lib/firebase/contractors';
 import { Contractor } from '@/types/contractor';
 import { ContractorCalendar, GoogleCalendarOnlyView } from '@/components/portal';
 import { AlertCircle } from 'lucide-react';
@@ -16,19 +16,22 @@ export default function PortalCalendarPage() {
 
   useEffect(() => {
     async function loadContractor() {
-      if (user?.uid) {
+      if (user?.uid && user?.email) {
         try {
-          const data = await getContractorByUserId(user.uid);
+          // Try to find contractor by userId or email, auto-link if found by email
+          const data = await findAndLinkContractor(user.uid, user.email);
           setContractor(data);
         } catch (error) {
           console.error('Error loading contractor:', error);
         } finally {
           setLoading(false);
         }
+      } else if (user?.uid) {
+        setLoading(false);
       }
     }
     loadContractor();
-  }, [user?.uid]);
+  }, [user?.uid, user?.email]);
 
   if (loading) {
     return (

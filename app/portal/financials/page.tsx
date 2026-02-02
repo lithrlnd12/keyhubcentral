@@ -16,7 +16,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth, useContractorInvoices, useContractorExpenses } from '@/lib/hooks';
-import { getContractorByUserId } from '@/lib/firebase/contractors';
+import { findAndLinkContractor } from '@/lib/firebase/contractors';
 import { Contractor } from '@/types/contractor';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { Invoice } from '@/types/invoice';
@@ -38,19 +38,21 @@ export default function PortalFinancialsPage() {
 
   useEffect(() => {
     async function loadContractor() {
-      if (user?.uid) {
+      if (user?.uid && user?.email) {
         try {
-          const data = await getContractorByUserId(user.uid);
+          const data = await findAndLinkContractor(user.uid, user.email);
           setContractor(data);
         } catch (error) {
           console.error('Error loading contractor:', error);
         } finally {
           setLoading(false);
         }
+      } else if (user?.uid) {
+        setLoading(false);
       }
     }
     loadContractor();
-  }, [user?.uid]);
+  }, [user?.uid, user?.email]);
 
   const netProfit = invoiceStats.totalRevenue - expenseStats.totalExpenses;
   const isLoading = loading || invoicesLoading || expensesLoading;

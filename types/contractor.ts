@@ -42,7 +42,9 @@ export interface Rating {
 
 export interface Contractor {
   id: string;
-  userId: string;
+  userId?: string;
+  email?: string;
+  phone?: string;
   businessName: string | null;
   address: Address;
   trades: Trade[];

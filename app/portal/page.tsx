@@ -6,7 +6,7 @@ import { Calendar, Briefcase, DollarSign, Package, Clock, CheckCircle, AlertTria
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth, useContractorJobs, useContractorInvoices, useContractorExpenses, useLowStockCount, useContractorLocation } from '@/lib/hooks';
-import { getContractorByUserId } from '@/lib/firebase/contractors';
+import { findAndLinkContractor } from '@/lib/firebase/contractors';
 import { Contractor } from '@/types/contractor';
 import { formatCurrency } from '@/lib/utils/formatters';
 
@@ -37,19 +37,21 @@ export default function PortalDashboardPage() {
 
   useEffect(() => {
     async function loadContractor() {
-      if (user?.uid) {
+      if (user?.uid && user?.email) {
         try {
-          const data = await getContractorByUserId(user.uid);
+          const data = await findAndLinkContractor(user.uid, user.email);
           setContractor(data);
         } catch (error) {
           console.error('Error loading contractor:', error);
         } finally {
           setLoading(false);
         }
+      } else if (user?.uid) {
+        setLoading(false);
       }
     }
     loadContractor();
-  }, [user?.uid]);
+  }, [user?.uid, user?.email]);
 
   const isLoading = loading || jobsLoading || invoicesLoading;
 

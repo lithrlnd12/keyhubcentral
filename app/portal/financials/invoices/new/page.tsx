@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useAuth, useContractorJobs } from '@/lib/hooks';
-import { getContractorByUserId } from '@/lib/firebase/contractors';
+import { findAndLinkContractor } from '@/lib/firebase/contractors';
 import { createContractorInvoice, markInvoiceAsSent } from '@/lib/firebase/invoices';
 import { Contractor } from '@/types/contractor';
 import { Job } from '@/types/job';
@@ -46,10 +46,10 @@ export default function NewContractorInvoicePage() {
 
   useEffect(() => {
     async function loadData() {
-      if (user?.uid) {
+      if (user?.uid && user?.email) {
         try {
           const [contractorData, jobs] = await Promise.all([
-            getContractorByUserId(user.uid),
+            findAndLinkContractor(user.uid, user.email),
             getCompletedJobsForInvoicing(),
           ]);
           setContractor(contractorData);
@@ -62,7 +62,7 @@ export default function NewContractorInvoicePage() {
       }
     }
     loadData();
-  }, [user?.uid, getCompletedJobsForInvoicing]);
+  }, [user?.uid, user?.email, getCompletedJobsForInvoicing]);
 
   // Calculate totals
   const subtotal = lineItems.reduce((sum, item) => sum + item.total, 0);

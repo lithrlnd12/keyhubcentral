@@ -81,6 +81,46 @@ export async function getContractorByUserId(userId: string): Promise<Contractor 
   return { id: doc.id, ...doc.data() } as Contractor;
 }
 
+export async function getContractorByEmail(email: string): Promise<Contractor | null> {
+  const q = query(collection(db, COLLECTION), where('email', '==', email.toLowerCase()));
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  const doc = snapshot.docs[0];
+  return { id: doc.id, ...doc.data() } as Contractor;
+}
+
+/**
+ * Try to find and auto-link a contractor to a user.
+ * First checks by userId, then by email match.
+ * If found by email and not already linked, auto-links the user.
+ */
+export async function findAndLinkContractor(
+  userId: string,
+  userEmail: string
+): Promise<Contractor | null> {
+  // First try by userId (already linked)
+  let contractor = await getContractorByUserId(userId);
+  if (contractor) {
+    return contractor;
+  }
+
+  // Try to find by email
+  contractor = await getContractorByEmail(userEmail);
+  if (contractor) {
+    // Auto-link if not already linked to someone else
+    if (!contractor.userId) {
+      await updateContractor(contractor.id, { userId });
+      return { ...contractor, userId };
+    }
+  }
+
+  return null;
+}
+
 export async function createContractor(
   data: Omit<Contractor, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> {

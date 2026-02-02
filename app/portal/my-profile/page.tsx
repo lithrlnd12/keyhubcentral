@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Badge, BackButton } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
-import { getContractorByUserId } from '@/lib/firebase/contractors';
+import { findAndLinkContractor } from '@/lib/firebase/contractors';
 import { Contractor, getRatingTier } from '@/types/contractor';
 
 export default function PortalProfilePage() {
@@ -14,19 +14,21 @@ export default function PortalProfilePage() {
 
   useEffect(() => {
     async function loadContractor() {
-      if (user?.uid) {
+      if (user?.uid && user?.email) {
         try {
-          const data = await getContractorByUserId(user.uid);
+          const data = await findAndLinkContractor(user.uid, user.email);
           setContractor(data);
         } catch (error) {
           console.error('Error loading contractor:', error);
         } finally {
           setLoading(false);
         }
+      } else if (user?.uid) {
+        setLoading(false);
       }
     }
     loadContractor();
-  }, [user?.uid]);
+  }, [user?.uid, user?.email]);
 
   if (loading) {
     return (

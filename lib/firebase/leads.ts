@@ -497,7 +497,7 @@ export async function autoAssignLeadToSalesRep(leadId: string): Promise<string |
     updatedAt: serverTimestamp(),
   });
 
-  return topSalesRep.contractor.userId;
+  return topSalesRep.contractor.userId || null;
 }
 
 /**

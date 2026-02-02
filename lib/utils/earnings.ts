@@ -29,12 +29,13 @@ export function calculateContractorEarnings(
   invoices: Invoice[]
 ): ContractorEarnings {
   // Get jobs where this contractor was part of the crew
-  const contractorJobs = jobs.filter(
+  const userId = contractor.userId;
+  const contractorJobs = userId ? jobs.filter(
     (job) =>
-      job.crewIds?.includes(contractor.userId) ||
-      job.salesRepId === contractor.userId ||
-      job.pmId === contractor.userId
-  );
+      job.crewIds?.includes(userId) ||
+      job.salesRepId === userId ||
+      job.pmId === userId
+  ) : [];
 
   // Completed jobs
   const completedJobs = contractorJobs.filter(
@@ -48,7 +49,7 @@ export function calculateContractorEarnings(
   // Calculate labor earnings (for installers)
   let totalLabor = 0;
   completedJobs.forEach((job) => {
-    if (job.crewIds?.includes(contractor.userId)) {
+    if (userId && job.crewIds?.includes(userId)) {
       // Split labor among crew members
       const crewCount = job.crewIds.length || 1;
       totalLabor += (job.costs.laborActual || 0) / crewCount;
@@ -58,7 +59,7 @@ export function calculateContractorEarnings(
   // Calculate commission earnings (for sales reps)
   let totalCommission = 0;
   if (contractor.trades.includes('sales_rep')) {
-    const salesJobs = completedJobs.filter((job) => job.salesRepId === contractor.userId);
+    const salesJobs = completedJobs.filter((job) => job.salesRepId === userId);
     salesJobs.forEach((job) => {
       const jobValue =
         job.costs.materialActual + job.costs.laborActual || job.costs.materialProjected + job.costs.laborProjected;
@@ -73,7 +74,7 @@ export function calculateContractorEarnings(
       inv.lineItems.some(
         (item) =>
           item.description.toLowerCase().includes(contractor.businessName?.toLowerCase() || '') ||
-          item.description.includes(contractor.userId)
+          (userId && item.description.includes(userId))
       )
   );
 
