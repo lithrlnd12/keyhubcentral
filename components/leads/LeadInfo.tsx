@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { Lead, CallAnalysis } from '@/types/lead';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { formatDateTime, formatPhone, getPhoneHref } from '@/lib/utils/formatters';
+import { useUserById } from '@/lib/hooks/useUserById';
 import {
   User,
   Mail,
@@ -198,6 +199,8 @@ function CallAnalysisDisplay({ analysis }: { analysis: CallAnalysis }) {
 }
 
 export function LeadInfo({ lead, className }: LeadInfoProps) {
+  const { user: assignedUser } = useUserById(lead.assignedTo);
+
   return (
     <div className={className}>
       <div className="grid gap-6 md:grid-cols-2">
@@ -309,7 +312,7 @@ export function LeadInfo({ lead, className }: LeadInfoProps) {
                   <div>
                     <p className="text-sm text-gray-400">Assigned To</p>
                     <p className="text-white">
-                      {lead.assignedTo}
+                      {assignedUser?.displayName || lead.assignedTo}
                       {lead.assignedType && (
                         <span className="text-gray-400 text-sm ml-1">
                           ({lead.assignedType})
