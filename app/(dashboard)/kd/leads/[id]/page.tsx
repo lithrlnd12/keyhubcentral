@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLead } from '@/lib/hooks/useLead';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useClaimLead } from '@/lib/hooks/useLeads';
 import { updateLead } from '@/lib/firebase/leads';
 import {
   LeadHeader,
@@ -29,8 +30,17 @@ export default function LeadDetailPage() {
   const [showConvert, setShowConvert] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
+  const { claimLead, loading: claimLoading, error: claimError } = useClaimLead();
+
   const canEdit = user?.role && ['owner', 'admin'].includes(user.role);
   const canAssign = user?.role && ['owner', 'admin'].includes(user.role);
+
+  // Sales reps can claim unassigned leads
+  const canClaim =
+    user?.role === 'sales_rep' &&
+    lead?.status === 'new' &&
+    !lead?.assignedTo &&
+    user?.baseCoordinates;
 
   if (loading) {
     return (
@@ -55,6 +65,16 @@ export default function LeadDetailPage() {
       </div>
     );
   }
+
+  const handleClaim = async () => {
+    if (!user?.uid || !user?.baseCoordinates || !lead) return;
+
+    try {
+      await claimLead(lead.id, user.uid, user.baseCoordinates);
+    } catch (err) {
+      console.error('Failed to claim lead:', err);
+    }
+  };
 
   const handleConvert = () => {
     setShowConvert(true);
@@ -81,10 +101,20 @@ export default function LeadDetailPage() {
       <LeadHeader
         lead={lead}
         canEdit={canEdit}
+        canClaim={!!canClaim}
+        claimLoading={claimLoading}
+        onClaim={handleClaim}
         onReturn={() => setShowReturn(true)}
         onConvert={handleConvert}
         onMarkLost={handleMarkLost}
       />
+
+      {/* Claim Error */}
+      {claimError && (
+        <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4">
+          <p className="text-red-400">{claimError}</p>
+        </div>
+      )}
 
       {/* Assign Button for new leads */}
       {lead.status === 'new' && canAssign && (

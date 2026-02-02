@@ -105,50 +105,52 @@ export default function ReceiptDetailPage() {
     if (!receipt || inventoryItems.length === 0 || receipt.status !== 'parsed') return;
 
     const parsedItems = receipt.parsedData?.items || [];
-    const newLinks = new Map(itemLinks);
-    let hasChanges = false;
+    // Note: We intentionally exclude itemLinks from deps to avoid infinite loops
+    // since we're updating itemLinks inside this effect
+    setItemLinks((prevLinks) => {
+      const newLinks = new Map(prevLinks);
+      let hasChanges = false;
 
-    parsedItems.forEach((item, index) => {
-      // Skip if already linked
-      if (newLinks.has(index) && newLinks.get(index)?.inventoryItemId) return;
+      parsedItems.forEach((item, index) => {
+        // Skip if already linked
+        if (newLinks.has(index) && newLinks.get(index)?.inventoryItemId) return;
 
-      // Try to find a match
-      const descLower = item.description.toLowerCase();
-      const words = descLower.split(/\s+/).filter(w => w.length > 2);
+        // Try to find a match
+        const descLower = item.description.toLowerCase();
+        const words = descLower.split(/\s+/).filter(w => w.length > 2);
 
-      // Find the best matching inventory item
-      const scoredItems = inventoryItems.map(invItem => {
-        const nameLower = invItem.name.toLowerCase();
-        let score = 0;
+        // Find the best matching inventory item
+        const scoredItems = inventoryItems.map(invItem => {
+          const nameLower = invItem.name.toLowerCase();
+          let score = 0;
 
-        if (nameLower === descLower) score = 100;
-        else if (descLower.includes(nameLower) || nameLower.includes(descLower)) score = 50;
-        else {
-          words.forEach(word => {
-            if (nameLower.includes(word)) score += 10;
+          if (nameLower === descLower) score = 100;
+          else if (descLower.includes(nameLower) || nameLower.includes(descLower)) score = 50;
+          else {
+            words.forEach(word => {
+              if (nameLower.includes(word)) score += 10;
+            });
+          }
+
+          return { item: invItem, score };
+        });
+
+        const bestMatch = scoredItems.filter(s => s.score > 20).sort((a, b) => b.score - a.score)[0];
+
+        // If we found a good match (score > 20), auto-link it
+        if (bestMatch) {
+          newLinks.set(index, {
+            itemIndex: index,
+            inventoryItemId: bestMatch.item.id,
+            inventoryItemName: bestMatch.item.name,
+            category: bestMatch.item.category,
           });
+          hasChanges = true;
         }
-
-        return { item: invItem, score };
       });
 
-      const bestMatch = scoredItems.filter(s => s.score > 20).sort((a, b) => b.score - a.score)[0];
-
-      // If we found a good match (score > 20), auto-link it
-      if (bestMatch) {
-        newLinks.set(index, {
-          itemIndex: index,
-          inventoryItemId: bestMatch.item.id,
-          inventoryItemName: bestMatch.item.name,
-          category: bestMatch.item.category,
-        });
-        hasChanges = true;
-      }
+      return hasChanges ? newLinks : prevLinks;
     });
-
-    if (hasChanges) {
-      setItemLinks(newLinks);
-    }
   }, [receipt, inventoryItems]);
 
   const handleVerify = async () => {
@@ -534,6 +536,7 @@ export default function ReceiptDetailPage() {
               </a>
             </div>
           ) : (
+            /* eslint-disable-next-line @next/next/no-img-element -- User-uploaded receipt */
             <img
               src={receipt.imageUrl}
               alt="Receipt"

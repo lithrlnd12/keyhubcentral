@@ -121,6 +121,7 @@ export function PWAInstallPrompt() {
 
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-dark-300 rounded-2xl flex items-center justify-center border border-brand-gold/30">
+              {/* eslint-disable-next-line @next/next/no-img-element -- SVG logo with fixed dimensions */}
               <img src="/logo.svg" alt="KeyHub Central" className="w-10 h-10" />
             </div>
             <div>

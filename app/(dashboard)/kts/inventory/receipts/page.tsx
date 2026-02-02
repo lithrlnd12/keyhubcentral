@@ -140,6 +140,7 @@ export default function ReceiptsPage() {
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-gray-900 rounded-lg overflow-hidden flex-shrink-0">
                   {receipt.imageUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element -- User-uploaded receipt */
                     <img
                       src={receipt.imageUrl}
                       alt="Receipt"

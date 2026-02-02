@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Job, CompletionCertificate as CompletionCertType } from '@/types/job';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -46,11 +46,7 @@ export function CompletionCertificate({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, [job.id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [reqs, cert] = await Promise.all([
@@ -65,7 +61,11 @@ export function CompletionCertificate({
     } finally {
       setLoading(false);
     }
-  };
+  }, [job.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSave = async () => {
     if (!customerSignature || !contractorSignature) {
@@ -159,6 +159,7 @@ export function CompletionCertificate({
             <div className="space-y-2">
               <label className="text-sm text-gray-400 font-medium">Customer Signature</label>
               <div className="border border-gray-700 rounded-lg p-2 bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic signature image */}
                 <img
                   src={existingCert.customerSignatureUrl}
                   alt="Customer signature"
@@ -170,6 +171,7 @@ export function CompletionCertificate({
             <div className="space-y-2">
               <label className="text-sm text-gray-400 font-medium">Contractor Signature</label>
               <div className="border border-gray-700 rounded-lg p-2 bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic signature image */}
                 <img
                   src={existingCert.contractorSignatureUrl}
                   alt="Contractor signature"

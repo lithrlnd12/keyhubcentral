@@ -358,6 +358,7 @@ export function DisclosurePDFDocument({
           <View style={styles.signatureBlock}>
             <Text style={styles.signatureLabel}>Property Owner Signature</Text>
             {signatures.buyerUrl ? (
+              /* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image doesn't support alt */
               <Image src={signatures.buyerUrl} style={styles.signatureImage} />
             ) : (
               <View style={styles.signatureLine} />
@@ -373,6 +374,7 @@ export function DisclosurePDFDocument({
               <>
                 <Text style={styles.signatureLabel}>Property Owner 2 Signature</Text>
                 {signatures.buyer2Url ? (
+                  /* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image doesn't support alt */
                   <Image src={signatures.buyer2Url} style={styles.signatureImage} />
                 ) : (
                   <View style={styles.signatureLine} />

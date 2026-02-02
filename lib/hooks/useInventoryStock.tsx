@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   StockWithVariance,
   StockFilters,
@@ -40,11 +40,11 @@ export function useInventoryStock(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const filters: StockFilters = {
+  const filters: StockFilters = useMemo(() => ({
     locationId: options.locationId,
     itemId: options.itemId,
     belowPar: options.belowPar,
-  };
+  }), [options.locationId, options.itemId, options.belowPar]);
 
   const fetchStock = useCallback(async () => {
     try {
@@ -58,7 +58,7 @@ export function useInventoryStock(
     } finally {
       setLoading(false);
     }
-  }, [options.locationId, options.itemId, options.belowPar]);
+  }, [filters]);
 
   useEffect(() => {
     if (options.realtime) {
@@ -71,7 +71,7 @@ export function useInventoryStock(
     } else {
       fetchStock();
     }
-  }, [options.realtime, options.locationId, options.itemId, options.belowPar, fetchStock]);
+  }, [options.realtime, filters, fetchStock]);
 
   return {
     stock,

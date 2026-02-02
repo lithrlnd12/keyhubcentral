@@ -21,6 +21,7 @@ import { createJob, generateJobNumber } from './jobs';
 import { Contractor } from '@/types/contractor';
 import {
   calculateAddressDistance,
+  calculateDistanceMiles,
   isWithinServiceRadius,
 } from '@/lib/utils/distance';
 
@@ -558,6 +559,49 @@ export async function getSalesRepRecommendations(leadId: string): Promise<SalesR
   scores.sort((a, b) => b.score - a.score);
 
   return scores;
+}
+
+// Claim Lead (for sales reps)
+const MAX_CLAIM_DISTANCE_MILES = 50;
+
+/**
+ * Allow a sales rep to claim an unassigned lead
+ * - Lead must be status 'new' and unassigned
+ * - Lead must be within 50 miles of sales rep's base location
+ */
+export async function claimLead(
+  id: string,
+  userId: string,
+  userCoordinates: { lat: number; lng: number }
+): Promise<void> {
+  const docRef = doc(db, COLLECTION, id);
+
+  // Verify lead is unassigned before claiming
+  const lead = await getLead(id);
+  if (!lead) throw new Error('Lead not found');
+  if (lead.assignedTo) throw new Error('Lead is already assigned');
+  if (lead.status !== 'new') throw new Error('Lead cannot be claimed');
+
+  // Check distance (50 mile max)
+  if (lead.customer.address.lat && lead.customer.address.lng) {
+    const distance = calculateDistanceMiles(
+      userCoordinates.lat,
+      userCoordinates.lng,
+      lead.customer.address.lat,
+      lead.customer.address.lng
+    );
+    if (distance > MAX_CLAIM_DISTANCE_MILES) {
+      throw new Error('Lead is outside your service area (50 mile limit)');
+    }
+  }
+
+  await updateDoc(docRef, {
+    assignedTo: userId,
+    assignedType: 'internal',
+    status: 'assigned',
+    claimedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 // Get lead count by status

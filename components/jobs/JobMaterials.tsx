@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Job, JobMaterial, MaterialStatus } from '@/types/job';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -68,19 +68,19 @@ export function JobMaterials({ job, onMaterialsChange, readOnly = false }: JobMa
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    setMaterials(job.materials || []);
-    loadCostSummary();
-  }, [job.materials]);
-
-  const loadCostSummary = async () => {
+  const loadCostSummary = useCallback(async () => {
     try {
       const summary = await getMaterialCostSummary(job.id);
       setCostSummary(summary);
     } catch (error) {
       console.error('Failed to load cost summary:', error);
     }
-  };
+  }, [job.id]);
+
+  useEffect(() => {
+    setMaterials(job.materials || []);
+    loadCostSummary();
+  }, [job.materials, loadCostSummary]);
 
   const handleSubmit = async () => {
     if (!formData.name || formData.quantity <= 0) {

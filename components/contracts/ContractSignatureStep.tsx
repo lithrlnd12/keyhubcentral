@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { pdf } from '@react-pdf/renderer';
 import { ContractFormData, ContractDocumentType } from '@/types/contract';
 import { ContractPDFDocument } from '@/components/pdf/ContractPDFDocument';
@@ -88,44 +88,55 @@ export function ContractSignatureStep({
   const needsInitials = documentType === 'remodeling_agreement'; // Initials needed for remodeling agreement
 
   // Generate PDF for viewing
-  useEffect(() => {
-    const generatePdf = async () => {
-      setPdfLoading(true);
-      try {
-        let doc;
-        if (documentType === 'remodeling_agreement') {
-          doc = (
-            <ContractPDFDocument
-              formData={formData}
-              signatures={{}}
-              salesRepName={salesRepName}
-            />
-          );
-        } else {
-          doc = (
-            <DisclosurePDFDocument
-              formData={formData}
-              signatures={{}}
-            />
-          );
+  const generatePdf = useCallback(async () => {
+    setPdfLoading(true);
+    try {
+      let doc;
+      if (documentType === 'remodeling_agreement') {
+        doc = (
+          <ContractPDFDocument
+            formData={formData}
+            signatures={{}}
+            salesRepName={salesRepName}
+          />
+        );
+      } else {
+        doc = (
+          <DisclosurePDFDocument
+            formData={formData}
+            signatures={{}}
+          />
+        );
+      }
+
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      setPdfUrl((prevUrl) => {
+        if (prevUrl) {
+          URL.revokeObjectURL(prevUrl);
         }
+        return url;
+      });
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [documentType, formData, salesRepName]);
 
-        const blob = await pdf(doc).toBlob();
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
-      } catch (err) {
-        console.error('Failed to generate PDF:', err);
-      } finally {
-        setPdfLoading(false);
-      }
-    };
-
+  useEffect(() => {
     generatePdf();
+  }, [generatePdf]);
 
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-      }
+      setPdfUrl((prevUrl) => {
+        if (prevUrl) {
+          URL.revokeObjectURL(prevUrl);
+        }
+        return null;
+      });
     };
   }, []);
 

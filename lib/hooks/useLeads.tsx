@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   getLeads,
   subscribeToLeads,
+  claimLead as claimLeadFn,
   LeadFilters,
 } from '@/lib/firebase/leads';
 import { Lead, LeadStatus, LeadSource, LeadQuality } from '@/types/lead';
@@ -89,4 +90,43 @@ export function useLeads(options: UseLeadsOptions = {}): UseLeadsReturn {
     setSearch,
     refetch: fetchLeads,
   };
+}
+
+// Hook for claiming leads
+interface UseClaimLeadReturn {
+  claimLead: (
+    leadId: string,
+    userId: string,
+    userCoordinates: { lat: number; lng: number }
+  ) => Promise<void>;
+  loading: boolean;
+  error: string | null;
+}
+
+export function useClaimLead(): UseClaimLeadReturn {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const claimLead = useCallback(
+    async (
+      leadId: string,
+      userId: string,
+      userCoordinates: { lat: number; lng: number }
+    ) => {
+      try {
+        setLoading(true);
+        setError(null);
+        await claimLeadFn(leadId, userId, userCoordinates);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to claim lead';
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  return { claimLead, loading, error };
 }

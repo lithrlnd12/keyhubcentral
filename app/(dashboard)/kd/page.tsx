@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useLeads } from '@/lib/hooks/useLeads';
 import { useCampaigns } from '@/lib/hooks/useCampaigns';
 import { useSubscriptions } from '@/lib/hooks/useSubscriptions';
@@ -11,6 +11,9 @@ import { Button } from '@/components/ui/Button';
 import { Plus, LayoutDashboard, Users } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils/cn';
+import { calculateDistanceMiles } from '@/lib/utils/distance';
+
+const MAX_CLAIM_DISTANCE_MILES = 50;
 
 type TabType = 'dashboard' | 'leads';
 
@@ -37,6 +40,33 @@ export default function KDPage() {
 
   const canCreate = user?.role && ['owner', 'admin'].includes(user.role);
   const canViewAll = user?.role && ['owner', 'admin'].includes(user.role);
+  const isSalesRep = user?.role === 'sales_rep';
+
+  // Filter leads for sales reps: show assigned leads + claimable leads within 50 miles
+  const visibleLeads = useMemo(() => {
+    if (!isSalesRep || !user?.uid) return leads;
+
+    return leads.filter((lead) => {
+      // Show leads assigned to this sales rep
+      if (lead.assignedTo === user.uid) return true;
+
+      // Show unassigned leads within 50 miles
+      if (lead.status === 'new' && !lead.assignedTo) {
+        if (!user.baseCoordinates || !lead.customer.address.lat || !lead.customer.address.lng) {
+          return false;
+        }
+        const distance = calculateDistanceMiles(
+          user.baseCoordinates.lat,
+          user.baseCoordinates.lng,
+          lead.customer.address.lat,
+          lead.customer.address.lng
+        );
+        return distance <= MAX_CLAIM_DISTANCE_MILES;
+      }
+
+      return false;
+    });
+  }, [leads, isSalesRep, user]);
 
   const isLoading = leadsLoading || campaignsLoading || subscriptionsLoading;
 
@@ -136,14 +166,16 @@ export default function KDPage() {
 
           {/* Lead List */}
           <LeadList
-            leads={leads}
+            leads={visibleLeads}
             loading={leadsLoading}
             error={leadsError}
             showAddButton={canCreate}
             emptyMessage={
               filters.status || filters.source || filters.quality || filters.search
                 ? 'No leads match your filters'
-                : 'No leads yet. Add your first lead to get started.'
+                : isSalesRep
+                  ? 'No leads available. Claimable leads will appear when they are within 50 miles of your location.'
+                  : 'No leads yet. Add your first lead to get started.'
             }
           />
         </>

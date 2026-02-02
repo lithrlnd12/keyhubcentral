@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types/job';
 import { SignedContract, CONTRACT_TYPE_LABELS, CONTRACT_STATUS_LABELS, ContractDocumentType } from '@/types/contract';
@@ -34,11 +34,7 @@ export function JobContracts({ job, userId, userRole }: JobContractsProps) {
   const [error, setError] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  useEffect(() => {
-    loadContracts();
-  }, [job.id]);
-
-  const loadContracts = async () => {
+  const loadContracts = useCallback(async () => {
     try {
       setLoading(true);
       const jobContracts = await getJobContracts(job.id);
@@ -49,7 +45,11 @@ export function JobContracts({ job, userId, userRole }: JobContractsProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [job.id]);
+
+  useEffect(() => {
+    loadContracts();
+  }, [loadContracts]);
 
   const canSignContracts = () => {
     if (!userRole) return false;

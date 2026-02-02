@@ -108,6 +108,7 @@ export function ReceiptUploader({
               <p className="text-gray-400 text-sm">PDF Document</p>
             </div>
           ) : (
+            /* eslint-disable-next-line @next/next/no-img-element -- Dynamic preview from FileReader */
             <img
               src={preview || ''}
               alt="Receipt preview"

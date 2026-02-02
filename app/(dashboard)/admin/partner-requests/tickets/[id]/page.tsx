@@ -272,12 +272,14 @@ export default function ServiceTicketDetailPage() {
                         rel="noopener noreferrer"
                         className="relative aspect-square bg-gray-800 rounded-lg overflow-hidden group"
                       >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- User-uploaded photo */}
                         <img
                           src={photo}
                           alt={`Photo ${i + 1}`}
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          {/* eslint-disable-next-line jsx-a11y/alt-text -- This is a Lucide icon, not an img */}
                           <Image className="w-6 h-6 text-white" />
                         </div>
                       </a>

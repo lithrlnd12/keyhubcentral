@@ -6,7 +6,7 @@ import { LeadQualityBadge } from './LeadQualityBadge';
 import { LeadSourceBadge } from './LeadSourceBadge';
 import { Button } from '@/components/ui/Button';
 import { canReturnLead, getReturnWindowRemaining } from '@/lib/utils/leads';
-import { ArrowLeft, Edit, RotateCcw, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Edit, RotateCcw, CheckCircle, XCircle, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 
 interface LeadHeaderProps {
@@ -14,7 +14,10 @@ interface LeadHeaderProps {
   onReturn?: () => void;
   onConvert?: () => void;
   onMarkLost?: () => void;
+  onClaim?: () => void;
   canEdit?: boolean;
+  canClaim?: boolean;
+  claimLoading?: boolean;
   className?: string;
 }
 
@@ -23,7 +26,10 @@ export function LeadHeader({
   onReturn,
   onConvert,
   onMarkLost,
+  onClaim,
   canEdit = false,
+  canClaim = false,
+  claimLoading = false,
   className,
 }: LeadHeaderProps) {
   const canReturn = canReturnLead(lead);
@@ -70,6 +76,13 @@ export function LeadHeader({
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2">
+          {canClaim && onClaim && (
+            <Button size="sm" onClick={onClaim} disabled={claimLoading}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              {claimLoading ? 'Claiming...' : 'Claim Lead'}
+            </Button>
+          )}
+
           {canReturn && onReturn && (
             <Button variant="outline" size="sm" onClick={onReturn}>
               <RotateCcw className="w-4 h-4 mr-2" />

@@ -109,6 +109,7 @@ export function SignaturePad({
         {/* Display saved signature as image if saved */}
         {isSaved && savedDataUrl ? (
           <div className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element -- Data URL signature image */}
             <img
               src={savedDataUrl}
               alt={`${label} signature`}

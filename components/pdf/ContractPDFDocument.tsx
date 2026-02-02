@@ -388,6 +388,7 @@ export function ContractPDFDocument({
           <View style={styles.initialLine}>
             <Text>Buyer Initials: </Text>
             {initials?.leadHazardUrl ? (
+              /* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image doesn't support alt */
               <Image src={initials.leadHazardUrl} style={{ width: 60, height: 30, objectFit: 'contain' }} />
             ) : (
               <View style={styles.initialBox}>
@@ -402,6 +403,7 @@ export function ContractPDFDocument({
           <View style={styles.signatureBlock}>
             <Text style={styles.signatureLabel}>Sales Representative Signature</Text>
             {signatures.salesRepUrl ? (
+              /* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image doesn't support alt */
               <Image src={signatures.salesRepUrl} style={styles.signatureImage} />
             ) : (
               <View style={styles.signatureLine} />
@@ -415,6 +417,7 @@ export function ContractPDFDocument({
           <View style={styles.signatureBlock}>
             <Text style={styles.signatureLabel}>Buyer Signature</Text>
             {signatures.buyerUrl ? (
+              /* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image doesn't support alt */
               <Image src={signatures.buyerUrl} style={styles.signatureImage} />
             ) : (
               <View style={styles.signatureLine} />
@@ -435,6 +438,7 @@ export function ContractPDFDocument({
             <View style={styles.signatureBlock}>
               <Text style={styles.signatureLabel}>Buyer 2 Signature</Text>
               {signatures.buyer2Url ? (
+                /* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image doesn't support alt */
                 <Image src={signatures.buyer2Url} style={styles.signatureImage} />
               ) : (
                 <View style={styles.signatureLine} />
@@ -506,6 +510,7 @@ export function ContractPDFDocument({
             <View style={styles.signatureBlock}>
               <Text style={styles.signatureLabel}>Buyer Signature</Text>
               {signatures.cancellationUrl ? (
+                /* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image doesn't support alt */
                 <Image src={signatures.cancellationUrl} style={styles.signatureImage} />
               ) : (
                 <View style={styles.signatureLine} />
@@ -704,6 +709,7 @@ export function ContractPDFDocument({
               Customer initials:
             </Text>
             {initials?.termsAcknowledgmentUrl ? (
+              /* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf/renderer Image doesn't support alt */
               <Image src={initials.termsAcknowledgmentUrl} style={{ width: 60, height: 30, objectFit: 'contain' }} />
             ) : (
               <Text style={styles.termsText}>________</Text>
