@@ -203,3 +203,27 @@ export async function getTopContractorRecommendations(
 
   return recommendations.slice(0, limit);
 }
+
+/**
+ * Get all active contractors without any filtering
+ * Used when user wants to see all contractors regardless of location
+ */
+export async function getAllActiveContractors(): Promise<Contractor[]> {
+  const contractorsQuery = query(
+    collection(db, 'contractors'),
+    where('status', '==', 'active')
+  );
+
+  const contractorsSnapshot = await getDocs(contractorsQuery);
+  const contractors: Contractor[] = contractorsSnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  } as Contractor));
+
+  // Sort by business name
+  contractors.sort((a, b) =>
+    (a.businessName || '').localeCompare(b.businessName || '')
+  );
+
+  return contractors;
+}

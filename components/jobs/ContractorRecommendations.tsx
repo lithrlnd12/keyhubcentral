@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Star, Clock, Plus, X, Users, AlertCircle } from 'lucide-react';
+import { MapPin, Star, Clock, Plus, X, Users, AlertCircle, List, Navigation } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -9,7 +9,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Address, Contractor } from '@/types/contractor';
 import { TimeBlock, TIME_BLOCK_CONFIG } from '@/types/availability';
 import { ContractorRecommendation, getRatingTierInfo } from '@/types/scheduling';
-import { getContractorRecommendations } from '@/lib/firebase/recommendations';
+import { getContractorRecommendations, getAllActiveContractors } from '@/lib/firebase/recommendations';
 import { formatDistance, getDistanceCategory } from '@/lib/utils/distance';
 
 interface ContractorRecommendationsProps {
@@ -30,8 +30,10 @@ export function ContractorRecommendations({
   onRemove,
 }: ContractorRecommendationsProps) {
   const [recommendations, setRecommendations] = useState<ContractorRecommendation[]>([]);
+  const [allContractors, setAllContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   // Fetch recommendations when date/time/location change
   useEffect(() => {
@@ -62,40 +64,71 @@ export function ContractorRecommendations({
     fetchRecommendations();
   }, [scheduledDate, timeBlock, jobLocation]);
 
-  // Get selected contractors from recommendations
-  const selectedContractors = recommendations.filter(r =>
-    selectedCrewIds.includes(r.contractorId)
-  );
+  // Fetch all contractors when showAll is enabled
+  useEffect(() => {
+    async function fetchAllContractors() {
+      if (!showAll) return;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const contractors = await getAllActiveContractors();
+        setAllContractors(contractors);
+      } catch (err) {
+        console.error('Error fetching all contractors:', err);
+        setError('Failed to load contractors');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchAllContractors();
+  }, [showAll]);
+
+  // Get selected contractors from recommendations or all contractors
+  const selectedContractors = showAll
+    ? allContractors.filter(c => selectedCrewIds.includes(c.id))
+    : recommendations.filter(r => selectedCrewIds.includes(r.contractorId));
 
   // Get available (not yet selected) contractors
-  const availableContractors = recommendations.filter(
-    r => !selectedCrewIds.includes(r.contractorId)
-  );
+  const availableContractors = showAll
+    ? allContractors.filter(c => !selectedCrewIds.includes(c.id))
+    : recommendations.filter(r => !selectedCrewIds.includes(r.contractorId));
 
-  if (!scheduledDate || !timeBlock) {
-    return (
-      <Card className="p-4">
-        <div className="flex items-center gap-3 text-gray-500">
-          <Clock className="h-5 w-5" />
-          <p>Select a date and time block to see contractor recommendations</p>
-        </div>
-      </Card>
-    );
-  }
-
-  if (!jobLocation?.lat || !jobLocation?.lng) {
-    return (
-      <Card className="p-4">
-        <div className="flex items-center gap-3 text-yellow-400">
-          <AlertCircle className="h-5 w-5" />
-          <p>Job location is missing coordinates. Add an address with lat/lng to see distance-based recommendations.</p>
-        </div>
-      </Card>
-    );
-  }
+  // Show toggle even without date/time if user wants to see all
+  const canShowRecommendations = scheduledDate && timeBlock && jobLocation?.lat && jobLocation?.lng;
 
   return (
     <div className="space-y-4">
+      {/* View Mode Toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          <Button
+            variant={!showAll ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setShowAll(false)}
+            disabled={!canShowRecommendations}
+          >
+            <Navigation className="h-4 w-4 mr-1" />
+            Nearby
+          </Button>
+          <Button
+            variant={showAll ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setShowAll(true)}
+          >
+            <List className="h-4 w-4 mr-1" />
+            All Contractors
+          </Button>
+        </div>
+        {!canShowRecommendations && !showAll && (
+          <span className="text-sm text-gray-400">
+            Select date, time & location for nearby recommendations
+          </span>
+        )}
+      </div>
+
       {/* Selected Crew */}
       {selectedCrewIds.length > 0 && (
         <Card className="p-4">
@@ -104,44 +137,74 @@ export function ContractorRecommendations({
             <h3 className="font-medium text-white">Selected Crew ({selectedCrewIds.length})</h3>
           </div>
           <div className="flex flex-wrap gap-2">
-            {selectedContractors.map(({ contractor, distance, rating }) => {
-              const tierInfo = getRatingTierInfo(rating);
-              return (
-                <div
-                  key={contractor.id}
-                  className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg"
-                >
-                  <span className="text-white font-medium">
-                    {contractor.businessName || 'Contractor'}
-                  </span>
-                  <Badge className={`${tierInfo.bgColor} ${tierInfo.color}`}>
-                    {tierInfo.label}
-                  </Badge>
-                  <span className="text-gray-400 text-sm">
-                    {formatDistance(distance)}
-                  </span>
-                  <button
-                    onClick={() => onRemove(contractor.id)}
-                    className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-red-400"
+            {showAll ? (
+              // Show all mode - selectedContractors is Contractor[]
+              (selectedContractors as Contractor[]).map((contractor) => {
+                const rating = contractor.rating?.overall || 3;
+                const tierInfo = getRatingTierInfo(rating);
+                return (
+                  <div
+                    key={contractor.id}
+                    className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg"
                   >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              );
-            })}
+                    <span className="text-white font-medium">
+                      {contractor.businessName || 'Contractor'}
+                    </span>
+                    <Badge className={`${tierInfo.bgColor} ${tierInfo.color}`}>
+                      {tierInfo.label}
+                    </Badge>
+                    <button
+                      onClick={() => onRemove(contractor.id)}
+                      className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-red-400"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              // Recommendations mode - selectedContractors is ContractorRecommendation[]
+              (selectedContractors as ContractorRecommendation[]).map(({ contractor, distance, rating }) => {
+                const tierInfo = getRatingTierInfo(rating);
+                return (
+                  <div
+                    key={contractor.id}
+                    className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg"
+                  >
+                    <span className="text-white font-medium">
+                      {contractor.businessName || 'Contractor'}
+                    </span>
+                    <Badge className={`${tierInfo.bgColor} ${tierInfo.color}`}>
+                      {tierInfo.label}
+                    </Badge>
+                    <span className="text-gray-400 text-sm">
+                      {formatDistance(distance)}
+                    </span>
+                    <button
+                      onClick={() => onRemove(contractor.id)}
+                      className="p-1 hover:bg-gray-700 rounded text-gray-400 hover:text-red-400"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })
+            )}
           </div>
         </Card>
       )}
 
-      {/* Recommendations List */}
+      {/* Contractors List */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-medium text-white">
-            Recommended Contractors
+            {showAll ? 'All Contractors' : 'Recommended Contractors'}
           </h3>
-          <div className="text-sm text-gray-400">
-            {TIME_BLOCK_CONFIG[timeBlock].label} • {scheduledDate.toLocaleDateString()}
-          </div>
+          {!showAll && scheduledDate && timeBlock && (
+            <div className="text-sm text-gray-400">
+              {TIME_BLOCK_CONFIG[timeBlock].label} • {scheduledDate.toLocaleDateString()}
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -153,15 +216,32 @@ export function ContractorRecommendations({
             <AlertCircle className="h-5 w-5" />
             <span>{error}</span>
           </div>
+        ) : !showAll && !canShowRecommendations ? (
+          <div className="flex items-center gap-3 text-gray-500 py-4">
+            <Clock className="h-5 w-5" />
+            <p>Select a date, time block, and ensure the job has coordinates to see nearby recommendations, or click &quot;All Contractors&quot; to see everyone.</p>
+          </div>
         ) : availableContractors.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            {recommendations.length === 0
-              ? 'No contractors available for this time slot'
-              : 'All available contractors have been selected'}
+            {showAll
+              ? 'No active contractors found'
+              : recommendations.length === 0
+                ? 'No contractors available for this time slot'
+                : 'All available contractors have been selected'}
+          </div>
+        ) : showAll ? (
+          <div className="space-y-3">
+            {(availableContractors as Contractor[]).map((contractor) => (
+              <AllContractorCard
+                key={contractor.id}
+                contractor={contractor}
+                onSelect={() => onSelect(contractor)}
+              />
+            ))}
           </div>
         ) : (
           <div className="space-y-3">
-            {availableContractors.map((rec) => (
+            {(availableContractors as ContractorRecommendation[]).map((rec) => (
               <RecommendationCard
                 key={rec.contractorId}
                 recommendation={rec}
@@ -258,6 +338,79 @@ function RecommendationCard({ recommendation, onSelect }: RecommendationCardProp
       <Button
         size="sm"
         variant={isAvailable ? 'primary' : 'outline'}
+        onClick={onSelect}
+        className="ml-4"
+      >
+        <Plus className="h-4 w-4 mr-1" />
+        Add
+      </Button>
+    </div>
+  );
+}
+
+interface AllContractorCardProps {
+  contractor: Contractor;
+  onSelect: () => void;
+}
+
+function AllContractorCard({ contractor, onSelect }: AllContractorCardProps) {
+  const rating = contractor.rating?.overall || 3;
+  const tierInfo = getRatingTierInfo(rating);
+  const hasLocation = contractor.address?.lat && contractor.address?.lng;
+
+  return (
+    <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors">
+      <div className="flex-1">
+        <div className="flex items-center gap-3 mb-1">
+          <span className="font-medium text-white">
+            {contractor.businessName || 'Contractor'}
+          </span>
+          <Badge className={`${tierInfo.bgColor} ${tierInfo.color}`}>
+            {tierInfo.label}
+          </Badge>
+          {!hasLocation && (
+            <Badge variant="warning">
+              No Location
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4 text-sm">
+          {/* Rating */}
+          <div className="flex items-center gap-1">
+            <Star className="h-4 w-4 text-gold fill-gold" />
+            <span className="text-gray-300">{rating.toFixed(1)}</span>
+          </div>
+
+          {/* Location */}
+          <div className="flex items-center gap-1 text-gray-400">
+            <MapPin className="h-4 w-4" />
+            <span>
+              {contractor.address?.city && contractor.address?.state
+                ? `${contractor.address.city}, ${contractor.address.state}`
+                : 'No address'}
+            </span>
+          </div>
+        </div>
+
+        {/* Trades */}
+        {contractor.trades && contractor.trades.length > 0 && (
+          <div className="flex gap-1 mt-2">
+            {contractor.trades.map(trade => (
+              <span
+                key={trade}
+                className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded capitalize"
+              >
+                {trade.replace(/_/g, ' ')}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Button
+        size="sm"
+        variant="primary"
         onClick={onSelect}
         className="ml-4"
       >

@@ -151,9 +151,10 @@ service cloud.firestore {
       // Internal users can read leads (UI filters by assignment)
       allow read: if isInternalUser();
 
-      // Allow public lead creation (for event QR code capture)
-      // Validates that required fields are present and source is 'event'
+      // Internal users can create leads (from inbound calls, manual entry, etc.)
+      // Also allow public lead creation (for event QR code capture)
       allow create: if isAdmin() ||
+        (isInternalUser() && isActiveUser()) ||
         (request.resource.data.source == 'event' &&
          request.resource.data.status == 'new' &&
          request.resource.data.customer.name != null &&
