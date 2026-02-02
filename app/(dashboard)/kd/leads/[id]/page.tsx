@@ -29,6 +29,7 @@ export default function LeadDetailPage() {
   const [showReturn, setShowReturn] = useState(false);
   const [showConvert, setShowConvert] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [localClaimError, setLocalClaimError] = useState<string | null>(null);
 
   const { claimLead, loading: claimLoading, error: claimError } = useClaimLead();
 
@@ -39,8 +40,7 @@ export default function LeadDetailPage() {
   const canClaim =
     user?.role === 'sales_rep' &&
     lead?.status === 'new' &&
-    !lead?.assignedTo &&
-    user?.baseCoordinates;
+    !lead?.assignedTo;
 
   if (loading) {
     return (
@@ -67,8 +67,15 @@ export default function LeadDetailPage() {
   }
 
   const handleClaim = async () => {
-    if (!user?.uid || !user?.baseCoordinates || !lead) return;
+    if (!user?.uid || !lead) return;
 
+    // Check if user has base coordinates set
+    if (!user?.baseCoordinates) {
+      setLocalClaimError('Please set your base zip code in your profile to claim leads.');
+      return;
+    }
+
+    setLocalClaimError(null);
     try {
       await claimLead(lead.id, user.uid, user.baseCoordinates);
     } catch (err) {
@@ -110,9 +117,9 @@ export default function LeadDetailPage() {
       />
 
       {/* Claim Error */}
-      {claimError && (
+      {(claimError || localClaimError) && (
         <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4">
-          <p className="text-red-400">{claimError}</p>
+          <p className="text-red-400">{claimError || localClaimError}</p>
         </div>
       )}
 
