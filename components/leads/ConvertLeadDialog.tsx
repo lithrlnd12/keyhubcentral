@@ -69,10 +69,19 @@ export function ConvertLeadDialog({
       setLoading(true);
       setError(null);
 
+      console.log('Converting lead:', {
+        leadId: lead.id,
+        jobType,
+        userId: user.uid,
+        contractValue: contractValueNum,
+      });
+
       // Convert lead to job
       const jobId = await convertLeadToJob(lead.id, jobType, user.uid, {
         contractValue: contractValueNum,
       });
+
+      console.log('Job created:', jobId);
 
       onConverted?.(jobId);
       onClose();
@@ -80,7 +89,9 @@ export function ConvertLeadDialog({
       // Redirect to contract signing page
       router.push(`/kr/${jobId}/sign`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to convert lead');
+      console.error('Convert lead error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to convert lead';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
