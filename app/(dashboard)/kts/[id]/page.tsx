@@ -11,6 +11,7 @@ import {
   ContractorDocuments,
   ContractorPerformance,
   ContractorJobs,
+  ContractorUserLink,
 } from '@/components/contractors';
 import { useContractor } from '@/lib/hooks/useContractor';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -76,6 +77,7 @@ export default function ContractorDetailPage({ params }: ContractorDetailPagePro
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="jobs">Jobs</TabsTrigger>
+          {canEdit && <TabsTrigger value="account">Account</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="info">
@@ -93,6 +95,12 @@ export default function ContractorDetailPage({ params }: ContractorDetailPagePro
         <TabsContent value="jobs">
           <ContractorJobs contractorId={contractor.id} />
         </TabsContent>
+
+        {canEdit && (
+          <TabsContent value="account">
+            <ContractorUserLink contractor={contractor} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

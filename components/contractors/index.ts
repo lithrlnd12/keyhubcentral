@@ -11,3 +11,4 @@ export { ContractorJobs } from './ContractorJobs';
 export { RatingCard } from './RatingCard';
 export { RatingEditor } from './RatingEditor';
 export { ContractorEditForm } from './ContractorEditForm';
+export { ContractorUserLink } from './ContractorUserLink';

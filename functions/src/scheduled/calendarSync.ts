@@ -6,6 +6,9 @@ import {
   isKeyHubEvent,
   getEventDate,
   isEventBusy,
+  getEventTimeBlocks,
+  TimeBlock,
+  TIME_BLOCKS,
 } from '../lib/googleCalendar';
 
 const runtimeOpts: functions.RuntimeOptions = {
@@ -162,8 +165,12 @@ async function syncUserCalendar(
 
   console.log(`Found ${events.length} events for user ${userId}`);
 
-  // Group events by date
-  const busyDates = new Map<string, { eventId: string; summary: string }>();
+  // Group events by date and track which time blocks are busy
+  // Key: date string, Value: map of block -> event info
+  const busyBlocks = new Map<
+    string,
+    Map<TimeBlock, { eventId: string; summary: string }>
+  >();
 
   for (const event of events) {
     // Skip events created by KeyHub (we already track these)
@@ -187,22 +194,33 @@ async function syncUserCalendar(
       continue;
     }
 
-    // Store the first busy event for each date
-    if (!busyDates.has(date)) {
-      busyDates.set(date, {
-        eventId: event.id || '',
-        summary: event.summary || 'Busy',
-      });
+    // Get which time blocks this event overlaps
+    const affectedBlocks = getEventTimeBlocks(event);
+
+    if (!busyBlocks.has(date)) {
+      busyBlocks.set(date, new Map());
+    }
+
+    const dateBlocks = busyBlocks.get(date)!;
+
+    // Mark each affected block as busy (first event wins)
+    for (const block of affectedBlocks) {
+      if (!dateBlocks.has(block)) {
+        dateBlocks.set(block, {
+          eventId: event.id || '',
+          summary: event.summary || 'Busy',
+        });
+      }
     }
   }
 
-  console.log(`Found ${busyDates.size} busy dates for user ${userId}`);
+  console.log(`Found ${busyBlocks.size} dates with busy blocks for user ${userId}`);
 
-  // Update availability for each busy date
+  // Update availability for each date with block-level granularity
   const batch = db.batch();
   let batchCount = 0;
 
-  for (const [date, eventInfo] of busyDates) {
+  for (const [date, blocksMap] of busyBlocks) {
     const availabilityRef = db
       .collection('contractors')
       .doc(contractorId)
@@ -211,12 +229,41 @@ async function syncUserCalendar(
 
     // Check if we already have availability set for this date
     const existingDoc = await availabilityRef.get();
+    const existingData = existingDoc.exists ? existingDoc.data() : null;
 
-    // Skip if already set by app (don't override app-set availability)
-    if (existingDoc.exists) {
-      const existingData = existingDoc.data();
-      if (existingData?.syncSource === 'app') {
-        continue;
+    // Skip if ALL blocks were set by app (don't override app-set availability)
+    if (existingData?.syncSource === 'app') {
+      continue;
+    }
+
+    // Build blocks object with statuses
+    // Start with existing blocks or defaults
+    const blocks: Record<TimeBlock, string> = {
+      am: existingData?.blocks?.am || 'available',
+      pm: existingData?.blocks?.pm || 'available',
+      evening: existingData?.blocks?.evening || 'available',
+    };
+
+    // Track which blocks have google event IDs
+    const googleEventIds: Record<string, string> = existingData?.googleEventIds || {};
+
+    // Collect summaries for notes
+    const summaries: string[] = [];
+
+    // Update only the blocks that have busy events from Google
+    for (const block of TIME_BLOCKS) {
+      const eventInfo = blocksMap.get(block);
+      if (eventInfo) {
+        // Only update if this block wasn't set by app
+        // Check block-level sync source if available
+        const blockSyncSource = existingData?.blockSyncSource?.[block];
+        if (blockSyncSource !== 'app') {
+          blocks[block] = 'busy';
+          googleEventIds[block] = eventInfo.eventId;
+          if (!summaries.includes(eventInfo.summary)) {
+            summaries.push(eventInfo.summary);
+          }
+        }
       }
     }
 
@@ -224,10 +271,10 @@ async function syncUserCalendar(
       availabilityRef,
       {
         date,
-        status: 'busy',
-        notes: `From Calendar: ${eventInfo.summary}`,
+        blocks,
+        notes: summaries.length > 0 ? `From Calendar: ${summaries.join(', ')}` : null,
         syncSource: 'google',
-        googleEventId: eventInfo.eventId,
+        googleEventIds,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true }
