@@ -237,7 +237,8 @@ export async function getRecentCounts(limit: number = 5): Promise<InventoryCount
 // Real-time subscriptions
 export function subscribeToInventoryStock(
   callback: (stock: StockWithVariance[]) => void,
-  filters?: StockFilters
+  filters?: StockFilters,
+  onError?: (error: Error) => void
 ): () => void {
   const constraints: QueryConstraint[] = [];
 
@@ -271,12 +272,16 @@ export function subscribeToInventoryStock(
     }));
 
     callback(stockWithVariance);
+  }, (error) => {
+    console.error('subscribeToInventoryStock error:', error);
+    onError?.(error);
   });
 }
 
 export function subscribeToLowStockAlerts(
   callback: (alerts: LowStockAlert[]) => void,
-  locationId?: string
+  locationId?: string,
+  onError?: (error: Error) => void
 ): () => void {
   return subscribeToInventoryStock((stock) => {
     const alerts: LowStockAlert[] = stock
@@ -292,7 +297,7 @@ export function subscribeToLowStockAlerts(
       }));
 
     callback(alerts);
-  }, { locationId, belowPar: true });
+  }, { locationId, belowPar: true }, onError);
 }
 
 // Get aggregate stock for an item across all locations

@@ -123,7 +123,8 @@ export async function deleteExpense(id: string): Promise<void> {
 
 export function subscribeToExpenses(
   callback: (expenses: Expense[]) => void,
-  filters?: ExpenseFilters
+  filters?: ExpenseFilters,
+  onError?: (error: Error) => void
 ): () => void {
   const constraints: QueryConstraint[] = [orderBy('date', 'desc')];
 
@@ -154,6 +155,9 @@ export function subscribeToExpenses(
     }
 
     callback(expenses);
+  }, (error) => {
+    console.error('subscribeToExpenses error:', error);
+    onError?.(error);
   });
 }
 
@@ -208,7 +212,8 @@ export async function getContractorExpenses(contractorId: string): Promise<Expen
 // Subscribe to contractor's expenses in real-time (by contractorId)
 export function subscribeToContractorExpenses(
   contractorId: string,
-  callback: (expenses: Expense[]) => void
+  callback: (expenses: Expense[]) => void,
+  onError?: (error: Error) => void
 ): () => void {
   const q = query(
     collection(db, COLLECTION),
@@ -222,6 +227,9 @@ export function subscribeToContractorExpenses(
       ...doc.data(),
     })) as Expense[];
     callback(expenses);
+  }, (error) => {
+    console.error('subscribeToContractorExpenses error:', error);
+    onError?.(error);
   });
 }
 

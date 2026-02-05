@@ -485,7 +485,8 @@ export async function getContractorPayments(contractorId: string): Promise<Invoi
 // Subscribe to contractor's invoices in real-time
 export function subscribeToContractorInvoices(
   contractorId: string,
-  callback: (invoices: Invoice[]) => void
+  callback: (invoices: Invoice[]) => void,
+  onError?: (error: Error) => void
 ): () => void {
   const q = query(
     collection(db, COLLECTION),
@@ -499,6 +500,9 @@ export function subscribeToContractorInvoices(
       ...doc.data(),
     })) as Invoice[];
     callback(invoices);
+  }, (error) => {
+    console.error('subscribeToContractorInvoices error:', error);
+    onError?.(error);
   });
 }
 

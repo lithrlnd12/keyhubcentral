@@ -38,7 +38,11 @@ export function useExpenses(options: UseExpensesOptions = {}) {
       const unsubscribe = subscribeToExpenses((data) => {
         setExpenses(data);
         setLoading(false);
-      }, filters);
+      }, filters, (err) => {
+        console.error('useExpenses subscription error:', err);
+        setError('Failed to load expenses');
+        setLoading(false);
+      });
 
       return () => unsubscribe();
     } else {

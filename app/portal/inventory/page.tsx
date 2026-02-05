@@ -42,24 +42,17 @@ export default function ContractorInventoryPage() {
   const loading = locationLoading || alertsLoading || stockLoading || receiptsLoading;
   const pendingReceipts = receipts.filter((r) => r.status === 'pending').length;
 
-  if (locationLoading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
   if (!location) {
     return (
       <div className="text-center py-12">
         <Truck className="h-12 w-12 text-gray-600 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-white mb-2">
-          No Truck Inventory Set Up
+          {locationLoading ? 'Loading Inventory...' : 'No Truck Inventory Set Up'}
         </h2>
         <p className="text-gray-400 max-w-md mx-auto">
-          Your truck inventory location hasn&apos;t been configured yet. Please contact
-          an admin to set up your truck inventory.
+          {locationLoading
+            ? 'Please wait while we load your truck inventory.'
+            : "Your truck inventory location hasn\u0027t been configured yet. Please contact an admin to set up your truck inventory."}
         </p>
       </div>
     );

@@ -54,7 +54,11 @@ export function useInventoryLocations(
       const unsubscribe = subscribeToInventoryLocations((data) => {
         setLocations(data);
         setLoading(false);
-      }, options.type);
+      }, options.type, (err) => {
+        console.error('useInventoryLocations subscription error:', err);
+        setError('Failed to load inventory locations');
+        setLoading(false);
+      });
 
       return () => unsubscribe();
     } else {
@@ -115,6 +119,10 @@ export function useInventoryLocation(
     if (options.realtime) {
       const unsubscribe = subscribeToInventoryLocation(id, (data) => {
         setLocation(data);
+        setLoading(false);
+      }, (err) => {
+        console.error('useInventoryLocation subscription error:', err);
+        setError('Failed to load inventory location');
         setLoading(false);
       });
 

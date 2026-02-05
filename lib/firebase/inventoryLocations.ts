@@ -127,7 +127,8 @@ export async function deleteInventoryLocation(id: string): Promise<void> {
 
 export function subscribeToInventoryLocations(
   callback: (locations: InventoryLocation[]) => void,
-  type?: LocationType
+  type?: LocationType,
+  onError?: (error: Error) => void
 ): () => void {
   const constraints: QueryConstraint[] = [
     where('isActive', '==', true),
@@ -147,12 +148,16 @@ export function subscribeToInventoryLocations(
     })) as InventoryLocation[];
 
     callback(locations);
+  }, (error) => {
+    console.error('subscribeToInventoryLocations error:', error);
+    onError?.(error);
   });
 }
 
 export function subscribeToInventoryLocation(
   id: string,
-  callback: (location: InventoryLocation | null) => void
+  callback: (location: InventoryLocation | null) => void,
+  onError?: (error: Error) => void
 ): () => void {
   const docRef = doc(db, COLLECTION, id);
 
@@ -162,6 +167,9 @@ export function subscribeToInventoryLocation(
     } else {
       callback(null);
     }
+  }, (error) => {
+    console.error('subscribeToInventoryLocation error:', error);
+    onError?.(error);
   });
 }
 

@@ -70,7 +70,11 @@ export function useReceipts(options: UseReceiptsOptions = {}): UseReceiptsReturn
       const unsubscribe = subscribeToReceipts((data) => {
         setReceipts(data);
         setLoading(false);
-      }, filters);
+      }, filters, (err) => {
+        console.error('useReceipts subscription error:', err);
+        setError('Failed to load receipts');
+        setLoading(false);
+      });
 
       return () => unsubscribe();
     } else {
@@ -137,6 +141,10 @@ export function useReceipt(
     if (options.realtime) {
       const unsubscribe = subscribeToReceipt(id, (data) => {
         setReceipt(data);
+        setLoading(false);
+      }, (err) => {
+        console.error('useReceipt subscription error:', err);
+        setError('Failed to load receipt');
         setLoading(false);
       });
 

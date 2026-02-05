@@ -65,6 +65,10 @@ export function useContractorJobs(
       const unsubscribe = subscribeToContractorJobs(contractorId, (data) => {
         setJobs(data);
         setLoading(false);
+      }, (err) => {
+        console.error('useContractorJobs subscription error:', err);
+        setError('Failed to load jobs');
+        setLoading(false);
       });
 
       return unsubscribe;

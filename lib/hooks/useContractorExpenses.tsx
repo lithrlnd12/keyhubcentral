@@ -117,6 +117,10 @@ export function useContractorExpenses(
         });
 
         setStats(newStats);
+      }, (err) => {
+        console.error('useContractorExpenses subscription error:', err);
+        setError('Failed to load expenses');
+        setLoading(false);
       });
 
       return unsubscribe;

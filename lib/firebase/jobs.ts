@@ -18,12 +18,17 @@ import { Job, JobStatus, JobType, JobPhoto } from '@/types/job';
 
 const COLLECTION = 'jobs';
 
+// Stages that sales reps can see (up to and including front_end_hold)
+export const SALES_REP_VISIBLE_STAGES: JobStatus[] = ['lead', 'sold', 'front_end_hold'];
+
 export interface JobFilters {
   status?: JobStatus;
   type?: JobType;
   salesRepId?: string;
   pmId?: string;
   search?: string;
+  // When true, filter to only show stages sales reps should see
+  limitToSalesRepStages?: boolean;
 }
 
 export async function getJobs(filters?: JobFilters): Promise<Job[]> {
@@ -63,6 +68,11 @@ export async function getJobs(filters?: JobFilters): Promise<Job[]> {
         job.customer.address.city?.toLowerCase().includes(searchLower) ||
         job.customer.phone?.includes(searchLower)
     );
+  }
+
+  // Client-side filter for sales rep visible stages
+  if (filters?.limitToSalesRepStages) {
+    jobs = jobs.filter((job) => SALES_REP_VISIBLE_STAGES.includes(job.status));
   }
 
   return jobs;
@@ -163,6 +173,11 @@ export function subscribeToJobs(
       );
     }
 
+    // Client-side filter for sales rep visible stages
+    if (filters?.limitToSalesRepStages) {
+      jobs = jobs.filter((job) => SALES_REP_VISIBLE_STAGES.includes(job.status));
+    }
+
     callback(jobs);
   });
 }
@@ -213,7 +228,8 @@ export async function generateJobNumber(): Promise<string> {
 // Subscribe to jobs for a contractor (crew member) in real-time
 export function subscribeToContractorJobs(
   contractorId: string,
-  callback: (jobs: Job[]) => void
+  callback: (jobs: Job[]) => void,
+  onError?: (error: Error) => void
 ): () => void {
   const q = query(
     collection(db, COLLECTION),
@@ -227,6 +243,9 @@ export function subscribeToContractorJobs(
       ...doc.data(),
     })) as Job[];
     callback(jobs);
+  }, (error) => {
+    console.error('subscribeToContractorJobs error:', error);
+    onError?.(error);
   });
 }
 

@@ -65,7 +65,11 @@ export function useInventoryStock(
       const unsubscribe = subscribeToInventoryStock((data) => {
         setStock(data);
         setLoading(false);
-      }, filters);
+      }, filters, (err) => {
+        console.error('useInventoryStock subscription error:', err);
+        setError('Failed to load inventory stock');
+        setLoading(false);
+      });
 
       return () => unsubscribe();
     } else {
@@ -120,7 +124,11 @@ export function useLowStockAlerts(
       const unsubscribe = subscribeToLowStockAlerts((data) => {
         setAlerts(data);
         setLoading(false);
-      }, options.locationId);
+      }, options.locationId, (err) => {
+        console.error('useLowStockAlerts subscription error:', err);
+        setError('Failed to load low stock alerts');
+        setLoading(false);
+      });
 
       return () => unsubscribe();
     } else {

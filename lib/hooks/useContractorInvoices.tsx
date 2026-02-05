@@ -117,6 +117,10 @@ export function useContractorInvoices(
         });
 
         setStats(newStats);
+      }, (err) => {
+        console.error('useContractorInvoices subscription error:', err);
+        setError('Failed to load invoices');
+        setLoading(false);
       });
 
       // Also fetch payments (no realtime needed for incoming payments)

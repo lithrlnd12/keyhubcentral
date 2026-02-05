@@ -256,7 +256,8 @@ export async function deleteReceipt(id: string): Promise<void> {
 // Real-time subscriptions
 export function subscribeToReceipts(
   callback: (receipts: Receipt[]) => void,
-  filters?: ReceiptFilters
+  filters?: ReceiptFilters,
+  onError?: (error: Error) => void
 ): () => void {
   const constraints: QueryConstraint[] = [orderBy('uploadedAt', 'desc')];
 
@@ -297,12 +298,16 @@ export function subscribeToReceipts(
     }
 
     callback(receipts);
+  }, (error) => {
+    console.error('subscribeToReceipts error:', error);
+    onError?.(error);
   });
 }
 
 export function subscribeToReceipt(
   id: string,
-  callback: (receipt: Receipt | null) => void
+  callback: (receipt: Receipt | null) => void,
+  onError?: (error: Error) => void
 ): () => void {
   const docRef = doc(db, COLLECTION, id);
 
@@ -312,6 +317,9 @@ export function subscribeToReceipt(
     } else {
       callback(null);
     }
+  }, (error) => {
+    console.error('subscribeToReceipt error:', error);
+    onError?.(error);
   });
 }
 
