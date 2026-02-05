@@ -53,14 +53,6 @@ export default function PortalInvoicesPage() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-2 border-gold border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}

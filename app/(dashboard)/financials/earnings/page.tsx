@@ -13,7 +13,6 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Spinner } from '@/components/ui/Spinner';
 import { RatingDisplay } from '@/components/contractors/RatingDisplay';
 import { useContractors } from '@/lib/hooks/useContractors';
 import { useJobs } from '@/lib/hooks/useJobs';
@@ -41,14 +40,6 @@ export default function EarningsPage() {
   const summary = useMemo(() => {
     return getEarningsSummary(earnings);
   }, [earnings]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

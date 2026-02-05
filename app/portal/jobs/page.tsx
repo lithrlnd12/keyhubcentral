@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { ArrowLeft, Search, Briefcase, MapPin, Calendar, Navigation } from 'lucide-react';
 import Link from 'next/link';
-import { Spinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -73,14 +72,6 @@ export default function MyJobsPage() {
 
     return matchesSearch && matchesStatus;
   });
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

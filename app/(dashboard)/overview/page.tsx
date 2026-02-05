@@ -15,7 +15,6 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Spinner } from '@/components/ui/Spinner';
 import {
   LazyRevenueChart as RevenueChart,
   LazyLeadSourceChart as LeadSourceChart,
@@ -101,15 +100,29 @@ function QuickAction({ title, description, icon, href }: QuickActionProps) {
   );
 }
 
+// Stages that sales reps can see (up to and including front_end_hold)
+const SALES_REP_VISIBLE_STAGES = ['lead', 'sold', 'front_end_hold'];
+
 export default function OverviewPage() {
   const { user } = useAuth();
-  const { jobs, loading: jobsLoading } = useJobs({ realtime: true });
+  const { jobs: allJobs, loading: jobsLoading } = useJobs({ realtime: true });
   const { contractors, loading: contractorsLoading } = useContractors({ realtime: true });
   const { invoices, loading: invoicesLoading } = useInvoices({ realtime: true });
   const { leads, loading: leadsLoading } = useLeads({ realtime: true });
   const { campaigns, loading: campaignsLoading } = useCampaigns({ realtime: true });
 
   const loading = jobsLoading || contractorsLoading || invoicesLoading || leadsLoading || campaignsLoading;
+
+  // Sales reps only see their jobs up through front_end_hold in stats
+  const isSalesRep = user?.role === 'sales_rep';
+  const jobs = useMemo(() => {
+    if (!isSalesRep || !user?.uid) return allJobs;
+    return allJobs.filter(
+      (job) =>
+        job.salesRepId === user.uid &&
+        SALES_REP_VISIBLE_STAGES.includes(job.status)
+    );
+  }, [allJobs, isSalesRep, user?.uid]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -154,14 +167,6 @@ export default function OverviewPage() {
     }).length;
     return calculateBusinessFlowStats(jobs, leads, contractors, invoices, activeCampaigns);
   }, [jobs, leads, contractors, invoices, campaigns, loading]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

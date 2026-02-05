@@ -11,7 +11,6 @@ const PnLPDFButton = dynamic(
   { ssr: false, loading: () => null }
 );
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Spinner } from '@/components/ui/Spinner';
 import { useInvoices } from '@/lib/hooks/useInvoices';
 import { useJobs } from '@/lib/hooks/useJobs';
 import { useExpenses } from '@/lib/hooks/useExpenses';
@@ -89,14 +88,6 @@ export default function PnLPage() {
     kts: 'Key Trade Solutions',
     kr: 'Key Renovations',
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

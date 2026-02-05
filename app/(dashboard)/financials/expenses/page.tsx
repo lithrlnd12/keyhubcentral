@@ -17,7 +17,6 @@ import {
 import { useExpenses } from '@/lib/hooks/useExpenses';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Spinner } from '@/components/ui/Spinner';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { getExpenseCategoryLabel, EXPENSE_CATEGORIES, ExpenseCategory, ExpenseEntity } from '@/types/expense';
 import { cn } from '@/lib/utils';
@@ -122,14 +121,6 @@ export default function ExpensesPage() {
       setTimeout(() => setSyncMessage(null), 3000);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

@@ -60,14 +60,6 @@ export default function PortalFinancialsPage() {
   // Get recent invoices (last 5)
   const recentInvoices = invoices.slice(0, 5);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin h-8 w-8 border-2 border-gold border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
