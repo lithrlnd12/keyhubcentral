@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth, getAdminDb } from '@/lib/firebase/admin';
+import { getAdminDb } from '@/lib/firebase/admin';
+import { verifyFirebaseAuth } from '@/lib/auth/verifyRequest';
 
 export async function GET(request: NextRequest) {
   try {
-    // Get authorization header
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const auth = await verifyFirebaseAuth(request);
+    if (!auth.authenticated || !auth.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const token = authHeader.split('Bearer ')[1];
-
-    // Verify the token
-    const adminAuth = getAdminAuth();
-    const decodedToken = await adminAuth.verifyIdToken(token);
-    const userId = decodedToken.uid;
+    const userId = auth.user.uid;
 
     // Get date range from query params
     const searchParams = request.nextUrl.searchParams;

@@ -1,39 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth, getAdminDb } from '@/lib/firebase/admin';
+import { verifyFirebaseAuth, isAdmin } from '@/lib/auth/verifyRequest';
 
 // POST - Trigger P&L rebuild which now includes expenses
 export async function POST(request: NextRequest) {
   try {
-    // Get the authorization token
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const auth = await verifyFirebaseAuth(request);
+    if (!auth.authenticated || !auth.user) {
       return NextResponse.json(
-        { error: 'Missing or invalid authorization header' },
+        { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const token = authHeader.split('Bearer ')[1];
-
-    // Verify the token and get user info
-    const auth = getAdminAuth();
-    let decodedToken;
-    try {
-      decodedToken = await auth.verifyIdToken(token);
-    } catch {
-      return NextResponse.json(
-        { error: 'Invalid authentication token' },
-        { status: 401 }
-      );
-    }
-
-    const db = getAdminDb();
-
-    // Check if user is admin or owner
-    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-    const userData = userDoc.data();
-
-    if (!userData || !['owner', 'admin'].includes(userData.role)) {
+    if (!isAdmin(auth.role)) {
       return NextResponse.json(
         { error: 'Unauthorized: Only admins can sync expenses' },
         { status: 403 }
@@ -61,8 +40,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await response.json();
-    console.log(`P&L rebuild triggered by ${decodedToken.email}`);
+    await response.json();
+    console.log(`P&L rebuild triggered by ${auth.user.email}`);
 
     return NextResponse.json({
       success: true,
