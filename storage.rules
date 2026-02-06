@@ -23,6 +23,11 @@ service firebase.storage {
       return request.auth.token.isAdmin == true;
     }
 
+    // Helper to check if user is internal (via custom claims)
+    function isInternal() {
+      return request.auth.token.isInternal == true;
+    }
+
     // Contractor documents (W-9, insurance, etc.)
     match /contractors/{userId}/documents/{document} {
       // Admins can read all, contractors can read their own
@@ -38,12 +43,13 @@ service firebase.storage {
 
     // Job photos (before/after categories)
     match /jobs/{jobId}/photos/{category}/{photo} {
-      // Anyone authenticated can view job photos
-      allow read: if isAuthenticated();
+      // Internal users can view job photos
+      allow read: if isAuthenticated() && isInternal();
 
-      // Authenticated users can upload photos
+      // Internal users can upload photos
       // Category must be 'before' or 'after'
       allow write: if isAuthenticated() &&
+        isInternal() &&
         category in ['before', 'after'] &&
         request.resource.contentType.matches('image/.*') &&
         isUnderSizeLimit(request.resource.size);
@@ -51,20 +57,22 @@ service firebase.storage {
 
     // Job documents (contracts, agreements, etc.)
     match /jobs/{jobId}/documents/{document} {
-      // Anyone authenticated can view job documents
-      allow read: if isAuthenticated();
+      // Internal users can view job documents
+      allow read: if isAuthenticated() && isInternal();
 
-      // Authenticated users can upload documents (PDF, Word, images)
+      // Internal users can upload documents (PDF, Word, images)
       allow write: if isAuthenticated() &&
+        isInternal() &&
         isValidFileType(request.resource.contentType) &&
         isUnderSizeLimit(request.resource.size);
     }
 
     // Service ticket photos
     match /serviceTickets/{ticketId}/photos/{photo} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && isInternal();
 
       allow write: if isAuthenticated() &&
+        isInternal() &&
         request.resource.contentType.matches('image/.*') &&
         isUnderSizeLimit(request.resource.size);
     }
@@ -81,13 +89,14 @@ service firebase.storage {
 
     // Lead attachments (for event capture forms)
     match /lead-attachments/{fileName} {
-      // Authenticated users can read (admins viewing leads)
-      allow read: if isAuthenticated();
+      // Internal users can read (admins viewing leads)
+      allow read: if isAuthenticated() && isInternal();
 
-      // Public uploads allowed with strict validation
-      // Rate limiting should be handled at API/edge level
-      allow write: if isValidFileType(request.resource.contentType) &&
-        request.resource.size < 5 * 1024 * 1024; // 5MB limit for public uploads
+      // Only authenticated internal users can upload lead attachments
+      allow write: if isAuthenticated() &&
+        isInternal() &&
+        isValidFileType(request.resource.contentType) &&
+        request.resource.size < 5 * 1024 * 1024; // 5MB limit
     }
 
     // Receipt uploads (images and PDFs for inventory)
@@ -104,11 +113,12 @@ service firebase.storage {
 
     // Contract signatures and PDFs
     match /jobs/{jobId}/contracts/{contractId}/{path=**} {
-      // Anyone authenticated can view contract files
-      allow read: if isAuthenticated();
+      // Internal users can view contract files
+      allow read: if isAuthenticated() && isInternal();
 
-      // Authenticated users can upload signatures and PDFs
+      // Internal users can upload signatures and PDFs
       allow write: if isAuthenticated() &&
+        isInternal() &&
         (request.resource.contentType.matches('image/.*') ||
          request.resource.contentType == 'application/pdf') &&
         isUnderSizeLimit(request.resource.size);

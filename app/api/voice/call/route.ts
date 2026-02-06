@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       cleanPhone = '+' + cleanPhone;
     }
 
-    console.log(`Initiating call to ${customerName} at ${cleanPhone} for lead ${leadId}`);
+    console.log(`Initiating call for lead ${leadId}`);
 
     // Create the call via Vapi
     const call = await createOutboundCall(cleanPhone, customerName, {

@@ -1,9 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHmac } from 'crypto';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { sendSms } from '@/lib/sms/provider';
 import { generateSmsResponse, analyzeConversation, checkOptOut } from '@/lib/sms/ai';
 import { TwilioWebhookPayload } from '@/lib/sms/types';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+
+/**
+ * Verify Twilio request signature (X-Twilio-Signature).
+ * See: https://www.twilio.com/docs/usage/security#validating-requests
+ */
+function verifyTwilioSignature(
+  url: string,
+  params: Record<string, string>,
+  signature: string | null,
+  authToken: string
+): boolean {
+  if (!signature) return false;
+
+  // Build data string: URL + sorted param keys with values appended
+  const sortedKeys = Object.keys(params).sort();
+  let data = url;
+  for (const key of sortedKeys) {
+    data += key + params[key];
+  }
+
+  const expected = createHmac('sha1', authToken)
+    .update(data)
+    .digest('base64');
+
+  return signature === expected;
+}
 
 // Local message type using firebase-admin Timestamp
 type MessageData = {
@@ -17,6 +47,12 @@ type MessageData = {
 // POST - Receive incoming SMS from Twilio
 export async function POST(request: NextRequest) {
   try {
+    // Fail-closed: require Twilio credentials to be configured
+    if (!TWILIO_AUTH_TOKEN || !TWILIO_ACCOUNT_SID) {
+      console.error('Twilio credentials not configured - rejecting webhook');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     // Parse form data (Twilio sends as application/x-www-form-urlencoded)
     const formData = await request.formData();
     const payload: TwilioWebhookPayload = {
@@ -29,7 +65,26 @@ export async function POST(request: NextRequest) {
       NumSegments: formData.get('NumSegments') as string,
     };
 
-    console.log('Twilio webhook received:', payload);
+    // Verify AccountSid matches our account
+    if (payload.AccountSid !== TWILIO_ACCOUNT_SID) {
+      console.error('Twilio webhook AccountSid mismatch');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify Twilio signature
+    const twilioSignature = request.headers.get('X-Twilio-Signature');
+    const webhookUrl = request.url;
+    const params: Record<string, string> = {};
+    formData.forEach((value, key) => {
+      params[key] = value as string;
+    });
+
+    if (!verifyTwilioSignature(webhookUrl, params, twilioSignature, TWILIO_AUTH_TOKEN)) {
+      console.error('Twilio webhook signature verification failed');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    console.log('Twilio webhook received:', payload.MessageSid);
 
     const { From: fromNumber, Body: incomingMessage } = payload;
 
@@ -177,7 +232,7 @@ export async function POST(request: NextRequest) {
 
     await db.collection('leads').doc(conversation.leadId).update(leadUpdate);
 
-    console.log(`SMS response sent to ${fromNumber}, conversation ${newStatus}`);
+    console.log(`SMS response sent, conversation ${conversationDoc.id} ${newStatus}`);
 
     // Return TwiML response (empty - we already sent via API)
     return new NextResponse(

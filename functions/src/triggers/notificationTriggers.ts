@@ -683,6 +683,13 @@ export const testNotification = functions.https.onCall(async (data, context) => 
     throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
   }
 
+  // Verify caller is admin
+  const callerDoc = await admin.firestore().collection('users').doc(context.auth.uid).get();
+  const callerRole = callerDoc.data()?.role;
+  if (!callerRole || !['owner', 'admin'].includes(callerRole)) {
+    throw new functions.https.HttpsError('permission-denied', 'Only admins can send test notifications');
+  }
+
   const { userId, type, title, body } = data;
 
   if (!userId || !type || !title || !body) {

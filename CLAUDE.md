@@ -7,7 +7,7 @@ KeyHub Central is a PWA for managing three interconnected businesses:
 - **Key Trade Solutions (KTS)** — 1099 contractor network (installers, sales reps, PMs, service techs)
 - **Key Renovations (KR)** — D2C home renovation sales
 
-See `PRD.md` for full requirements, data models, and module specs.
+See `DOCUMENTATION.md` for full technical documentation, data models, security, and module specs.
 
 ## Tech Stack
 
@@ -86,9 +86,9 @@ if (!['owner', 'admin'].includes(role)) redirect('/unauthorized');
 
 ### Firestore Collections
 
-Primary collections: `users`, `contractors`, `jobs`, `leads`, `invoices`, `campaigns`, `subscriptions`, `serviceTickets`
+Primary collections: `users`, `contractors`, `jobs`, `leads`, `invoices`, `campaigns`, `subscriptions`, `serviceTickets`, `partners`, `laborRequests`, `partnerServiceTickets`, `inventoryItems`, `inventoryLocations`, `inventoryStock`, `inventoryCounts`, `receipts`, `expenses`, `notifications`, `ratingRequests`, `payouts`, `smsConversations`, `voiceCalls`, `inboundCalls`, `contracts`
 
-See `PRD.md` → Data Models section for full schemas.
+See `DOCUMENTATION.md` → Data Models section for full schemas.
 
 ### File Uploads
 
@@ -153,9 +153,11 @@ Next steps:
 
 | Need | Location |
 |------|----------|
-| Full requirements | `PRD.md` |
-| Data models | `PRD.md` → Data Models |
-| Role permissions | `PRD.md` → Permission Matrix |
+| Full technical docs | `DOCUMENTATION.md` |
+| Data models | `DOCUMENTATION.md` → Section 5 |
+| Role permissions | `DOCUMENTATION.md` → Section 3 |
+| Security details | `DOCUMENTATION.md` → Section 4 |
+| API routes | `DOCUMENTATION.md` → Section 11 |
 | Job stages | Lead → Sold → Front End Hold → Production → Scheduled → Started → Complete → Paid in Full |
 | Subscription tiers | Starter ($399), Growth ($899), Pro ($1,499+) |
 | Commission rates | Elite 10%, Pro 9%, Standard 8% |

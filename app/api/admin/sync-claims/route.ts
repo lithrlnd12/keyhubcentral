@@ -1,31 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase/admin';
+import { verifyFirebaseAuth } from '@/lib/auth/verifyRequest';
 
 // POST - Sync all users' roles to custom claims (one-time migration)
 export async function POST(request: NextRequest) {
   try {
-    const { callerUid } = await request.json();
-
-    if (!callerUid) {
+    // Verify caller's identity from their Firebase ID token
+    const auth = await verifyFirebaseAuth(request);
+    if (!auth.authenticated || !auth.user) {
       return NextResponse.json(
-        { error: 'Missing callerUid' },
-        { status: 400 }
+        { error: 'Unauthorized: Invalid or missing authentication token' },
+        { status: 401 }
+      );
+    }
+
+    // Only owners can sync claims
+    if (auth.role !== 'owner') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only owners can sync claims' },
+        { status: 403 }
       );
     }
 
     const db = getAdminDb();
-    const auth = getAdminAuth();
-
-    // Verify the caller is an owner
-    const callerDoc = await db.collection('users').doc(callerUid).get();
-    const callerData = callerDoc.data();
-
-    if (!callerData || callerData.role !== 'owner') {
-      return NextResponse.json(
-        { error: 'Unauthorized: Only owners can sync claims' },
-        { status: 403 }
-      );
-    }
+    const adminAuth = getAdminAuth();
 
     // Get all users
     const usersSnapshot = await db.collection('users').get();
@@ -37,10 +35,12 @@ export async function POST(request: NextRequest) {
       const role = userData.role || 'pending';
 
       try {
-        await auth.setCustomUserClaims(uid, {
+        await adminAuth.setCustomUserClaims(uid, {
           role,
           isAdmin: ['owner', 'admin'].includes(role),
           isInternal: ['owner', 'admin', 'sales_rep', 'contractor', 'pm'].includes(role),
+          isPartner: role === 'partner',
+          partnerId: role === 'partner' ? (userData.partnerId || null) : null,
         });
         results.push({ uid, role, success: true });
       } catch (error) {
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const successful = results.filter(r => r.success).length;
     const failed = results.filter(r => !r.success).length;
 
-    console.log(`Custom claims synced: ${successful} successful, ${failed} failed`);
+    console.log(`Custom claims synced by ${auth.user.uid}: ${successful} successful, ${failed} failed`);
 
     return NextResponse.json({
       success: true,

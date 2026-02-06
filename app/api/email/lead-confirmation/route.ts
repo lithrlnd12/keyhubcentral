@@ -14,12 +14,26 @@ function getTransporter() {
   });
 }
 
+// Basic email format validation
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254;
+}
+
+// This endpoint sends a fixed-template confirmation email to the customer's own address.
+// It is intentionally public (called from the lead capture form) but safe because:
+// 1. The template is hardcoded (no user-controlled HTML beyond an escaped first name)
+// 2. The email is sent TO the address provided (not arbitrary recipients)
+// 3. Gmail has its own rate limiting
 export async function POST(request: NextRequest) {
   try {
     const { email, customerName, contactPreference } = await request.json();
 
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    }
+
+    if (!isValidEmail(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
     if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
@@ -28,7 +42,14 @@ export async function POST(request: NextRequest) {
     }
 
     const contactMethod = contactPreference === 'sms' ? 'text message' : 'phone call';
-    const firstName = customerName?.split(' ')[0] || 'there';
+    const rawFirstName = customerName?.split(' ')[0] || 'there';
+    // Escape HTML to prevent injection in email template
+    const firstName = rawFirstName
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
 
     const emailHtml = `
       <!DOCTYPE html>

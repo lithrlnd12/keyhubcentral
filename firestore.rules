@@ -18,8 +18,10 @@ service cloud.firestore {
     }
 
     function isInternalUser() {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
       return isAuthenticated() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['owner', 'admin', 'sales_rep', 'contractor', 'pm'];
+        userData.role in ['owner', 'admin', 'sales_rep', 'contractor', 'pm'] &&
+        userData.status == 'active';
     }
 
     function isActiveUser() {
@@ -48,7 +50,12 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       // Anyone can create their own user document (signup)
-      allow create: if isAuthenticated() && request.auth.uid == userId;
+      // Enforce: must be pending status, no self-assigned privileged role,
+      // and cannot set admin-only fields
+      allow create: if isAuthenticated() && request.auth.uid == userId &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.role == 'pending' &&
+        !request.resource.data.keys().hasAny(['approvedAt', 'approvedBy']);
 
       // Internal users can read user profiles (needed for user lookups)
       allow read: if isOwnDocument(userId) || isInternalUser();
@@ -78,9 +85,16 @@ service cloud.firestore {
       allow create: if isAdmin();
       allow update: if isAdmin() ||
         (isActiveUser() && resource.data.userId == request.auth.uid &&
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['rating', 'status']));
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['rating', 'status', 'userId', 'tier', 'commissionRate', 'approvedAt', 'approvedBy']));
 
       allow delete: if isOwner();
+
+      // Sensitive payment data subcollection (ACH info, etc.)
+      // Only admins can read/write payment data
+      match /paymentInfo/{docId} {
+        allow read: if isAdmin();
+        allow write: if isAdmin();
+      }
 
       // Availability subcollection
       match /availability/{dateId} {
@@ -112,8 +126,9 @@ service cloud.firestore {
       // Status updates based on role
       allow update: if isAdmin() ||
         (isActiveUser() && (
-          // PM can update most fields
-          resource.data.pmId == request.auth.uid ||
+          // PM can update most fields but cannot change salesRepId, pmId, or financial fields
+          (resource.data.pmId == request.auth.uid &&
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['salesRepId', 'pmId', 'contractAmount', 'commissionRate'])) ||
           // Sales rep can update their own jobs (status, crew, photos, etc.)
           // but cannot change salesRepId or pmId
           (resource.data.salesRepId == request.auth.uid &&
@@ -153,20 +168,23 @@ service cloud.firestore {
 
       // Internal users can create leads (from inbound calls, manual entry, etc.)
       // Also allow public lead creation (for event QR code capture)
+      // Public creates are field-whitelisted to prevent injection of privileged fields
       allow create: if isAdmin() ||
         (isInternalUser() && isActiveUser()) ||
         (request.resource.data.source == 'event' &&
          request.resource.data.status == 'new' &&
          request.resource.data.customer.name != null &&
-         request.resource.data.customer.name != '');
+         request.resource.data.customer.name != '' &&
+         !request.resource.data.keys().hasAny(['assignedTo', 'salesRepId', 'linkedJobId', 'convertedBy']));
 
       // Sales reps can update leads assigned to them
-      // Also allow updating to 'converted' status when linking to a job
+      // Also allow updating to 'converted' status when linking to a job (only if assigned)
       // Also allow sales reps to CLAIM unassigned leads (assignedTo is null)
       allow update: if isAdmin() ||
         (isActiveUser() && resource.data.assignedTo == request.auth.uid) ||
         (isActiveUser() &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'sales_rep' &&
+          resource.data.assignedTo == request.auth.uid &&
           request.resource.data.status == 'converted' &&
           request.resource.data.linkedJobId != null) ||
         (isActiveUser() &&
@@ -213,11 +231,12 @@ service cloud.firestore {
           request.resource.data.from.contractorId == request.auth.uid);
 
       // Admins can update any invoice
-      // Contractors can update their own draft invoices only
+      // Contractors can update their own draft invoices only (cannot change status or financial totals)
       allow update: if isAdmin() ||
         (isContractor() && isActiveUser() &&
           resource.data.from.contractorId == request.auth.uid &&
-          resource.data.status == 'draft');
+          resource.data.status == 'draft' &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'approvedBy', 'approvedAt', 'sentAt']));
 
       allow delete: if isOwner();
     }
@@ -411,10 +430,11 @@ service cloud.firestore {
       // Admins can update any expenses
       allow update: if isAdmin();
 
-      // Contractors can update their own expenses
+      // Contractors can update their own expenses (cannot change entity or contractorId)
       allow update: if isActiveUser() &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor' &&
-        resource.data.contractorId == request.auth.uid;
+        resource.data.contractorId == request.auth.uid &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['entity', 'contractorId', 'approvedBy', 'approvedAt']);
 
       // Contractors can delete their own expenses
       allow delete: if isActiveUser() &&
@@ -452,8 +472,10 @@ service cloud.firestore {
 
     // Rating Requests collection - Customer rating surveys
     match /ratingRequests/{requestId} {
-      // Public read access - token in URL provides security
-      // The app validates the token matches before showing rating form
+      // Public read access: the random token in the URL acts as access control.
+      // get() for direct lookups, list() needed for token-based queries from the public rating page.
+      // Data exposed is limited (job number, contractor name, customer name, rating status).
+      // The update rules below enforce one-time-submit protection.
       allow read: if true;
 
       // Only Cloud Functions (admin SDK) can create rating requests
@@ -461,10 +483,17 @@ service cloud.firestore {
       allow create: if false;
 
       // Allow public updates for rating submission
-      // Token validation happens in app code
-      // Only allow updating rating-related fields
-      allow update: if request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['rating', 'comment', 'status', 'completedAt', 'reminderSentAt']);
+      // Only allow updating rating-related fields, and only if not already completed
+      allow update: if resource.data.status == 'pending' &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['rating', 'comment', 'status', 'completedAt']) &&
+        request.resource.data.status == 'completed' &&
+        request.resource.data.rating is int &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5;
+
+      // Admins can also update (e.g., send reminders)
+      allow update: if isAdmin();
 
       // No deletes allowed
       allow delete: if false;

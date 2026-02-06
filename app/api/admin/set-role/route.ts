@@ -1,31 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth, getAdminDb } from '@/lib/firebase/admin';
+import { verifyFirebaseAuth, isAdmin } from '@/lib/auth/verifyRequest';
 
 // POST - Set user role as custom claim (for Storage rules)
 export async function POST(request: NextRequest) {
   try {
-    const { uid, role, callerUid, partnerId } = await request.json();
-
-    if (!uid || !role || !callerUid) {
+    // Verify caller's identity from their Firebase ID token
+    const auth = await verifyFirebaseAuth(request);
+    if (!auth.authenticated || !auth.user) {
       return NextResponse.json(
-        { error: 'Missing required fields: uid, role, callerUid' },
+        { error: 'Unauthorized: Invalid or missing authentication token' },
+        { status: 401 }
+      );
+    }
+
+    // Verify the caller is an admin or owner
+    if (!isAdmin(auth.role)) {
+      return NextResponse.json(
+        { error: 'Forbidden: Only admins can set user roles' },
+        { status: 403 }
+      );
+    }
+
+    const { uid, role, partnerId } = await request.json();
+
+    if (!uid || !role) {
+      return NextResponse.json(
+        { error: 'Missing required fields: uid, role' },
         { status: 400 }
       );
     }
 
     const db = getAdminDb();
-    const auth = getAdminAuth();
-
-    // Verify the caller is an admin or owner
-    const callerDoc = await db.collection('users').doc(callerUid).get();
-    const callerData = callerDoc.data();
-
-    if (!callerData || !['owner', 'admin'].includes(callerData.role)) {
-      return NextResponse.json(
-        { error: 'Unauthorized: Only admins can set user roles' },
-        { status: 403 }
-      );
-    }
+    const adminAuth = getAdminAuth();
 
     // Validate role
     const validRoles = ['owner', 'admin', 'sales_rep', 'contractor', 'pm', 'subscriber', 'partner', 'pending'];
@@ -33,6 +40,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid role' },
         { status: 400 }
+      );
+    }
+
+    // Only owners can promote to owner or admin
+    if (['owner', 'admin'].includes(role) && auth.role !== 'owner') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only owners can assign owner or admin roles' },
+        { status: 403 }
       );
     }
 
@@ -45,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Set custom claims on the user's auth token
-    await auth.setCustomUserClaims(uid, {
+    await adminAuth.setCustomUserClaims(uid, {
       role,
       isAdmin: ['owner', 'admin'].includes(role),
       isInternal: ['owner', 'admin', 'sales_rep', 'contractor', 'pm'].includes(role),
@@ -53,7 +68,10 @@ export async function POST(request: NextRequest) {
       partnerId: role === 'partner' ? partnerId : null,
     });
 
-    console.log(`Custom claims set for user ${uid}: role=${role}`);
+    // Revoke refresh tokens to force re-authentication with new claims
+    await adminAuth.revokeRefreshTokens(uid);
+
+    console.log(`Custom claims set for user ${uid}: role=${role} by ${auth.user.uid}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

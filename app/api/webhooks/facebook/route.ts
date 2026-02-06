@@ -36,21 +36,22 @@ export async function POST(request: NextRequest) {
     // Get raw body for signature verification
     const rawBody = await request.text();
 
-    // Verify webhook signature if APP_SECRET is configured
-    if (APP_SECRET) {
-      const signature = request.headers.get('X-Hub-Signature-256');
+    // Fail-closed: require FB_APP_SECRET to be configured
+    if (!APP_SECRET) {
+      console.error('FB_APP_SECRET not configured - rejecting webhook');
+      return new NextResponse('Server configuration error', { status: 500 });
+    }
 
-      if (!verifyFacebookSignature(rawBody, signature, APP_SECRET)) {
-        console.error('Facebook webhook signature verification failed');
-        return new NextResponse('Invalid signature', { status: 401 });
-      }
-    } else {
-      console.warn('FB_APP_SECRET not configured - signature verification disabled');
+    // Verify webhook signature
+    const signature = request.headers.get('X-Hub-Signature-256');
+    if (!verifyFacebookSignature(rawBody, signature, APP_SECRET)) {
+      console.error('Facebook webhook signature verification failed');
+      return new NextResponse('Invalid signature', { status: 401 });
     }
 
     const body = JSON.parse(rawBody);
 
-    console.log('Facebook webhook received:', JSON.stringify(body, null, 2));
+    console.log('Facebook webhook received:', body.object, 'entries:', body.entry?.length);
 
     // Facebook sends data in this structure:
     // {

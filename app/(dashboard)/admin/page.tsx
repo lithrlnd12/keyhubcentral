@@ -33,7 +33,7 @@ const ROLE_COLORS: Record<UserRole, string> = {
 };
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const [pendingUsers, setPendingUsers] = useState<UserProfile[]>([]);
   const [activeUsers, setActiveUsers] = useState<UserProfile[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
@@ -178,10 +178,11 @@ export default function AdminPage() {
         }
       }
 
+      const token = await getIdToken();
       await fetch('/api/admin/set-role', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid, role, callerUid: user?.uid }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ uid, role, partnerId }),
       });
 
       fetchPendingUsers();
@@ -286,10 +287,11 @@ export default function AdminPage() {
         }
       }
 
+      const token = await getIdToken();
       await fetch('/api/admin/set-role', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid, role, callerUid: user?.uid }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ uid, role, partnerId: selectedPartners[uid] }),
       });
 
       setEditingUserId(null);
@@ -305,10 +307,10 @@ export default function AdminPage() {
     if (!user?.uid) return;
     setSyncing(true);
     try {
+      const token = await getIdToken();
       const res = await fetch('/api/admin/sync-claims', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ callerUid: user.uid }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       });
       const data = await res.json();
       if (data.success) {

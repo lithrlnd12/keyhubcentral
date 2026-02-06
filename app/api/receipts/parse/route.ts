@@ -207,6 +207,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SSRF protection: only allow Firebase Storage URLs
+    const allowedUrlPatterns = [
+      /^https:\/\/firebasestorage\.googleapis\.com\//,
+      /^https:\/\/storage\.googleapis\.com\//,
+    ];
+
+    try {
+      const parsedUrl = new URL(imageUrl);
+      if (parsedUrl.protocol !== 'https:') {
+        return NextResponse.json(
+          { error: 'Only HTTPS URLs are allowed' },
+          { status: 400 }
+        );
+      }
+      if (!allowedUrlPatterns.some(pattern => pattern.test(imageUrl))) {
+        return NextResponse.json(
+          { error: 'Only Firebase Storage URLs are allowed' },
+          { status: 400 }
+        );
+      }
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid URL format' },
+        { status: 400 }
+      );
+    }
+
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
         { error: 'AI parsing is not configured. Please add ANTHROPIC_API_KEY to environment variables.' },

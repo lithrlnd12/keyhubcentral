@@ -359,23 +359,23 @@ async function handleInboundCall(
 // POST - Receive webhook events from Vapi
 export async function POST(request: NextRequest) {
   try {
-    // Verify webhook secret if configured
-    // Vapi can be configured to send a secret in headers
-    if (VAPI_WEBHOOK_SECRET) {
-      const webhookSecret = request.headers.get('x-vapi-secret');
+    // Fail-closed: require webhook secret to be configured
+    if (!VAPI_WEBHOOK_SECRET) {
+      console.error('VAPI_WEBHOOK_SECRET not configured - rejecting webhook');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
 
-      if (webhookSecret !== VAPI_WEBHOOK_SECRET) {
-        console.error('Vapi webhook secret verification failed');
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-    } else {
-      console.warn('VAPI_WEBHOOK_SECRET not configured - verification disabled');
+    // Verify webhook secret from Vapi headers
+    const webhookSecret = request.headers.get('x-vapi-secret');
+    if (webhookSecret !== VAPI_WEBHOOK_SECRET) {
+      console.error('Vapi webhook secret verification failed');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const rawPayload = await request.json();
     const payload = rawPayload as VapiWebhookPayload;
 
-    console.log('Vapi webhook received:', JSON.stringify(rawPayload, null, 2));
+    console.log('Vapi webhook received:', payload.message?.type, 'call:', payload.message?.call?.id);
 
     const { message } = payload;
     const call = message.call;

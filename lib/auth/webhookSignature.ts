@@ -39,10 +39,9 @@ export function verifyVapiSignature(
   webhookSecret: string
 ): boolean {
   if (!signature || !webhookSecret) {
-    // If no secret configured, log warning but allow (for backwards compatibility)
+    // Fail-closed: reject if secret not configured or signature missing
     if (!webhookSecret) {
-      console.warn('VAPI_WEBHOOK_SECRET not configured - webhook verification disabled');
-      return true;
+      console.error('VAPI_WEBHOOK_SECRET not configured - rejecting request');
     }
     return false;
   }

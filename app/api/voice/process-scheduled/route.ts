@@ -24,9 +24,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Verify the request is from an authorized source
+    // Fail-closed: require CRON_SECRET to be configured
+    if (!CRON_SECRET) {
+      console.error('CRON_SECRET not configured - rejecting request');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const authHeader = request.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+    if (authHeader !== `Bearer ${CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -167,9 +172,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Vercel cron sends authorization header automatically
+    // Fail-closed: require CRON_SECRET to be configured
+    if (!CRON_SECRET) {
+      console.error('CRON_SECRET not configured - rejecting request');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const authHeader = request.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+    if (authHeader !== `Bearer ${CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -227,15 +237,7 @@ export async function GET(request: NextRequest) {
         const customerName = lead.customer.name || `${lead.customer.firstName || ''} ${lead.customer.lastName || ''}`.trim() || 'there';
         const phoneNumber = lead.customer.phone;
 
-        console.log(`=== VAPI CALL ATTEMPT ===`);
-        console.log(`Lead ID: ${doc.id}`);
-        console.log(`Customer Name: ${customerName}`);
-        console.log(`Phone Number: ${phoneNumber}`);
-        console.log(`Attempt: ${attempts + 1}`);
-        console.log(`VAPI_API_KEY exists: ${!!process.env.VAPI_API_KEY}`);
-        console.log(`VAPI_PHONE_NUMBER_ID exists: ${!!process.env.VAPI_PHONE_NUMBER_ID}`);
-        console.log(`VAPI_ASSISTANT_ID exists: ${!!process.env.VAPI_ASSISTANT_ID}`);
-        console.log(`VAPI_PHONE_NUMBER_ID value: ${process.env.VAPI_PHONE_NUMBER_ID}`);
+        console.log(`VAPI call attempt for lead ${doc.id}, attempt ${attempts + 1}`);
 
         const call = await createOutboundCall(
           phoneNumber,
@@ -243,9 +245,7 @@ export async function GET(request: NextRequest) {
           { leadId: doc.id, attempt: attempts + 1 }
         );
 
-        console.log(`=== VAPI CALL SUCCESS ===`);
-        console.log(`Call ID: ${call.id}`);
-        console.log(`Call Status: ${call.status}`);
+        console.log(`VAPI call success for lead ${doc.id}, callId: ${call.id}`);
 
         // Update lead
         await doc.ref.update({
@@ -270,10 +270,7 @@ export async function GET(request: NextRequest) {
 
         results.push({ leadId: doc.id, success: true });
       } catch (error) {
-        console.error(`=== VAPI CALL FAILED ===`);
-        console.error(`Lead ID: ${doc.id}`);
-        console.error(`Error:`, error);
-        console.error(`Error message:`, error instanceof Error ? error.message : 'Unknown');
+        console.error(`VAPI call failed for lead ${doc.id}:`, error instanceof Error ? error.message : 'Unknown error');
 
         // Schedule retry in 1 hour if not max attempts
         if (attempts < 2) {

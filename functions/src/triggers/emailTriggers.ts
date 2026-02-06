@@ -9,6 +9,34 @@ const runtimeOpts: functions.RuntimeOptions = {
   secrets: ['GMAIL_USER', 'GMAIL_APP_PASSWORD'],
 };
 
+// HTML entity escaping to prevent injection in email templates
+function escapeHtml(str: string | undefined | null): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Validate URL to prevent javascript: or data: injection in href attributes
+function sanitizeUrl(url: string | undefined | null): string {
+  if (!url) return '#';
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return url;
+    }
+    return '#';
+  } catch {
+    return '#';
+  }
+}
+
+// Internal roles that can send emails
+const INTERNAL_ROLES = ['owner', 'admin', 'sales_rep', 'contractor', 'pm'];
+
 // Configure email transporter
 function getTransporter() {
   return nodemailer.createTransport({
@@ -68,13 +96,19 @@ export const sendInvoiceEmail = functions
       throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
     }
 
+    // Verify caller has internal role
+    const db = admin.firestore();
+    const callerDoc = await db.collection('users').doc(context.auth.uid).get();
+    const callerRole = callerDoc.data()?.role;
+    if (!callerRole || !INTERNAL_ROLES.includes(callerRole)) {
+      throw new functions.https.HttpsError('permission-denied', 'Only internal users can send invoices');
+    }
+
     const { invoiceId, recipientEmail } = data;
 
     if (!invoiceId) {
       throw new functions.https.HttpsError('invalid-argument', 'Invoice ID is required');
     }
-
-    const db = admin.firestore();
 
     // Get invoice
     const invoiceDoc = await db.collection('invoices').doc(invoiceId).get();
@@ -92,12 +126,12 @@ export const sendInvoiceEmail = functions
       );
     }
 
-    // Generate line items HTML
+    // Generate line items HTML (escape user-controlled descriptions)
     const lineItemsHtml = invoice.lineItems
       .map(
         (item: { description: string; qty: number; rate: number; total: number }) => `
         <tr>
-          <td style="padding: 12px; border-bottom: 1px solid #eee;">${item.description}</td>
+          <td style="padding: 12px; border-bottom: 1px solid #eee;">${escapeHtml(item.description)}</td>
           <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: center;">${item.qty}</td>
           <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">${formatCurrency(item.rate)}</td>
           <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">${formatCurrency(item.total)}</td>
@@ -119,7 +153,7 @@ export const sendInvoiceEmail = functions
         <!-- Header -->
         <div style="background: #1A1A1A; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
           <h1 style="color: #D4A84B; margin: 0; font-size: 28px;">INVOICE</h1>
-          <p style="color: #888; margin: 10px 0 0 0;">${invoice.invoiceNumber}</p>
+          <p style="color: #888; margin: 10px 0 0 0;">${escapeHtml(invoice.invoiceNumber)}</p>
         </div>
 
         <!-- Invoice Details -->
@@ -130,13 +164,13 @@ export const sendInvoiceEmail = functions
             <tr>
               <td style="vertical-align: top; width: 50%;">
                 <h3 style="color: #666; margin: 0 0 10px 0; font-size: 12px; text-transform: uppercase;">From</h3>
-                <p style="margin: 0; font-weight: bold; font-size: 16px;">${getEntityName(invoice.from.entity)}</p>
-                <p style="margin: 5px 0 0 0; color: #666;">${invoice.from.name}</p>
+                <p style="margin: 0; font-weight: bold; font-size: 16px;">${escapeHtml(getEntityName(invoice.from.entity))}</p>
+                <p style="margin: 5px 0 0 0; color: #666;">${escapeHtml(invoice.from.name)}</p>
               </td>
               <td style="vertical-align: top; width: 50%;">
                 <h3 style="color: #666; margin: 0 0 10px 0; font-size: 12px; text-transform: uppercase;">To</h3>
-                <p style="margin: 0; font-weight: bold; font-size: 16px;">${invoice.to.name}</p>
-                ${invoice.to.email ? `<p style="margin: 5px 0 0 0; color: #666;">${invoice.to.email}</p>` : ''}
+                <p style="margin: 0; font-weight: bold; font-size: 16px;">${escapeHtml(invoice.to.name)}</p>
+                ${invoice.to.email ? `<p style="margin: 5px 0 0 0; color: #666;">${escapeHtml(invoice.to.email)}</p>` : ''}
               </td>
             </tr>
           </table>
@@ -194,7 +228,7 @@ export const sendInvoiceEmail = functions
           <div style="margin-top: 30px; padding: 20px; background: white; border-radius: 8px; text-align: center;">
             <p style="margin: 0; color: #666;">Payment Terms: Net 30 Days</p>
             <p style="margin: 10px 0 0 0; color: #888; font-size: 14px;">
-              Please include invoice number <strong>${invoice.invoiceNumber}</strong> with your payment.
+              Please include invoice number <strong>${escapeHtml(invoice.invoiceNumber)}</strong> with your payment.
             </p>
           </div>
         </div>
@@ -263,13 +297,19 @@ export const sendContractEmail = functions
       throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
     }
 
+    // Verify caller has internal role
+    const db = admin.firestore();
+    const callerDoc = await db.collection('users').doc(context.auth.uid).get();
+    const callerRole = callerDoc.data()?.role;
+    if (!callerRole || !INTERNAL_ROLES.includes(callerRole)) {
+      throw new functions.https.HttpsError('permission-denied', 'Only internal users can send contracts');
+    }
+
     const { contractId, recipientEmail } = data;
 
     if (!contractId) {
       throw new functions.https.HttpsError('invalid-argument', 'Contract ID is required');
     }
-
-    const db = admin.firestore();
 
     // Get contract
     const contractDoc = await db.collection('contracts').doc(contractId).get();
@@ -319,11 +359,11 @@ export const sendContractEmail = functions
         <!-- Content -->
         <div style="background: #f9f9f9; padding: 30px; border: 1px solid #ddd; border-top: none;">
 
-          <p style="font-size: 16px; margin-bottom: 20px;">Dear ${customerName},</p>
+          <p style="font-size: 16px; margin-bottom: 20px;">Dear ${escapeHtml(customerName)},</p>
 
           <p style="margin-bottom: 20px;">
             Thank you for choosing Key Renovations for your home improvement project.
-            Please find attached your signed <strong>${documentTypeLabel}</strong>.
+            Please find attached your signed <strong>${escapeHtml(documentTypeLabel)}</strong>.
           </p>
 
           <!-- Contract Details Box -->
@@ -332,15 +372,15 @@ export const sendContractEmail = functions
             <table style="width: 100%; font-size: 14px;">
               <tr>
                 <td style="padding: 8px 0; color: #666;">Document Type:</td>
-                <td style="padding: 8px 0; font-weight: bold;">${documentTypeLabel}</td>
+                <td style="padding: 8px 0; font-weight: bold;">${escapeHtml(documentTypeLabel)}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #666;">Job Number:</td>
-                <td style="padding: 8px 0; font-weight: bold;">${jobNumber}</td>
+                <td style="padding: 8px 0; font-weight: bold;">${escapeHtml(jobNumber)}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #666;">Signed Date:</td>
-                <td style="padding: 8px 0; font-weight: bold;">${signedDate}</td>
+                <td style="padding: 8px 0; font-weight: bold;">${escapeHtml(signedDate)}</td>
               </tr>
               ${contract.formData?.purchasePrice ? `
               <tr>
@@ -353,7 +393,7 @@ export const sendContractEmail = functions
 
           <!-- View Contract Button -->
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${contract.pdfUrl}"
+            <a href="${sanitizeUrl(contract.pdfUrl)}"
                style="display: inline-block; background: #D4A84B; color: #1A1A1A; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
               View Signed Contract
             </a>

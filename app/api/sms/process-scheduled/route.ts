@@ -72,11 +72,7 @@ async function processScheduledSms() {
       // Generate initial message
       const message = getInitialMessage(customerName);
 
-      console.log(`=== SMS ATTEMPT ===`);
-      console.log(`Lead ID: ${doc.id}`);
-      console.log(`Customer: ${customerName}`);
-      console.log(`Phone: ${lead.customer.phone}`);
-      console.log(`Message: ${message}`);
+      console.log(`SMS attempt for lead ${doc.id}, attempt ${attempts + 1}`);
 
       // Send SMS
       const result = await sendSms(lead.customer.phone, message);
@@ -85,9 +81,7 @@ async function processScheduledSms() {
         throw new Error(result.error || 'Failed to send SMS');
       }
 
-      console.log(`=== SMS SUCCESS ===`);
-      console.log(`Message SID: ${result.messageSid}`);
-      console.log(`Provider: ${result.provider}`);
+      console.log(`SMS sent for lead ${doc.id}, SID: ${result.messageSid}`);
 
       // Create SMS conversation record
       const conversationRef = await db.collection('smsConversations').add({
@@ -125,9 +119,7 @@ async function processScheduledSms() {
 
       results.push({ leadId: doc.id, success: true });
     } catch (error) {
-      console.error(`=== SMS FAILED ===`);
-      console.error(`Lead ID: ${doc.id}`);
-      console.error(`Error:`, error);
+      console.error(`SMS failed for lead ${doc.id}:`, error instanceof Error ? error.message : 'Unknown error');
 
       // Schedule retry in 1 hour if not max attempts
       if (attempts < 2) {
@@ -161,8 +153,14 @@ async function processScheduledSms() {
 // POST - Process scheduled SMS (manual trigger)
 export async function POST(request: NextRequest) {
   try {
+    // Fail-closed: require CRON_SECRET to be configured
+    if (!CRON_SECRET) {
+      console.error('CRON_SECRET not configured - rejecting request');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const authHeader = request.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+    if (authHeader !== `Bearer ${CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -184,8 +182,14 @@ export async function POST(request: NextRequest) {
 // GET - Process scheduled SMS (used by Vercel cron)
 export async function GET(request: NextRequest) {
   try {
+    // Fail-closed: require CRON_SECRET to be configured
+    if (!CRON_SECRET) {
+      console.error('CRON_SECRET not configured - rejecting request');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const authHeader = request.headers.get('authorization');
-    if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+    if (authHeader !== `Bearer ${CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

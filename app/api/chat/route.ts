@@ -170,6 +170,21 @@ export async function POST(request: NextRequest) {
   try {
     const { messages } = await request.json();
 
+    // Validate message array bounds
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json(
+        { error: 'Messages array is required and must not be empty' },
+        { status: 400 }
+      );
+    }
+
+    if (messages.length > 50) {
+      return NextResponse.json(
+        { error: 'Too many messages. Please start a new conversation.' },
+        { status: 400 }
+      );
+    }
+
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
         { error: 'AI chat is not configured. Please add ANTHROPIC_API_KEY to environment variables.' },
