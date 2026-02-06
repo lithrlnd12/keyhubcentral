@@ -98,7 +98,8 @@ export async function deleteInventoryItem(id: string): Promise<void> {
 
 export function subscribeToInventoryItems(
   callback: (items: InventoryItem[]) => void,
-  filters?: InventoryFilters
+  filters?: InventoryFilters,
+  onError?: (error: Error) => void
 ): () => void {
   const constraints: QueryConstraint[] = [orderBy('name', 'asc')];
 
@@ -132,12 +133,16 @@ export function subscribeToInventoryItems(
     }
 
     callback(items);
+  }, (error) => {
+    console.error('subscribeToInventoryItems error:', error);
+    onError?.(error);
   });
 }
 
 export function subscribeToInventoryItem(
   id: string,
-  callback: (item: InventoryItem | null) => void
+  callback: (item: InventoryItem | null) => void,
+  onError?: (error: Error) => void
 ): () => void {
   const docRef = doc(db, COLLECTION, id);
 
@@ -147,6 +152,9 @@ export function subscribeToInventoryItem(
     } else {
       callback(null);
     }
+  }, (error) => {
+    console.error('subscribeToInventoryItem error:', error);
+    onError?.(error);
   });
 }
 

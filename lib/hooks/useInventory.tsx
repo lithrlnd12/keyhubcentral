@@ -60,17 +60,29 @@ export function useInventoryItems(
   }, [filters]);
 
   useEffect(() => {
+    // Don't fire queries if contractorId filter is expected but not yet available
+    if (options.contractorId !== undefined && !filters.contractorId) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
     if (options.realtime) {
       const unsubscribe = subscribeToInventoryItems((data) => {
         setItems(data);
         setLoading(false);
-      }, filters);
+      }, filters, (err) => {
+        console.error('useInventoryItems subscription error:', err);
+        setError('Failed to load inventory items');
+        setItems([]);
+        setLoading(false);
+      });
 
       return () => unsubscribe();
     } else {
       fetchItems();
     }
-  }, [options.realtime, filters, fetchItems]);
+  }, [options.realtime, options.contractorId, filters, fetchItems]);
 
   const setCategory = useCallback((category?: InventoryCategory) => {
     setFilters((prev) => ({ ...prev, category }));

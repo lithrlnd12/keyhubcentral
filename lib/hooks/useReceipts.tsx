@@ -66,6 +66,13 @@ export function useReceipts(options: UseReceiptsOptions = {}): UseReceiptsReturn
   }, [filters]);
 
   useEffect(() => {
+    // Don't fire queries if contractorId filter is expected but not yet available
+    if (options.contractorId !== undefined && !filters.contractorId) {
+      setReceipts([]);
+      setLoading(false);
+      return;
+    }
+
     if (options.realtime) {
       const unsubscribe = subscribeToReceipts((data) => {
         setReceipts(data);
@@ -73,6 +80,7 @@ export function useReceipts(options: UseReceiptsOptions = {}): UseReceiptsReturn
       }, filters, (err) => {
         console.error('useReceipts subscription error:', err);
         setError('Failed to load receipts');
+        setReceipts([]);
         setLoading(false);
       });
 
@@ -80,7 +88,7 @@ export function useReceipts(options: UseReceiptsOptions = {}): UseReceiptsReturn
     } else {
       fetchReceipts();
     }
-  }, [options.realtime, filters, fetchReceipts]);
+  }, [options.realtime, options.contractorId, filters, fetchReceipts]);
 
   const setStatus = useCallback((status?: ReceiptStatus) => {
     setFilters((prev) => ({ ...prev, status }));
