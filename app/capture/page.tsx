@@ -284,8 +284,8 @@ export default function LeadCapturePage() {
             <Image
               src="/logo.png"
               alt="KeyHub Central"
-              width={64}
-              height={64}
+              width={100}
+              height={100}
               className="rounded-xl"
             />
           </div>
