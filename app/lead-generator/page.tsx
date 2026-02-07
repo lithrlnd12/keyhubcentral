@@ -18,7 +18,7 @@ export default function LeadGeneratorFullscreenPage() {
       {/* Logo and Company Name */}
       <div className="flex items-center gap-6 mb-8">
         <Image
-          src="/icon-512x512.png"
+          src="/logo.png"
           alt="Key Renovations"
           width={100}
           height={100}

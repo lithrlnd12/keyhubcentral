@@ -282,7 +282,7 @@ export default function LeadCapturePage() {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <Image
-              src="/icon-512x512.png"
+              src="/logo.png"
               alt="KeyHub Central"
               width={64}
               height={64}
