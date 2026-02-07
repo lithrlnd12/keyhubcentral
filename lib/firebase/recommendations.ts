@@ -34,7 +34,7 @@ export async function getContractorRecommendations(
   filters?: RecommendationFilters
 ): Promise<ContractorRecommendation[]> {
   // 1. Fetch active contractors
-  let contractorsQuery = query(
+  const contractorsQuery = query(
     collection(db, 'contractors'),
     where('status', '==', 'active')
   );
