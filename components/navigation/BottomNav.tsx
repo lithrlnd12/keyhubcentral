@@ -17,6 +17,7 @@ import {
   Calendar,
   DollarSign,
   Phone,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks';
@@ -63,7 +64,7 @@ const partnerNavItems: NavItem[] = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const isContractor = user?.role === 'contractor';
   const isSubscriber = user?.role === 'subscriber';
@@ -116,6 +117,13 @@ export function BottomNav() {
             </Link>
           );
         })}
+        <button
+          onClick={() => signOut()}
+          className="flex flex-col items-center justify-center flex-1 h-full px-2 transition-colors text-gray-500"
+        >
+          <LogOut className="w-5 h-5 mb-1" />
+          <span className="text-xs font-medium">Sign Out</span>
+        </button>
       </div>
     </nav>
   );
