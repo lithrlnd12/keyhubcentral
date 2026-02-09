@@ -5,7 +5,7 @@ import { Job } from '@/types/job';
 import { Contractor } from '@/types/contractor';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { getContractor } from '@/lib/firebase/contractors';
+import { getContractor, getContractorByUserId } from '@/lib/firebase/contractors';
 import { Users, UserPlus, X, User, MapPin, Star, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import Link from 'next/link';
@@ -51,11 +51,14 @@ export function JobCrew({ job, canEdit, onUpdate }: JobCrewProps) {
 
       setCrew(crewMembers);
 
-      // Load contractor details
+      // Load contractor details (try by doc ID first, then by userId)
       const loaded = await Promise.all(
         crewMembers.map(async (member) => {
           try {
-            const contractor = await getContractor(member.id);
+            let contractor = await getContractor(member.id);
+            if (!contractor) {
+              contractor = await getContractorByUserId(member.id);
+            }
             return { ...member, contractor, loading: false };
           } catch {
             return { ...member, loading: false };
