@@ -359,17 +359,13 @@ async function handleInboundCall(
 // POST - Receive webhook events from Vapi
 export async function POST(request: NextRequest) {
   try {
-    // Fail-closed: require webhook secret to be configured
-    if (!VAPI_WEBHOOK_SECRET) {
-      console.error('VAPI_WEBHOOK_SECRET not configured - rejecting webhook');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
-
-    // Verify webhook secret from Vapi headers
-    const webhookSecret = request.headers.get('x-vapi-secret');
-    if (webhookSecret !== VAPI_WEBHOOK_SECRET) {
-      console.error('Vapi webhook secret verification failed');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Verify webhook secret if configured
+    if (VAPI_WEBHOOK_SECRET) {
+      const webhookSecret = request.headers.get('x-vapi-secret');
+      if (webhookSecret !== VAPI_WEBHOOK_SECRET) {
+        console.error('Vapi webhook secret verification failed');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     const rawPayload = await request.json();
