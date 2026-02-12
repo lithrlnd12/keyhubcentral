@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Phone, Mail, AlertTriangle, Calendar, CheckCircle, User } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Mail, AlertTriangle, Calendar, CheckCircle, User, ImageIcon } from 'lucide-react';
 import { usePartnerTicket } from '@/lib/hooks';
 import { getPartnerTicketStatusLabel, PARTNER_TICKET_STATUS_ORDER, PartnerTicketStatus, URGENCY_OPTIONS } from '@/types/partner';
 import { Spinner } from '@/components/ui/Spinner';
@@ -202,6 +202,34 @@ export default function ServiceTicketDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Photos */}
+      {ticket.photos && ticket.photos.length > 0 && (
+        <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-white">Photos ({ticket.photos.length})</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {ticket.photos.map((url, index) => (
+              <a
+                key={index}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic photo from Firebase Storage */}
+                <img
+                  src={url}
+                  alt={`Issue photo ${index + 1}`}
+                  className="w-full h-32 object-cover rounded-lg bg-gray-900 hover:opacity-80 transition-opacity"
+                />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Status History */}
       <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6">
