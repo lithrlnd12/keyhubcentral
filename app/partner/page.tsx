@@ -14,6 +14,7 @@ interface MapContractor {
   lng: number;
   city: string;
   state: string;
+  serviceRadius: number;
 }
 
 export default function PartnerDashboard() {

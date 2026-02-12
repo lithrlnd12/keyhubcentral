@@ -11,6 +11,7 @@ interface ContractorMapEntry {
   lng: number;
   city: string;
   state: string;
+  serviceRadius: number;
 }
 
 interface ContractorNetworkMapProps {
@@ -34,7 +35,7 @@ const TRADE_LABELS: Record<string, string> = {
 };
 
 const DEFAULT_COLOR = '#6B7280';
-const SEARCH_RADIUS_MILES = 400;
+const MAX_SEARCH_RADIUS_MILES = 400;
 
 function getTradeColor(trades: string[]): string {
   for (const trade of trades) {
@@ -141,17 +142,17 @@ export function ContractorNetworkMap({
       const lat = location.lat();
       const lng = location.lng();
 
-      // Count contractors within radius
+      // Count contractors whose service radius covers this zip
       const nearby = contractors.filter(
-        (c) => haversineDistance(lat, lng, c.lat, c.lng) <= SEARCH_RADIUS_MILES,
+        (c) => haversineDistance(lat, lng, c.lat, c.lng) <= c.serviceRadius,
       );
 
-      // Draw search radius circle
+      // Draw a visual search circle using the max radius for context
       if (searchCircleRef.current) searchCircleRef.current.setMap(null);
       searchCircleRef.current = new window.google.maps.Circle({
         map,
         center: { lat, lng },
-        radius: SEARCH_RADIUS_MILES * 1609.34,
+        radius: MAX_SEARCH_RADIUS_MILES * 1609.34,
         fillColor: '#D4A84B',
         fillOpacity: 0.08,
         strokeColor: '#D4A84B',
@@ -182,8 +183,8 @@ export function ContractorNetworkMap({
       setSearchResult({
         count: nearby.length,
         label: nearby.length === 1
-          ? '1 contractor within 400 mi'
-          : `${nearby.length} contractors within 400 mi`,
+          ? '1 contractor services this area'
+          : `${nearby.length} contractors service this area`,
       });
     } catch {
       setSearchError('Could not geocode zip code');
@@ -320,6 +321,7 @@ export function ContractorNetworkMap({
             <div style="font-weight: 600; font-size: 14px;">${c.businessName || 'Unnamed'}</div>
             ${location ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">${location}</div>` : ''}
             <div style="font-size: 12px; color: #888; margin-top: 4px;">${tradesDisplay || 'No trades listed'}</div>
+            <div style="font-size: 11px; color: #999; margin-top: 4px;">Service radius: ${c.serviceRadius} mi</div>
           </div>
         `);
         infoWindow.open(map, marker);

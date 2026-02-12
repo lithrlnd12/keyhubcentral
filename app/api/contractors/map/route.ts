@@ -10,6 +10,7 @@ interface ContractorMapEntry {
   lng: number;
   city: string;
   state: string;
+  serviceRadius: number;
 }
 
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
@@ -71,6 +72,7 @@ export async function GET(request: NextRequest) {
           lng,
           city: data.address?.city || '',
           state: data.address?.state || '',
+          serviceRadius: data.serviceRadius || 50,
         });
       } else {
         // Build an address string for geocoding fallback
@@ -108,6 +110,7 @@ export async function GET(request: NextRequest) {
             lng: coords.lng,
             city: data.address?.city || '',
             state: data.address?.state || '',
+            serviceRadius: data.serviceRadius || 50,
           } as ContractorMapEntry;
         }),
       );

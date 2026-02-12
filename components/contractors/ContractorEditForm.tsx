@@ -334,7 +334,7 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
               value={formData.serviceRadius}
               onChange={(value) => updateField('serviceRadius', value)}
               min={5}
-              max={100}
+              max={400}
               step={5}
               formatValue={(value) => `${value} miles`}
             />
