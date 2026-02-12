@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -13,6 +13,7 @@ import { Slider } from '@/components/ui/Slider';
 import { TerritoryMap } from '@/components/maps/TerritoryMap';
 import { Contractor, Trade, ContractorStatus } from '@/types/contractor';
 import { updateContractor, deleteContractor } from '@/lib/firebase/contractors';
+import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
 
 interface ContractorEditFormProps {
   contractor: Contractor;
@@ -67,6 +68,16 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
       ? { lat: contractor.address.lat, lng: contractor.address.lng }
       : null
   );
+
+  // Auto-geocode address if we have an address but no coordinates
+  useEffect(() => {
+    if (mapCenter) return;
+    const addr = buildAddressString(contractor.address);
+    if (!addr) return;
+    geocodeAddress(addr).then((result) => {
+      if (result) setMapCenter({ lat: result.lat, lng: result.lng });
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateField = <K extends keyof typeof formData>(
     field: K,
