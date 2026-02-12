@@ -262,6 +262,22 @@ export async function uploadJobSignature(
   return getDownloadURL(storageRef);
 }
 
+// ==========================================
+// WORK ORDER PDF FUNCTIONS (Partner Service Tickets)
+// ==========================================
+
+export async function uploadWorkOrderPdf(
+  partnerId: string,
+  file: File
+): Promise<string> {
+  const timestamp = Date.now();
+  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const path = `partnerTickets/${partnerId}/workorders/${timestamp}_${sanitizedFileName}`;
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file, { contentType: 'application/pdf' });
+  return getDownloadURL(storageRef);
+}
+
 export async function deleteJobDocument(url: string): Promise<void> {
   const path = extractPathFromUrl(url);
   if (path) {

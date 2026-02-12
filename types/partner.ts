@@ -124,6 +124,12 @@ export interface PartnerServiceTicket {
   assignedTechId: string | null;
   scheduledDate: Timestamp | null;
 
+  // Work order fields (from SWO PDF upload)
+  serviceOrderNumber?: string | null;
+  caseNumber?: string | null;
+  estimatedCost?: number | null;
+  workOrderUrl?: string | null;
+
   // Resolution
   status: PartnerTicketStatus;
   statusHistory: PartnerStatusChange[];
