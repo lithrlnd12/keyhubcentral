@@ -111,6 +111,19 @@ service firebase.storage {
         isUnderSizeLimit(request.resource.size);
     }
 
+    // Partner work order PDFs (SWO uploads)
+    match /partnerTickets/{partnerId}/workorders/{fileName} {
+      // Partners can read their own work orders, admins can read all
+      allow read: if isAuthenticated() &&
+        (isAdmin() || request.auth.token.partnerId == partnerId);
+
+      // Partners can upload to their own folder, admins can upload anywhere
+      allow write: if isAuthenticated() &&
+        (isAdmin() || request.auth.token.partnerId == partnerId) &&
+        request.resource.contentType == 'application/pdf' &&
+        isUnderSizeLimit(request.resource.size);
+    }
+
     // Contract signatures and PDFs
     match /jobs/{jobId}/contracts/{contractId}/{path=**} {
       // Internal users can view contract files
