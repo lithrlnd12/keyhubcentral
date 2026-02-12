@@ -111,6 +111,17 @@ service firebase.storage {
         isUnderSizeLimit(request.resource.size);
     }
 
+    // Partner ticket photos (issue documentation)
+    match /partnerTickets/{userId}/photos/{fileName} {
+      allow read: if isAuthenticated() &&
+        (isAdmin() || request.auth.uid == userId);
+
+      allow write: if isAuthenticated() &&
+        (isAdmin() || request.auth.uid == userId) &&
+        request.resource.contentType.matches('image/.*') &&
+        isUnderSizeLimit(request.resource.size);
+    }
+
     // Partner work order PDFs (SWO uploads)
     match /partnerTickets/{userId}/workorders/{fileName} {
       // Uploading user or admins can read

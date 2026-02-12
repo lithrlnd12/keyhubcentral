@@ -3,15 +3,24 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, FileText, CheckCircle, AlertCircle, Camera, ImagePlus, X } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { useAuth, usePartner } from '@/lib/hooks';
 import { createPartnerTicket } from '@/lib/firebase/partnerTickets';
-import { uploadWorkOrderPdf } from '@/lib/firebase/storage';
+import { uploadWorkOrderPdf, uploadPartnerTicketPhoto } from '@/lib/firebase/storage';
 import { IssueType, Urgency, ISSUE_TYPE_OPTIONS, URGENCY_OPTIONS } from '@/types/partner';
 import { Address } from '@/types/contractor';
 
 type UploadStatus = 'idle' | 'uploading' | 'parsing' | 'done' | 'error';
+
+interface PhotoItem {
+  url: string;
+  name: string;
+  preview: string;
+}
+
+const MAX_PHOTOS = 5;
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function NewServiceTicketPage() {
   const router = useRouter();
@@ -19,9 +28,15 @@ export default function NewServiceTicketPage() {
   const partnerId = user?.partnerId || '';
   const { partner } = usePartner(partnerId);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Photo upload state
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   // SWO upload state
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle');
@@ -123,6 +138,50 @@ export default function NewServiceTicketPage() {
     if (file) handleSwoUpload(file);
   };
 
+  const handlePhotoFiles = async (files: FileList | null) => {
+    if (!files || !user) return;
+
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) return;
+
+    const newFiles = Array.from(files).slice(0, remaining);
+    const validFiles = newFiles.filter((f) => {
+      if (!f.type.startsWith('image/')) return false;
+      if (f.size > MAX_PHOTO_SIZE) return false;
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setPhotoUploading(true);
+    try {
+      const uploaded: PhotoItem[] = [];
+      for (const file of validFiles) {
+        const url = await uploadPartnerTicketPhoto(user.uid, file);
+        uploaded.push({
+          url,
+          name: file.name,
+          preview: URL.createObjectURL(file),
+        });
+      }
+      setPhotos((prev) => [...prev, ...uploaded]);
+    } catch {
+      // Individual photo upload failed — already-uploaded photos remain
+    } finally {
+      setPhotoUploading(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => {
+      const removed = prev[index];
+      if (removed?.preview) URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -153,7 +212,7 @@ export default function NewServiceTicketPage() {
         issueType: formData.issueType,
         issueDescription: formData.issueDescription,
         productInfo: formData.productInfo || null,
-        photos: [],
+        photos: photos.map((p) => p.url),
         urgency: formData.urgency,
         preferredDate: formData.preferredDate
           ? Timestamp.fromDate(new Date(formData.preferredDate))
@@ -452,6 +511,99 @@ export default function NewServiceTicketPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Photos */}
+        <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6 space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Photos</h2>
+            <p className="text-sm text-gray-400">
+              Attach up to {MAX_PHOTOS} photos of the issue (10MB each)
+            </p>
+          </div>
+
+          {/* Photo thumbnails grid */}
+          {photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {photos.map((photo, index) => (
+                <div key={photo.url} className="relative group">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic preview from upload */}
+                  <img
+                    src={photo.preview}
+                    alt={photo.name}
+                    className="w-full h-24 object-cover rounded-lg bg-gray-900"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(index)}
+                    className="absolute top-1 right-1 p-1 bg-gray-900/80 rounded-full text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {photos.length < MAX_PHOTOS && (
+            <>
+              {/* Hidden file inputs */}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handlePhotoFiles(e.target.files)}
+                className="hidden"
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => handlePhotoFiles(e.target.files)}
+                className="hidden"
+              />
+
+              {photoUploading ? (
+                <div className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <Loader2 className="h-5 w-5 text-blue-400 animate-spin flex-shrink-0" />
+                  <p className="text-blue-400">Uploading photo...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {/* Drop zone / browse */}
+                  <div
+                    className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center cursor-pointer hover:border-gold/50 transition-colors"
+                    onClick={() => photoInputRef.current?.click()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      handlePhotoFiles(e.dataTransfer.files);
+                    }}
+                    onDragOver={(e) => e.preventDefault()}
+                  >
+                    <ImagePlus className="h-8 w-8 text-gray-500 mx-auto mb-2" />
+                    <p className="text-gray-400 text-sm">
+                      Drag & drop images here, or click to browse
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {photos.length}/{MAX_PHOTOS} photos
+                    </p>
+                  </div>
+
+                  {/* Camera button — mobile only */}
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white hover:bg-gray-800 transition-colors md:hidden"
+                  >
+                    <Camera className="h-5 w-5" />
+                    Take Photo
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Actions */}
