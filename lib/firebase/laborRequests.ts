@@ -231,6 +231,9 @@ export function subscribeToLaborRequests(
     }
 
     callback(requests);
+  }, (error) => {
+    console.error('Error in laborRequests listener:', error);
+    callback([]);
   });
 }
 
@@ -246,6 +249,9 @@ export function subscribeToLaborRequest(
     } else {
       callback(null);
     }
+  }, (error) => {
+    console.error('Error in laborRequest listener:', error);
+    callback(null);
   });
 }
 

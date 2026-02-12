@@ -298,6 +298,9 @@ export function subscribeToNewCallsCount(
 
   return onSnapshot(q, (snapshot) => {
     callback(snapshot.size);
+  }, (error) => {
+    console.error('Error in newCallsCount listener:', error);
+    callback(0);
   });
 }
 

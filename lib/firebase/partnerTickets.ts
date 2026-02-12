@@ -273,6 +273,9 @@ export function subscribeToPartnerTickets(
     }
 
     callback(tickets);
+  }, (error) => {
+    console.error('Error in partnerTickets listener:', error);
+    callback([]);
   });
 }
 
@@ -288,6 +291,9 @@ export function subscribeToPartnerTicket(
     } else {
       callback(null);
     }
+  }, (error) => {
+    console.error('Error in partnerTicket listener:', error);
+    callback(null);
   });
 }
 

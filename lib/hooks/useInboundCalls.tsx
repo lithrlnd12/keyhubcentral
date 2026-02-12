@@ -158,19 +158,29 @@ interface UseNewCallsCountReturn {
 
 /**
  * Hook for subscribing to new calls count (for nav badge)
+ * Only subscribes for internal users — partners/subscribers don't have access to inboundCalls
  */
 export function useNewCallsCount(): UseNewCallsCountReturn {
+  const { user } = useAuth();
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  const isInternal = user?.role && ['owner', 'admin', 'sales_rep', 'contractor', 'pm'].includes(user.role);
+
   useEffect(() => {
+    if (!isInternal) {
+      setCount(0);
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = subscribeToNewCallsCount((newCount) => {
       setCount(newCount);
       setLoading(false);
     });
 
     return unsubscribe;
-  }, []);
+  }, [isInternal]);
 
   return { count, loading };
 }
