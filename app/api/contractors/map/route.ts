@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
     const contractors = snapshot.docs
       .map((doc) => {
         const data = doc.data();
-        const lat = data.serviceArea?.center?.lat;
-        const lng = data.serviceArea?.center?.lng;
+        const lat = data.address?.lat;
+        const lng = data.address?.lng;
         if (lat == null || lng == null) return null;
         return {
           id: doc.id,
@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
           trades: data.trades || [],
           lat,
           lng,
-          city: data.city || '',
-          state: data.state || '',
+          city: data.address?.city || '',
+          state: data.address?.state || '',
         };
       })
       .filter(Boolean);
