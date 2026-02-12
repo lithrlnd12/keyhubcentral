@@ -42,8 +42,6 @@ export async function signUp(
     baseZipCode: baseZipCode || null,
     baseCoordinates: null, // Will be geocoded by Cloud Function
     createdAt: serverTimestamp(),
-    approvedAt: null,
-    approvedBy: null,
   });
 
   return userCredential;
