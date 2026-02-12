@@ -83,6 +83,15 @@ export function TerritoryMap({
 
     mapInstanceRef.current = map;
 
+    // If no center, allow clicking to set initial position
+    if (!center && interactive && onCenterChange) {
+      map.addListener('click', (e: google.maps.MapMouseEvent) => {
+        if (e.latLng) {
+          onCenterChange({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+        }
+      });
+    }
+
     // Create marker if we have a center
     if (center) {
       // Create custom marker element
@@ -188,14 +197,68 @@ export function TerritoryMap({
 
   // Update marker and circle position when center changes
   useEffect(() => {
-    if (center && markerRef.current && circleRef.current) {
+    if (!center || !mapInstanceRef.current) return;
+
+    // If marker/circle already exist, just update position
+    if (markerRef.current && circleRef.current) {
       markerRef.current.position = center;
       circleRef.current.setCenter(center);
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.panTo(center);
-      }
+      mapInstanceRef.current.panTo(center);
+      return;
     }
-  }, [center]);
+
+    // Create marker and circle for the first time (click-to-set flow)
+    const map = mapInstanceRef.current;
+
+    const markerContent = document.createElement('div');
+    markerContent.innerHTML = `
+      <div style="
+        width: 24px;
+        height: 24px;
+        background: #D4A84B;
+        border: 3px solid #ffffff;
+        border-radius: 50%;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        cursor: ${interactive ? 'grab' : 'default'};
+      "></div>
+    `;
+
+    const marker = new window.google.maps.marker.AdvancedMarkerElement({
+      position: center,
+      map,
+      gmpDraggable: interactive,
+      content: markerContent,
+    });
+    markerRef.current = marker;
+
+    const circle = new window.google.maps.Circle({
+      map,
+      center,
+      radius: radius * MILES_TO_METERS,
+      fillColor: '#D4A84B',
+      fillOpacity: 0.15,
+      strokeColor: '#D4A84B',
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+    });
+    circleRef.current = circle;
+
+    if (interactive && onCenterChange) {
+      marker.addListener('dragend', () => {
+        const position = marker.position;
+        if (position) {
+          const newCenter = {
+            lat: typeof position.lat === 'function' ? position.lat() : position.lat,
+            lng: typeof position.lng === 'function' ? position.lng() : position.lng
+          };
+          onCenterChange(newCenter);
+          circle.setCenter(newCenter);
+        }
+      });
+    }
+
+    map.fitBounds(circle.getBounds()!);
+  }, [center, interactive, onCenterChange, radius]);
 
   if (error) {
     return (
