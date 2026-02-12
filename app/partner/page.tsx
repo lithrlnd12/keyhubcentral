@@ -1,11 +1,23 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Wrench, ClipboardList, Clock, CheckCircle } from 'lucide-react';
 import { useAuth, useLaborRequests, usePartnerTickets } from '@/lib/hooks';
+import { ContractorNetworkMap } from '@/components/maps/ContractorNetworkMap';
+
+interface MapContractor {
+  id: string;
+  businessName: string | null;
+  trades: string[];
+  lat: number;
+  lng: number;
+  city: string;
+  state: string;
+}
 
 export default function PartnerDashboard() {
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const partnerId = user?.partnerId || '';
 
   const { requests, loading: requestsLoading } = useLaborRequests({
@@ -19,6 +31,31 @@ export default function PartnerDashboard() {
   });
 
   const loading = requestsLoading || ticketsLoading;
+
+  // Fetch contractor locations for network map
+  const [mapContractors, setMapContractors] = useState<MapContractor[]>([]);
+  const [mapLoading, setMapLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchContractors() {
+      try {
+        const token = await getIdToken();
+        if (!token) return;
+        const res = await fetch('/api/contractors/map', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setMapContractors(data.contractors || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch contractor map data:', err);
+      } finally {
+        setMapLoading(false);
+      }
+    }
+    fetchContractors();
+  }, [getIdToken]);
 
   // Calculate stats
   const openRequests = requests.filter(r => !['complete', 'cancelled'].includes(r.status)).length;
@@ -140,6 +177,19 @@ export default function PartnerDashboard() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* KTS Employee Network Map */}
+      <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-white mb-4">KTS Employee Network</h2>
+        <ContractorNetworkMap
+          contractors={mapContractors}
+          loading={mapLoading}
+          className="h-[400px]"
+        />
+        {!mapLoading && mapContractors.length === 0 && (
+          <p className="text-gray-500 text-sm text-center mt-3">No contractor locations available</p>
+        )}
       </div>
 
       {/* Recent Activity */}
