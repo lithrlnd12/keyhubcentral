@@ -1,11 +1,16 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, Wrench, Target } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { TerritoryMap } from '@/components/maps/TerritoryMap';
 import { Contractor } from '@/types/contractor';
 import {
   formatAddress,
   formatTrades,
   getServiceRadiusLabel,
 } from '@/lib/utils/contractors';
+import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
 
 interface ContractorInfoProps {
   contractor: Contractor;
@@ -30,7 +35,24 @@ function InfoRow({ icon, label, value }: InfoRowProps) {
 }
 
 export function ContractorInfo({ contractor }: ContractorInfoProps) {
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(
+    contractor.address.lat && contractor.address.lng
+      ? { lat: contractor.address.lat, lng: contractor.address.lng }
+      : null
+  );
+
+  // Auto-geocode if address exists but no coordinates
+  useEffect(() => {
+    if (mapCenter) return;
+    const addr = buildAddressString(contractor.address);
+    if (!addr) return;
+    geocodeAddress(addr).then((result) => {
+      if (result) setMapCenter({ lat: result.lat, lng: result.lng });
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
+    <div className="space-y-6">
     <div className="grid gap-6 md:grid-cols-2">
       <Card>
         <CardHeader>
@@ -89,6 +111,23 @@ export function ContractorInfo({ contractor }: ContractorInfoProps) {
           )}
         </CardContent>
       </Card>
+    </div>
+
+      {mapCenter && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Service Area</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TerritoryMap
+              center={mapCenter}
+              radius={contractor.serviceRadius}
+              className="h-[400px]"
+              interactive={false}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
