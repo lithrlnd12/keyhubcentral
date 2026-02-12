@@ -21,6 +21,8 @@ export interface UserProfile {
   status: UserStatus;
   partnerId?: string | null; // For partner role users - links to partner company
   requestedRole?: UserRole | null; // Role user selected during signup
+  selectedPartnerId?: string | null; // ID of existing partner chosen at signup
+  companyName?: string | null; // New company name if "Other" was chosen at signup
   baseZipCode?: string | null; // For sales_rep: their home base zip code
   baseCoordinates?: { // Geocoded coordinates from zip code
     lat: number;
@@ -42,7 +44,9 @@ export interface AuthContextType {
     displayName: string,
     phone?: string,
     requestedRole?: UserRole,
-    baseZipCode?: string
+    baseZipCode?: string,
+    selectedPartnerId?: string,
+    companyName?: string
   ) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;

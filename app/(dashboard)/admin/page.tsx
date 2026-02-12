@@ -58,12 +58,17 @@ export default function AdminPage() {
       const snapshot = await getDocs(q);
       const users = snapshot.docs.map((doc) => doc.data() as UserProfile);
       setPendingUsers(users);
-      // Initialize default roles - use requestedRole if available
+      // Initialize default roles and pre-select partner companies from signup
       const defaultRoles: Record<string, UserRole> = {};
+      const defaultPartners: Record<string, string> = {};
       users.forEach((u) => {
         defaultRoles[u.uid] = u.requestedRole || 'contractor';
+        if (u.selectedPartnerId) {
+          defaultPartners[u.uid] = u.selectedPartnerId;
+        }
       });
       setSelectedRoles((prev) => ({ ...defaultRoles, ...prev }));
+      setSelectedPartners((prev) => ({ ...defaultPartners, ...prev }));
     } catch (error) {
       console.error('Error fetching pending users:', error);
     } finally {
@@ -113,7 +118,7 @@ export default function AdminPage() {
       // If approving as partner, create partner company if none selected
       if (role === 'partner' && !partnerId) {
         const partnerDoc = await addDoc(collection(db, 'partners'), {
-          companyName: pendingUser?.displayName || 'New Partner Company',
+          companyName: pendingUser?.companyName || pendingUser?.displayName || 'New Partner Company',
           contactName: pendingUser?.displayName || '',
           contactEmail: pendingUser?.email || '',
           contactPhone: pendingUser?.phone || '',
@@ -401,6 +406,16 @@ export default function AdminPage() {
                     <p className="text-sm text-gray-400">{pendingUser.email}</p>
                     {pendingUser.baseZipCode && (
                       <p className="text-xs text-gray-500">Base ZIP: {pendingUser.baseZipCode}</p>
+                    )}
+                    {pendingUser.requestedRole === 'partner' && pendingUser.selectedPartnerId && (
+                      <p className="text-xs text-orange-400">
+                        Company: {partners.find((p) => p.id === pendingUser.selectedPartnerId)?.companyName || 'Unknown'}
+                      </p>
+                    )}
+                    {pendingUser.requestedRole === 'partner' && pendingUser.companyName && (
+                      <p className="text-xs text-orange-400">
+                        New Company: {pendingUser.companyName}
+                      </p>
                     )}
                   </div>
                 </div>

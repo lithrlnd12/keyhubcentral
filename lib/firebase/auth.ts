@@ -22,7 +22,9 @@ export async function signUp(
   displayName: string,
   phone?: string,
   requestedRole?: UserRole,
-  baseZipCode?: string
+  baseZipCode?: string,
+  selectedPartnerId?: string,
+  companyName?: string
 ): Promise<UserCredential> {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
@@ -35,6 +37,8 @@ export async function signUp(
     role: 'pending' as UserRole,
     status: 'pending' as UserStatus,
     requestedRole: requestedRole || null,
+    selectedPartnerId: selectedPartnerId || null,
+    companyName: companyName || null,
     baseZipCode: baseZipCode || null,
     baseCoordinates: null, // Will be geocoded by Cloud Function
     createdAt: serverTimestamp(),

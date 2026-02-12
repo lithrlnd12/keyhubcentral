@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Input, Select } from '@/components/ui';
@@ -15,6 +15,11 @@ const SIGNUP_ROLES = [
   { value: 'subscriber', label: 'Subscriber (Marketing)' },
 ];
 
+interface PublicPartner {
+  id: string;
+  companyName: string;
+}
+
 export default function SignUpPage() {
   const router = useRouter();
   const { signUp, loading, error } = useAuth();
@@ -25,7 +30,20 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [requestedRole, setRequestedRole] = useState<UserRole>('contractor');
   const [baseZipCode, setBaseZipCode] = useState('');
+  const [partnerCompanies, setPartnerCompanies] = useState<PublicPartner[]>([]);
+  const [selectedPartnerId, setSelectedPartnerId] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [localError, setLocalError] = useState('');
+
+  // Fetch partner companies when partner role is selected
+  useEffect(() => {
+    if (requestedRole === 'partner') {
+      fetch('/api/partners/public')
+        .then((res) => res.json())
+        .then((data) => setPartnerCompanies(data.partners || []))
+        .catch(() => setPartnerCompanies([]));
+    }
+  }, [requestedRole]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +67,18 @@ export default function SignUpPage() {
       }
     }
 
+    // Validate partner company selection
+    if (requestedRole === 'partner') {
+      if (!selectedPartnerId) {
+        setLocalError('Please select your company');
+        return;
+      }
+      if (selectedPartnerId === 'other' && !companyName.trim()) {
+        setLocalError('Please enter your company name');
+        return;
+      }
+    }
+
     try {
       await signUp(
         email,
@@ -56,7 +86,9 @@ export default function SignUpPage() {
         displayName,
         phone || undefined,
         requestedRole,
-        requestedRole === 'sales_rep' ? baseZipCode : undefined
+        requestedRole === 'sales_rep' ? baseZipCode : undefined,
+        requestedRole === 'partner' && selectedPartnerId !== 'other' ? selectedPartnerId : undefined,
+        requestedRole === 'partner' && selectedPartnerId === 'other' ? companyName.trim() : undefined
       );
       router.push('/pending');
     } catch (err: unknown) {
@@ -116,6 +148,41 @@ export default function SignUpPage() {
             required
             maxLength={5}
           />
+        )}
+
+        {requestedRole === 'partner' && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Your Company
+              </label>
+              <select
+                className="w-full bg-brand-black border border-gray-700 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:border-brand-gold"
+                value={selectedPartnerId}
+                onChange={(e) => {
+                  setSelectedPartnerId(e.target.value);
+                  if (e.target.value !== 'other') setCompanyName('');
+                }}
+                required
+              >
+                <option value="">Select your company...</option>
+                {partnerCompanies.map((p) => (
+                  <option key={p.id} value={p.id}>{p.companyName}</option>
+                ))}
+                <option value="other">Other (New Company)</option>
+              </select>
+            </div>
+            {selectedPartnerId === 'other' && (
+              <Input
+                label="Company Name"
+                type="text"
+                placeholder="Your company name"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                required
+              />
+            )}
+          </>
         )}
 
         <Input
