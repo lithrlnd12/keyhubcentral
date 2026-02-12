@@ -267,12 +267,12 @@ export async function uploadJobSignature(
 // ==========================================
 
 export async function uploadWorkOrderPdf(
-  partnerId: string,
+  userId: string,
   file: File
 ): Promise<string> {
   const timestamp = Date.now();
   const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const path = `partnerTickets/${partnerId}/workorders/${timestamp}_${sanitizedFileName}`;
+  const path = `partnerTickets/${userId}/workorders/${timestamp}_${sanitizedFileName}`;
   const storageRef = ref(storage, path);
   await uploadBytes(storageRef, file, { contentType: 'application/pdf' });
   return getDownloadURL(storageRef);

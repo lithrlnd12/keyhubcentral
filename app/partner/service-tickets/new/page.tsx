@@ -53,8 +53,8 @@ export default function NewServiceTicketPage() {
       return;
     }
 
-    if (!partnerId) {
-      setUploadError('Partner information not found');
+    if (!user) {
+      setUploadError('User information not found');
       return;
     }
 
@@ -62,8 +62,8 @@ export default function NewServiceTicketPage() {
     setUploadError(null);
 
     try {
-      // Upload to Firebase Storage
-      const url = await uploadWorkOrderPdf(partnerId, file);
+      // Upload to Firebase Storage (keyed by user UID for storage rule matching)
+      const url = await uploadWorkOrderPdf(user.uid, file);
       setWorkOrderUrl(url);
       setUploadedFileName(file.name);
 

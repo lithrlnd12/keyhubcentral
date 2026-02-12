@@ -112,14 +112,14 @@ service firebase.storage {
     }
 
     // Partner work order PDFs (SWO uploads)
-    match /partnerTickets/{partnerId}/workorders/{fileName} {
-      // Partners can read their own work orders, admins can read all
+    match /partnerTickets/{userId}/workorders/{fileName} {
+      // Uploading user or admins can read
       allow read: if isAuthenticated() &&
-        (isAdmin() || request.auth.token.partnerId == partnerId);
+        (isAdmin() || request.auth.uid == userId);
 
-      // Partners can upload to their own folder, admins can upload anywhere
+      // Uploading user or admins can write
       allow write: if isAuthenticated() &&
-        (isAdmin() || request.auth.token.partnerId == partnerId) &&
+        (isAdmin() || request.auth.uid == userId) &&
         request.resource.contentType == 'application/pdf' &&
         isUnderSizeLimit(request.resource.size);
     }
