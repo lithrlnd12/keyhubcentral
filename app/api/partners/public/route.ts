@@ -7,13 +7,14 @@ export async function GET() {
     const snapshot = await adminDb
       .collection('partners')
       .where('status', '==', 'active')
-      .orderBy('companyName')
       .get();
 
-    const partners = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      companyName: doc.data().companyName,
-    }));
+    const partners = snapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        companyName: doc.data().companyName as string,
+      }))
+      .sort((a, b) => a.companyName.localeCompare(b.companyName));
 
     return NextResponse.json({ partners });
   } catch (error) {
