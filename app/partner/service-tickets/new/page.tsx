@@ -26,7 +26,7 @@ export default function NewServiceTicketPage() {
   const router = useRouter();
   const { user, getIdToken } = useAuth();
   const partnerId = user?.partnerId || '';
-  const { partner } = usePartner(partnerId);
+  const { partner, loading: partnerLoading } = usePartner(partnerId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -186,7 +186,13 @@ export default function NewServiceTicketPage() {
     e.preventDefault();
 
     if (!user || !partnerId || !partner) {
-      setError('User or partner information not found');
+      if (partnerLoading) {
+        setError('Partner data is still loading, please try again');
+      } else if (!partnerId) {
+        setError('No partner company linked to your account. Contact an admin.');
+      } else {
+        setError('Partner company not found. Contact an admin.');
+      }
       return;
     }
 
@@ -616,7 +622,7 @@ export default function NewServiceTicketPage() {
           </Link>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || partnerLoading}
             className="flex-1 px-4 py-3 bg-gold text-black rounded-lg font-medium hover:bg-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
