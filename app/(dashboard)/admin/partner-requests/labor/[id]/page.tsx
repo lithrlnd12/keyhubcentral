@@ -12,6 +12,7 @@ import {
   Wrench,
   FileText,
   CheckCircle2,
+  ImageIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLaborRequest } from '@/lib/hooks/useLaborRequests';
@@ -270,6 +271,61 @@ export default function LaborRequestDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Work Order */}
+          {request.workOrderUrl && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-gold" />
+                  Work Order
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <a
+                  href={request.workOrderUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-gold hover:underline text-sm"
+                >
+                  <FileText className="h-4 w-4" />
+                  View uploaded work order PDF
+                </a>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Photos */}
+          {request.photos && request.photos.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-gold" />
+                  Photos ({request.photos.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {request.photos.map((url, index) => (
+                    <a
+                      key={index}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic photo from upload */}
+                      <img
+                        src={url}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg bg-gray-900 hover:opacity-80 transition-opacity"
+                      />
+                    </a>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Status History */}
           <Card>

@@ -1,23 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, FileText, CheckCircle, AlertCircle, Camera, ImagePlus, X } from 'lucide-react';
 import { Timestamp } from 'firebase/firestore';
 import { useAuth, usePartner } from '@/lib/hooks';
 import { createLaborRequest } from '@/lib/firebase/laborRequests';
+import { uploadLaborRequestPdf, uploadLaborRequestPhoto } from '@/lib/firebase/storage';
 import { WorkType, WORK_TYPE_OPTIONS } from '@/types/partner';
 import { Address } from '@/types/contractor';
 
+type UploadStatus = 'idle' | 'uploading' | 'parsing' | 'done' | 'error';
+
+interface PhotoItem {
+  url: string;
+  name: string;
+  preview: string;
+}
+
+const MAX_PHOTOS = 5;
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10MB
+
 export default function NewLaborRequestPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const partnerId = user?.partnerId || '';
-  const { partner } = usePartner(partnerId);
+  const { partner, loading: partnerLoading } = usePartner(partnerId);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Photo upload state
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [photoUploading, setPhotoUploading] = useState(false);
+
+  // PDF upload state
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [workOrderUrl, setWorkOrderUrl] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     workType: 'installation' as WorkType,
@@ -34,11 +59,136 @@ export default function NewLaborRequestPage() {
     notes: '',
   });
 
+  const handlePdfUpload = async (file: File) => {
+    if (!file || !file.name.toLowerCase().endsWith('.pdf')) {
+      setUploadError('Please upload a PDF file');
+      return;
+    }
+
+    if (!user) {
+      setUploadError('User information not found');
+      return;
+    }
+
+    setUploadStatus('uploading');
+    setUploadError(null);
+
+    try {
+      const url = await uploadLaborRequestPdf(user.uid, file);
+      setWorkOrderUrl(url);
+      setUploadedFileName(file.name);
+
+      // Parse with AI
+      setUploadStatus('parsing');
+      const token = await getIdToken();
+      const response = await fetch('/api/labor-orders/parse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ fileUrl: url }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setUploadStatus('error');
+        setUploadError(result.error || 'Failed to parse work order');
+        return;
+      }
+
+      // Auto-fill form fields from parsed data
+      const data = result.data;
+      setFormData((prev) => ({
+        ...prev,
+        workType: data.workType || prev.workType,
+        description: data.description || prev.description,
+        street: data.location?.street || prev.street,
+        city: data.location?.city || prev.city,
+        state: data.location?.state || prev.state,
+        zip: data.location?.zip || prev.zip,
+        dateNeeded: data.dateNeeded || prev.dateNeeded,
+        estimatedDuration: data.estimatedDuration || prev.estimatedDuration,
+        crewSize: data.crewSize || prev.crewSize,
+        skillsRequired: Array.isArray(data.skillsRequired) ? data.skillsRequired.join(', ') : prev.skillsRequired,
+        specialEquipment: data.specialEquipment || prev.specialEquipment,
+        notes: data.notes || prev.notes,
+      }));
+
+      setUploadStatus('done');
+    } catch (err) {
+      setUploadStatus('error');
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handlePdfUpload(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) handlePdfUpload(file);
+  };
+
+  const handlePhotoFiles = async (files: FileList | null) => {
+    if (!files || !user) return;
+
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) return;
+
+    const newFiles = Array.from(files).slice(0, remaining);
+    const validFiles = newFiles.filter((f) => {
+      if (!f.type.startsWith('image/')) return false;
+      if (f.size > MAX_PHOTO_SIZE) return false;
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setPhotoUploading(true);
+    try {
+      const uploaded: PhotoItem[] = [];
+      for (const file of validFiles) {
+        const url = await uploadLaborRequestPhoto(user.uid, file);
+        uploaded.push({
+          url,
+          name: file.name,
+          preview: URL.createObjectURL(file),
+        });
+      }
+      setPhotos((prev) => [...prev, ...uploaded]);
+    } catch {
+      // Individual photo upload failed — already-uploaded photos remain
+    } finally {
+      setPhotoUploading(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setPhotos((prev) => {
+      const removed = prev[index];
+      if (removed?.preview) URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!user || !partnerId || !partner) {
-      setError('User or partner information not found');
+      if (partnerLoading) {
+        setError('Partner data is still loading, please try again');
+      } else if (!partnerId) {
+        setError('No partner company linked to your account. Contact an admin.');
+      } else {
+        setError('Partner company not found. Contact an admin.');
+      }
       return;
     }
 
@@ -69,6 +219,8 @@ export default function NewLaborRequestPage() {
           .filter(Boolean),
         specialEquipment: formData.specialEquipment || null,
         notes: formData.notes || null,
+        photos: photos.map((p) => p.url),
+        workOrderUrl: workOrderUrl || null,
       });
 
       router.push('/partner/labor-requests');
@@ -102,6 +254,61 @@ export default function NewLaborRequestPage() {
             {error}
           </div>
         )}
+
+        {/* PDF Upload */}
+        <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-white">Upload Work Order</h2>
+          <p className="text-sm text-gray-400">
+            Upload a work order PDF to auto-fill the form fields below.
+          </p>
+
+          {uploadStatus === 'done' ? (
+            <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+              <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
+              <div>
+                <p className="text-green-400 font-medium">Form auto-filled from work order</p>
+                {uploadedFileName && (
+                  <p className="text-sm text-gray-400">{uploadedFileName}</p>
+                )}
+              </div>
+            </div>
+          ) : uploadStatus === 'uploading' || uploadStatus === 'parsing' ? (
+            <div className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+              <Loader2 className="h-5 w-5 text-blue-400 animate-spin flex-shrink-0" />
+              <p className="text-blue-400">
+                {uploadStatus === 'uploading' ? 'Uploading PDF...' : 'Parsing work order with AI...'}
+              </p>
+            </div>
+          ) : (
+            <>
+              {uploadStatus === 'error' && uploadError && (
+                <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
+                  <p className="text-red-400 text-sm">{uploadError}</p>
+                </div>
+              )}
+              <div
+                className="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center cursor-pointer hover:border-gold/50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <FileText className="h-10 w-10 text-gray-500 mx-auto mb-3" />
+                <p className="text-gray-400 mb-1">
+                  Drag & drop a PDF here, or click to browse
+                </p>
+                <p className="text-xs text-gray-500">PDF files only</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Work Type */}
         <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6 space-y-4">
@@ -268,6 +475,99 @@ export default function NewLaborRequestPage() {
           </div>
         </div>
 
+        {/* Photos */}
+        <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6 space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Photos</h2>
+            <p className="text-sm text-gray-400">
+              Attach up to {MAX_PHOTOS} photos of the job site (10MB each)
+            </p>
+          </div>
+
+          {/* Photo thumbnails grid */}
+          {photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {photos.map((photo, index) => (
+                <div key={photo.url} className="relative group">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic preview from upload */}
+                  <img
+                    src={photo.preview}
+                    alt={photo.name}
+                    className="w-full h-24 object-cover rounded-lg bg-gray-900"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(index)}
+                    className="absolute top-1 right-1 p-1 bg-gray-900/80 rounded-full text-gray-400 hover:text-white transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {photos.length < MAX_PHOTOS && (
+            <>
+              {/* Hidden file inputs */}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handlePhotoFiles(e.target.files)}
+                className="hidden"
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => handlePhotoFiles(e.target.files)}
+                className="hidden"
+              />
+
+              {photoUploading ? (
+                <div className="flex items-center gap-3 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                  <Loader2 className="h-5 w-5 text-blue-400 animate-spin flex-shrink-0" />
+                  <p className="text-blue-400">Uploading photo...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {/* Drop zone / browse */}
+                  <div
+                    className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center cursor-pointer hover:border-gold/50 transition-colors"
+                    onClick={() => photoInputRef.current?.click()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      handlePhotoFiles(e.dataTransfer.files);
+                    }}
+                    onDragOver={(e) => e.preventDefault()}
+                  >
+                    <ImagePlus className="h-8 w-8 text-gray-500 mx-auto mb-2" />
+                    <p className="text-gray-400 text-sm">
+                      Drag & drop images here, or click to browse
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {photos.length}/{MAX_PHOTOS} photos
+                    </p>
+                  </div>
+
+                  {/* Camera button — mobile only */}
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white hover:bg-gray-800 transition-colors md:hidden"
+                  >
+                    <Camera className="h-5 w-5" />
+                    Take Photo
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
         {/* Actions */}
         <div className="flex gap-4">
           <Link
@@ -278,7 +578,7 @@ export default function NewLaborRequestPage() {
           </Link>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || partnerLoading}
             className="flex-1 px-4 py-3 bg-gold text-black rounded-lg font-medium hover:bg-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (

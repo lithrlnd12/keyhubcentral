@@ -5,13 +5,23 @@ import { verifyFirebaseAuth, hasRole } from '@/lib/auth/verifyRequest';
 interface TeamMapEntry {
   id: string;
   name: string;
-  role: 'contractor' | 'sales_rep' | 'pm' | 'partner';
+  role: 'installer' | 'service_tech' | 'sales_rep' | 'pm' | 'partner';
   lat: number;
   lng: number;
   city: string;
   state: string;
   serviceRadius: number;
   detail: string;
+}
+
+function getPrimaryTradeRole(trades: string[]): 'installer' | 'service_tech' {
+  for (const trade of trades) {
+    const key = trade.toLowerCase().replace(/\s+/g, '_');
+    if (key === 'service_tech') return 'service_tech';
+    if (key === 'installer') return 'installer';
+  }
+  // Default to installer if no recognized trade
+  return 'installer';
 }
 
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
@@ -66,7 +76,7 @@ export async function GET(request: NextRequest) {
         entries.push({
           id: doc.id,
           name: data.businessName || data.contactName || 'Unknown',
-          role: 'contractor',
+          role: getPrimaryTradeRole(data.trades || []),
           lat,
           lng,
           city: data.address?.city || '',
@@ -152,7 +162,7 @@ export async function GET(request: NextRequest) {
         return {
           id: doc.id,
           name: data.businessName || data.contactName || 'Unknown',
-          role: 'contractor' as const,
+          role: getPrimaryTradeRole(data.trades || []),
           lat: coords.lat,
           lng: coords.lng,
           city: data.address?.city || '',

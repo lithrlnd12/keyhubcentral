@@ -290,6 +290,30 @@ export async function uploadWorkOrderPdf(
   return getDownloadURL(storageRef);
 }
 
+export async function uploadLaborRequestPhoto(
+  userId: string,
+  file: File
+): Promise<string> {
+  const timestamp = Date.now();
+  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const path = `laborRequests/${userId}/photos/${timestamp}_${sanitizedFileName}`;
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file, { contentType: file.type });
+  return getDownloadURL(storageRef);
+}
+
+export async function uploadLaborRequestPdf(
+  userId: string,
+  file: File
+): Promise<string> {
+  const timestamp = Date.now();
+  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const path = `laborRequests/${userId}/workorders/${timestamp}_${sanitizedFileName}`;
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file, { contentType: 'application/pdf' });
+  return getDownloadURL(storageRef);
+}
+
 export async function deleteJobDocument(url: string): Promise<void> {
   const path = extractPathFromUrl(url);
   if (path) {

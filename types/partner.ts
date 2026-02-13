@@ -67,6 +67,10 @@ export interface LaborRequest {
   // Assignment (hidden from partner)
   assignedContractorIds: string[];
 
+  // Attachments
+  photos?: string[];
+  workOrderUrl?: string | null;
+
   // Status tracking
   status: LaborRequestStatus;
   statusHistory: StatusChange[];

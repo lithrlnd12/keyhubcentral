@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Users, Calendar, Clock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Users, Calendar, Clock, CheckCircle, ImageIcon, FileText } from 'lucide-react';
 import { useLaborRequest } from '@/lib/hooks';
 import { getLaborRequestStatusLabel, LABOR_REQUEST_STATUS_ORDER, LaborRequestStatus } from '@/types/partner';
 import { Spinner } from '@/components/ui/Spinner';
@@ -173,6 +173,53 @@ export default function LaborRequestDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Work Order */}
+      {request.workOrderUrl && (
+        <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <FileText className="h-5 w-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-white">Work Order</h2>
+          </div>
+          <a
+            href={request.workOrderUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-gold hover:underline text-sm"
+          >
+            <FileText className="h-4 w-4" />
+            View uploaded work order PDF
+          </a>
+        </div>
+      )}
+
+      {/* Photos */}
+      {request.photos && request.photos.length > 0 && (
+        <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-white">Photos ({request.photos.length})</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {request.photos.map((url, index) => (
+              <a
+                key={index}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic photo from upload */}
+                <img
+                  src={url}
+                  alt={`Photo ${index + 1}`}
+                  className="w-full h-32 object-cover rounded-lg bg-gray-900 hover:opacity-80 transition-opacity"
+                />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Status History */}
       <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6">

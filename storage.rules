@@ -135,6 +135,28 @@ service firebase.storage {
         isUnderSizeLimit(request.resource.size);
     }
 
+    // Labor request photos (job site documentation)
+    match /laborRequests/{userId}/photos/{fileName} {
+      allow read: if isAuthenticated() &&
+        (isAdmin() || request.auth.uid == userId);
+
+      allow write: if isAuthenticated() &&
+        (isAdmin() || request.auth.uid == userId) &&
+        request.resource.contentType.matches('image/.*') &&
+        isUnderSizeLimit(request.resource.size);
+    }
+
+    // Labor request work order PDFs
+    match /laborRequests/{userId}/workorders/{fileName} {
+      allow read: if isAuthenticated() &&
+        (isAdmin() || request.auth.uid == userId);
+
+      allow write: if isAuthenticated() &&
+        (isAdmin() || request.auth.uid == userId) &&
+        request.resource.contentType == 'application/pdf' &&
+        isUnderSizeLimit(request.resource.size);
+    }
+
     // Contract signatures and PDFs
     match /jobs/{jobId}/contracts/{contractId}/{path=**} {
       // Internal users can view contract files

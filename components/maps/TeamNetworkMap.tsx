@@ -6,7 +6,7 @@ import { Loader2, Search, X } from 'lucide-react';
 export interface TeamMapEntry {
   id: string;
   name: string;
-  role: 'contractor' | 'sales_rep' | 'pm' | 'partner';
+  role: 'installer' | 'service_tech' | 'sales_rep' | 'pm' | 'partner';
   lat: number;
   lng: number;
   city: string;
@@ -22,14 +22,16 @@ interface TeamNetworkMapProps {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  contractor: '#22C55E',
-  sales_rep: '#3B82F6',
+  installer: '#3B82F6',
+  service_tech: '#F97316',
+  sales_rep: '#22C55E',
   pm: '#EAB308',
-  partner: '#F97316',
+  partner: '#A855F7',
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  contractor: 'Contractor',
+  installer: 'Installer',
+  service_tech: 'Service Tech',
   sales_rep: 'Sales Rep',
   pm: 'Project Manager',
   partner: 'Partner',
@@ -103,7 +105,8 @@ export function TeamNetworkMap({
 
   // Role filter state — all visible by default
   const [visibleRoles, setVisibleRoles] = useState<Record<string, boolean>>({
-    contractor: true,
+    installer: true,
+    service_tech: true,
     sales_rep: true,
     pm: true,
     partner: true,
@@ -346,7 +349,7 @@ export function TeamNetworkMap({
             </div>
             ${location ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">${location}</div>` : ''}
             <div style="font-size: 12px; color: #888; margin-top: 4px;">${entry.detail}</div>
-            ${entry.role === 'contractor' ? `<div style="font-size: 11px; color: #999; margin-top: 4px;">Service radius: ${entry.serviceRadius} mi</div>` : ''}
+            ${entry.role === 'installer' || entry.role === 'service_tech' ? `<div style="font-size: 11px; color: #999; margin-top: 4px;">Service radius: ${entry.serviceRadius} mi</div>` : ''}
           </div>
         `);
         infoWindow.open(map, marker);
