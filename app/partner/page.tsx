@@ -4,18 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Wrench, ClipboardList, Clock, CheckCircle } from 'lucide-react';
 import { useAuth, useLaborRequests, usePartnerTickets } from '@/lib/hooks';
-import { ContractorNetworkMap } from '@/components/maps/ContractorNetworkMap';
-
-interface MapContractor {
-  id: string;
-  businessName: string | null;
-  trades: string[];
-  lat: number;
-  lng: number;
-  city: string;
-  state: string;
-  serviceRadius: number;
-}
+import { TeamNetworkMap, TeamMapEntry } from '@/components/maps';
 
 export default function PartnerDashboard() {
   const { user, getIdToken } = useAuth();
@@ -33,29 +22,29 @@ export default function PartnerDashboard() {
 
   const loading = requestsLoading || ticketsLoading;
 
-  // Fetch contractor locations for network map
-  const [mapContractors, setMapContractors] = useState<MapContractor[]>([]);
+  // Fetch team locations for network map
+  const [mapEntries, setMapEntries] = useState<TeamMapEntry[]>([]);
   const [mapLoading, setMapLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchContractors() {
+    async function fetchTeamMap() {
       try {
         const token = await getIdToken();
         if (!token) return;
-        const res = await fetch('/api/contractors/map', {
+        const res = await fetch('/api/team/map', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
-          setMapContractors(data.contractors || []);
+          setMapEntries(data.entries || []);
         }
       } catch (err) {
-        console.error('Failed to fetch contractor map data:', err);
+        console.error('Failed to fetch team map data:', err);
       } finally {
         setMapLoading(false);
       }
     }
-    fetchContractors();
+    fetchTeamMap();
   }, [getIdToken]);
 
   // Calculate stats
@@ -180,16 +169,16 @@ export default function PartnerDashboard() {
         </div>
       </div>
 
-      {/* KTS Employee Network Map */}
+      {/* Team Network Map */}
       <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">KTS Employee Network</h2>
-        <ContractorNetworkMap
-          contractors={mapContractors}
+        <h2 className="text-lg font-semibold text-white mb-4">Team Network</h2>
+        <TeamNetworkMap
+          entries={mapEntries}
           loading={mapLoading}
           className="h-[400px]"
         />
-        {!mapLoading && mapContractors.length === 0 && (
-          <p className="text-gray-500 text-sm text-center mt-3">No contractor locations available</p>
+        {!mapLoading && mapEntries.length === 0 && (
+          <p className="text-gray-500 text-sm text-center mt-3">No team member locations available</p>
         )}
       </div>
 

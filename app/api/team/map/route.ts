@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!hasRole(auth.role, ['owner', 'admin'])) {
+    if (!hasRole(auth.role, ['owner', 'admin', 'partner'])) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
