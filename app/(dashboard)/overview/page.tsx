@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Users,
@@ -21,6 +21,8 @@ import {
   LazyJobTypeChart as JobTypeChart,
   LazyBusinessFlowDiagram as BusinessFlowDiagram,
 } from '@/components/charts';
+import { TeamNetworkMap } from '@/components/maps';
+import type { TeamMapEntry } from '@/components/maps';
 import { useAuth, useJobs, useContractors, useInvoices, useLeads, useCampaigns } from '@/lib/hooks';
 import {
   calculateDashboardStats,
@@ -167,6 +169,36 @@ export default function OverviewPage() {
     }).length;
     return calculateBusinessFlowStats(jobs, leads, contractors, invoices, activeCampaigns);
   }, [jobs, leads, contractors, invoices, campaigns, loading]);
+
+  // Team Network Map data
+  const [teamMapEntries, setTeamMapEntries] = useState<TeamMapEntry[]>([]);
+  const [teamMapLoading, setTeamMapLoading] = useState(false);
+  const isAdmin = user?.role === 'owner' || user?.role === 'admin';
+
+  const fetchTeamMap = useCallback(async () => {
+    if (!isAdmin) return;
+    setTeamMapLoading(true);
+    try {
+      const { getAuth } = await import('firebase/auth');
+      const token = await getAuth().currentUser?.getIdToken();
+      if (!token) return;
+      const res = await fetch('/api/team/map', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTeamMapEntries(data.entries || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch team map data:', err);
+    } finally {
+      setTeamMapLoading(false);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    fetchTeamMap();
+  }, [fetchTeamMap]);
 
   return (
     <div className="space-y-6">
@@ -353,6 +385,22 @@ export default function OverviewPage() {
           <BusinessFlowDiagram stats={businessFlowStats || undefined} />
         </CardContent>
       </Card>
+
+      {/* Team Network Map (admin/owner only) */}
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Team Network</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TeamNetworkMap
+              entries={teamMapEntries}
+              loading={teamMapLoading}
+              className="h-[500px]"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <div>
