@@ -19,7 +19,6 @@ import {
   LazyRevenueChart as RevenueChart,
   LazyLeadSourceChart as LeadSourceChart,
   LazyJobTypeChart as JobTypeChart,
-  LazyBusinessFlowDiagram as BusinessFlowDiagram,
 } from '@/components/charts';
 import { TeamNetworkMap } from '@/components/maps';
 import type { TeamMapEntry } from '@/components/maps';
@@ -27,7 +26,6 @@ import { useAuth, useJobs, useContractors, useInvoices, useLeads, useCampaigns }
 import {
   calculateDashboardStats,
   calculateEntityStats,
-  calculateBusinessFlowStats,
   generateRevenueTrend,
   getLeadSourceDistribution,
   getJobTypeDistribution,
@@ -158,17 +156,6 @@ export default function OverviewPage() {
     if (loading) return [];
     return getJobTypeDistribution(jobs);
   }, [jobs, loading]);
-
-  const businessFlowStats = useMemo(() => {
-    if (loading) return null;
-    const now = new Date();
-    const activeCampaigns = campaigns.filter((c) => {
-      const startDate = c.startDate?.toDate?.() || new Date(0);
-      const endDate = c.endDate?.toDate?.() || null;
-      return startDate <= now && (endDate === null || endDate >= now);
-    }).length;
-    return calculateBusinessFlowStats(jobs, leads, contractors, invoices, activeCampaigns);
-  }, [jobs, leads, contractors, invoices, campaigns, loading]);
 
   // Team Network Map data
   const [teamMapEntries, setTeamMapEntries] = useState<TeamMapEntry[]>([]);
@@ -375,16 +362,6 @@ export default function OverviewPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Business Flow Diagram */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Business Flow</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <BusinessFlowDiagram stats={businessFlowStats || undefined} />
-        </CardContent>
-      </Card>
 
       {/* Team Network Map (admin/owner only) */}
       {isAdmin && (
