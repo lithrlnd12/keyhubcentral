@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
         const trades = data.trades || [];
         const shippingAddr = data.shippingSameAsAddress === false && data.shippingAddress
           ? [data.shippingAddress.street, data.shippingAddress.city, data.shippingAddress.state, data.shippingAddress.zip].filter(Boolean).join(', ')
-          : undefined;
+          : [data.address?.street, data.address?.city, data.address?.state, data.address?.zip].filter(Boolean).join(', ') || undefined;
         entries.push({
           id: doc.id,
           name: data.businessName || data.contactName || 'Unknown',
@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
         const trades = data.trades || [];
         const shippingAddr = data.shippingSameAsAddress === false && data.shippingAddress
           ? [data.shippingAddress.street, data.shippingAddress.city, data.shippingAddress.state, data.shippingAddress.zip].filter(Boolean).join(', ')
-          : undefined;
+          : [data.address?.street, data.address?.city, data.address?.state, data.address?.zip].filter(Boolean).join(', ') || undefined;
         return {
           id: doc.id,
           name: data.businessName || data.contactName || 'Unknown',
