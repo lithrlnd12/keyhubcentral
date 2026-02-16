@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Loader2, Search, X } from 'lucide-react';
+import { Loader2, Search, X, Eye, EyeOff } from 'lucide-react';
 
 export interface TeamMapEntry {
   id: string;
@@ -39,6 +39,18 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const MAX_SEARCH_RADIUS_MILES = 400;
+const MILES_TO_METERS = 1609.34;
+const SERVICE_AREA_ROLES = new Set(['installer', 'service_tech']);
+
+// Dynamic opacity based on zoom: faint when zoomed out, darker when zoomed in
+function getCircleOpacity(zoom: number): { fill: number; stroke: number } {
+  // Clamp zoom between 4 and 13 for interpolation
+  const t = Math.min(1, Math.max(0, (zoom - 4) / 9));
+  return {
+    fill: 0.04 + t * 0.22,    // 0.04 at zoom 4 → 0.26 at zoom 13
+    stroke: 0.18 + t * 0.52,  // 0.18 at zoom 4 → 0.70 at zoom 13
+  };
+}
 
 function haversineDistance(
   lat1: number, lng1: number,
@@ -99,10 +111,13 @@ export function TeamNetworkMap({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const serviceCirclesRef = useRef<google.maps.Circle[]>([]);
+  const zoomListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const searchCircleRef = useRef<google.maps.Circle | null>(null);
   const [mapLoading, setMapLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showServiceAreas, setShowServiceAreas] = useState(true);
 
   // Role filter state — all visible by default
   const [visibleRoles, setVisibleRoles] = useState<Record<string, boolean>>({
@@ -286,7 +301,7 @@ export function TeamNetworkMap({
     document.head.appendChild(script);
   }, [initializeMap]);
 
-  // Update markers when filtered entries change
+  // Update markers + service area circles when filtered entries / filters change
   useEffect(() => {
     const map = mapInstanceRef.current;
     const infoWindow = infoWindowRef.current;
@@ -296,7 +311,20 @@ export function TeamNetworkMap({
     markersRef.current.forEach((m) => (m.map = null));
     markersRef.current = [];
 
+    // Clear existing service circles
+    serviceCirclesRef.current.forEach((c) => c.setMap(null));
+    serviceCirclesRef.current = [];
+
+    // Remove old zoom listener
+    if (zoomListenerRef.current) {
+      google.maps.event.removeListener(zoomListenerRef.current);
+      zoomListenerRef.current = null;
+    }
+
     if (filteredEntries.length === 0) return;
+
+    const currentZoom = map.getZoom() || 4;
+    const initialOpacity = getCircleOpacity(currentZoom);
 
     const bounds = new window.google.maps.LatLngBounds();
 
@@ -304,7 +332,26 @@ export function TeamNetworkMap({
       const displayRole = getEffectiveRole(entry);
       const color = ROLE_COLORS[displayRole] || '#6B7280';
 
-      // Create halo + dot container
+      // --- Service area circle for installers / service techs ---
+      const entryRoles = entry.roles && entry.roles.length > 0 ? entry.roles : [entry.role];
+      const hasServiceRole = entryRoles.some((r) => SERVICE_AREA_ROLES.has(r));
+
+      if (hasServiceRole && entry.serviceRadius > 0) {
+        const circle = new window.google.maps.Circle({
+          map: showServiceAreas ? map : null,
+          center: { lat: entry.lat, lng: entry.lng },
+          radius: entry.serviceRadius * MILES_TO_METERS,
+          fillColor: color,
+          fillOpacity: initialOpacity.fill,
+          strokeColor: color,
+          strokeOpacity: initialOpacity.stroke,
+          strokeWeight: 1.5,
+          clickable: false,
+        });
+        serviceCirclesRef.current.push(circle);
+      }
+
+      // --- Marker dot ---
       const container = document.createElement('div');
       container.style.cssText = `
         position: relative;
@@ -316,7 +363,6 @@ export function TeamNetworkMap({
         cursor: pointer;
       `;
 
-      // Halo ring
       const halo = document.createElement('div');
       halo.style.cssText = `
         position: absolute;
@@ -327,7 +373,6 @@ export function TeamNetworkMap({
         border: 1px solid ${color}66;
       `;
 
-      // Inner dot
       const dot = document.createElement('div');
       dot.style.cssText = `
         position: relative;
@@ -348,7 +393,6 @@ export function TeamNetworkMap({
         content: container,
       });
 
-      // Store entry ID on the marker for search filtering
       (marker as unknown as { _entryId: string })._entryId = entry.id;
 
       const location = [entry.city, entry.state].filter(Boolean).join(', ');
@@ -375,14 +419,30 @@ export function TeamNetworkMap({
       bounds.extend({ lat: entry.lat, lng: entry.lng });
     });
 
+    // Zoom listener — dynamically adjust service circle opacity
+    zoomListenerRef.current = map.addListener('zoom_changed', () => {
+      const zoom = map.getZoom() || 4;
+      const { fill, stroke } = getCircleOpacity(zoom);
+      serviceCirclesRef.current.forEach((c) => {
+        c.setOptions({ fillOpacity: fill, strokeOpacity: stroke });
+      });
+    });
+
     map.fitBounds(bounds, 50);
 
     const listener = map.addListener('idle', () => {
       if (map.getZoom()! > 12) map.setZoom(12);
       google.maps.event.removeListener(listener);
     });
+
+    return () => {
+      if (zoomListenerRef.current) {
+        google.maps.event.removeListener(zoomListenerRef.current);
+        zoomListenerRef.current = null;
+      }
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredEntries, visibleRoles]);
+  }, [filteredEntries, visibleRoles, showServiceAreas]);
 
   const isLoading = mapLoading || externalLoading;
 
@@ -396,7 +456,7 @@ export function TeamNetworkMap({
 
   return (
     <div className="space-y-3">
-      {/* Role Filter Toggles */}
+      {/* Role Filter Toggles + Service Area Toggle */}
       <div className="flex flex-wrap items-center gap-2">
         {Object.entries(ROLE_LABELS).map(([key, label]) => {
           const active = visibleRoles[key];
@@ -419,6 +479,26 @@ export function TeamNetworkMap({
             </button>
           );
         })}
+
+        {/* Divider */}
+        <div className="w-px h-5 bg-gray-700 mx-1" />
+
+        {/* Service Areas toggle */}
+        <button
+          onClick={() => setShowServiceAreas((prev) => !prev)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+            showServiceAreas
+              ? 'bg-white/10 border-white/20 text-white'
+              : 'bg-transparent border-gray-700 text-gray-500'
+          }`}
+        >
+          {showServiceAreas ? (
+            <Eye className="w-3 h-3" />
+          ) : (
+            <EyeOff className="w-3 h-3" />
+          )}
+          Service Areas
+        </button>
       </div>
 
       {/* Zip Code Search */}
