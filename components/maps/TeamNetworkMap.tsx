@@ -7,6 +7,7 @@ export interface TeamMapEntry {
   id: string;
   name: string;
   role: 'installer' | 'service_tech' | 'sales_rep' | 'pm' | 'partner';
+  roles?: string[];
   lat: number;
   lng: number;
   city: string;
@@ -122,8 +123,11 @@ export function TeamNetworkMap({
     setVisibleRoles((prev) => ({ ...prev, [role]: !prev[role] }));
   }, []);
 
-  // Filter entries by visible roles
-  const filteredEntries = entries.filter((e) => visibleRoles[e.role]);
+  // Filter entries by visible roles — check all roles so multi-trade members stay visible
+  const filteredEntries = entries.filter((e) => {
+    const entryRoles = e.roles && e.roles.length > 0 ? e.roles : [e.role];
+    return entryRoles.some((r) => visibleRoles[r]);
+  });
 
   const handleZipSearch = useCallback(async () => {
     const zip = zipInput.trim();

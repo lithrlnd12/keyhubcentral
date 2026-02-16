@@ -6,6 +6,7 @@ interface TeamMapEntry {
   id: string;
   name: string;
   role: 'installer' | 'service_tech' | 'sales_rep' | 'pm' | 'partner';
+  roles: string[];
   lat: number;
   lng: number;
   city: string;
@@ -14,14 +15,26 @@ interface TeamMapEntry {
   detail: string;
 }
 
-function getPrimaryTradeRole(trades: string[]): 'installer' | 'service_tech' {
+const TRADE_ROLE_MAP: Record<string, 'installer' | 'service_tech'> = {
+  installer: 'installer',
+  service_tech: 'service_tech',
+};
+
+function getTradeRoles(trades: string[]): string[] {
+  const roles: string[] = [];
   for (const trade of trades) {
     const key = trade.toLowerCase().replace(/\s+/g, '_');
-    if (key === 'service_tech') return 'service_tech';
-    if (key === 'installer') return 'installer';
+    const mapped = TRADE_ROLE_MAP[key];
+    if (mapped && !roles.includes(mapped)) {
+      roles.push(mapped);
+    }
   }
-  // Default to installer if no recognized trade
-  return 'installer';
+  return roles.length > 0 ? roles : ['installer'];
+}
+
+function getPrimaryTradeRole(trades: string[]): 'installer' | 'service_tech' {
+  const roles = getTradeRoles(trades);
+  return roles[0] as 'installer' | 'service_tech';
 }
 
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
@@ -73,16 +86,18 @@ export async function GET(request: NextRequest) {
       const lng = data.address?.lng;
 
       if (lat != null && lng != null) {
+        const trades = data.trades || [];
         entries.push({
           id: doc.id,
           name: data.businessName || data.contactName || 'Unknown',
-          role: getPrimaryTradeRole(data.trades || []),
+          role: getPrimaryTradeRole(trades),
+          roles: getTradeRoles(trades),
           lat,
           lng,
           city: data.address?.city || '',
           state: data.address?.state || '',
           serviceRadius: data.serviceRadius || 50,
-          detail: (data.trades || []).join(', ') || 'No trades listed',
+          detail: trades.join(', ') || 'No trades listed',
         });
       } else {
         const parts = [data.address?.street, data.address?.city, data.address?.state, data.address?.zip].filter(Boolean);
@@ -108,6 +123,7 @@ export async function GET(request: NextRequest) {
           id: doc.id,
           name: data.displayName || data.email || 'Unknown',
           role: role as 'sales_rep' | 'pm',
+          roles: [role],
           lat,
           lng,
           city: '',
@@ -133,6 +149,7 @@ export async function GET(request: NextRequest) {
           id: doc.id,
           name: data.companyName || data.contactName || 'Unknown',
           role: 'partner',
+          roles: ['partner'],
           lat,
           lng,
           city: data.address?.city || '',
@@ -159,16 +176,18 @@ export async function GET(request: NextRequest) {
           'address.lat': coords.lat,
           'address.lng': coords.lng,
         }).catch((err) => console.error('Failed to backfill coords for contractor', doc.id, err));
+        const trades = data.trades || [];
         return {
           id: doc.id,
           name: data.businessName || data.contactName || 'Unknown',
-          role: getPrimaryTradeRole(data.trades || []),
+          role: getPrimaryTradeRole(trades),
+          roles: getTradeRoles(trades),
           lat: coords.lat,
           lng: coords.lng,
           city: data.address?.city || '',
           state: data.address?.state || '',
           serviceRadius: data.serviceRadius || 50,
-          detail: (data.trades || []).join(', ') || 'No trades listed',
+          detail: trades.join(', ') || 'No trades listed',
         };
       }),
       // Users (sales_rep / pm)
@@ -183,6 +202,7 @@ export async function GET(request: NextRequest) {
           id: doc.id,
           name: data.displayName || data.email || 'Unknown',
           role: data.role as 'sales_rep' | 'pm',
+          roles: [data.role],
           lat: coords.lat,
           lng: coords.lng,
           city: '',
@@ -204,6 +224,7 @@ export async function GET(request: NextRequest) {
           id: doc.id,
           name: data.companyName || data.contactName || 'Unknown',
           role: 'partner' as const,
+          roles: ['partner'],
           lat: coords.lat,
           lng: coords.lng,
           city: data.address?.city || '',
