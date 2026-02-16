@@ -10,8 +10,8 @@ import { TagInput } from '@/components/ui/TagInput';
 import { TerritoryMap } from '@/components/maps/TerritoryMap';
 import { Pencil, Save, Loader2, Package, X, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
-import { findAndLinkContractor, updateContractor } from '@/lib/firebase/contractors';
-import { deleteField } from 'firebase/firestore';
+import { findAndLinkContractor, updateContractor, createContractor } from '@/lib/firebase/contractors';
+import { deleteField, Timestamp } from 'firebase/firestore';
 import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
 import { Contractor, getRatingTier } from '@/types/contractor';
 
@@ -64,18 +64,40 @@ export default function PortalProfilePage() {
     async function loadContractor() {
       if (user?.uid && user?.email) {
         try {
-          const data = await findAndLinkContractor(user.uid, user.email);
+          let data = await findAndLinkContractor(user.uid, user.email);
+
+          // Auto-create contractor record if none exists
+          if (!data) {
+            const now = Timestamp.now();
+            const newContractor = {
+              userId: user.uid,
+              email: user.email.toLowerCase(),
+              phone: user.phone || '',
+              businessName: user.displayName || null,
+              address: { street: '', city: '', state: '', zip: '' },
+              trades: [] as ('installer' | 'sales_rep' | 'service_tech' | 'pm')[],
+              skills: [] as string[],
+              licenses: [],
+              insurance: null,
+              w9Url: null,
+              achInfo: null,
+              serviceRadius: 25,
+              rating: { overall: 3.0, customer: 3.0, speed: 3.0, warranty: 3.0, internal: 3.0 },
+              status: 'active' as const,
+            };
+            const docId = await createContractor(newContractor);
+            data = { id: docId, ...newContractor, createdAt: now, updatedAt: now };
+          }
+
           setContractor(data);
-          if (data) {
-            resetForm(data);
-            if (data.address?.lat && data.address?.lng) {
-              setMapCenter({ lat: data.address.lat, lng: data.address.lng });
-            } else {
-              const addr = buildAddressString(data.address);
-              if (addr) {
-                const result = await geocodeAddress(addr);
-                if (result) setMapCenter({ lat: result.lat, lng: result.lng });
-              }
+          resetForm(data);
+          if (data.address?.lat && data.address?.lng) {
+            setMapCenter({ lat: data.address.lat, lng: data.address.lng });
+          } else {
+            const addr = buildAddressString(data.address);
+            if (addr) {
+              const result = await geocodeAddress(addr);
+              if (result) setMapCenter({ lat: result.lat, lng: result.lng });
             }
           }
         } catch (err) {
