@@ -412,6 +412,10 @@ export function TeamNetworkMap({
           </div>
         `);
         infoWindow.open(map, marker);
+        map.panTo({ lat: entry.lat, lng: entry.lng });
+        if ((map.getZoom() || 4) < 10) {
+          map.setZoom(10);
+        }
       });
 
       markersRef.current.push(marker);
