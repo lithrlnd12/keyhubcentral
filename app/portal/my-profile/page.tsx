@@ -3,21 +3,59 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Badge, BackButton } from '@/components/ui';
+import { Input } from '@/components/ui/Input';
 import { Slider } from '@/components/ui/Slider';
+import { Button } from '@/components/ui/Button';
 import { TerritoryMap } from '@/components/maps/TerritoryMap';
+import { Pencil, Save, Loader2, Package, X } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
 import { findAndLinkContractor, updateContractor } from '@/lib/firebase/contractors';
+import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
 import { Contractor, getRatingTier } from '@/types/contractor';
+
+const usStates = [
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+];
 
 export default function PortalProfilePage() {
   const { user } = useAuth();
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Service area editing
-  const [editingServiceArea, setEditingServiceArea] = useState(false);
-  const [serviceRadius, setServiceRadius] = useState(50);
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Editable form state
+  const [formData, setFormData] = useState({
+    businessName: '',
+    phone: '',
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
+    serviceRadius: 50,
+    shippingSameAsAddress: true,
+    shippingStreet: '',
+    shippingCity: '',
+    shippingState: '',
+    shippingZip: '',
+  });
+
+  // Shipping address modal
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [tempShipping, setTempShipping] = useState({
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
+  });
+
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     async function loadContractor() {
@@ -25,9 +63,20 @@ export default function PortalProfilePage() {
         try {
           const data = await findAndLinkContractor(user.uid, user.email);
           setContractor(data);
-          if (data) setServiceRadius(data.serviceRadius || 50);
-        } catch (error) {
-          console.error('Error loading contractor:', error);
+          if (data) {
+            resetForm(data);
+            if (data.address?.lat && data.address?.lng) {
+              setMapCenter({ lat: data.address.lat, lng: data.address.lng });
+            } else {
+              const addr = buildAddressString(data.address);
+              if (addr) {
+                const result = await geocodeAddress(addr);
+                if (result) setMapCenter({ lat: result.lat, lng: result.lng });
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error loading contractor:', err);
         } finally {
           setLoading(false);
         }
@@ -36,25 +85,131 @@ export default function PortalProfilePage() {
       }
     }
     loadContractor();
-  }, [user?.uid, user?.email]);
+  }, [user?.uid, user?.email]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSaveServiceRadius = async () => {
+  function resetForm(c: Contractor) {
+    setFormData({
+      businessName: c.businessName || '',
+      phone: c.phone || user?.phone || '',
+      street: c.address?.street || '',
+      city: c.address?.city || '',
+      state: c.address?.state || '',
+      zip: c.address?.zip || '',
+      serviceRadius: c.serviceRadius || 50,
+      shippingSameAsAddress: c.shippingSameAsAddress !== false,
+      shippingStreet: c.shippingAddress?.street || '',
+      shippingCity: c.shippingAddress?.city || '',
+      shippingState: c.shippingAddress?.state || '',
+      shippingZip: c.shippingAddress?.zip || '',
+    });
+  }
+
+  const handleCancel = () => {
+    if (contractor) resetForm(contractor);
+    setEditing(false);
+    setError(null);
+    setSuccessMessage(null);
+  };
+
+  const handleSave = async () => {
     if (!contractor) return;
     setSaving(true);
+    setError(null);
+    setSuccessMessage(null);
+
     try {
-      await updateContractor(contractor.id, { serviceRadius });
-      setContractor({ ...contractor, serviceRadius });
-      setEditingServiceArea(false);
-    } catch (error) {
-      console.error('Error saving service radius:', error);
+      // Re-geocode if address changed
+      let lat = mapCenter?.lat ?? null;
+      let lng = mapCenter?.lng ?? null;
+      const addressChanged =
+        formData.street !== (contractor.address?.street || '') ||
+        formData.city !== (contractor.address?.city || '') ||
+        formData.state !== (contractor.address?.state || '') ||
+        formData.zip !== (contractor.address?.zip || '');
+
+      if (addressChanged) {
+        const addr = buildAddressString({
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+        });
+        if (addr) {
+          const result = await geocodeAddress(addr);
+          if (result) {
+            lat = result.lat;
+            lng = result.lng;
+            setMapCenter({ lat, lng });
+          }
+        }
+      }
+
+      const updates: Parameters<typeof updateContractor>[1] = {
+        businessName: formData.businessName || null,
+        phone: formData.phone || undefined,
+        address: {
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+          lat,
+          lng,
+        },
+        serviceRadius: formData.serviceRadius,
+        shippingSameAsAddress: formData.shippingSameAsAddress,
+        shippingAddress: formData.shippingSameAsAddress
+          ? undefined
+          : {
+              street: formData.shippingStreet,
+              city: formData.shippingCity,
+              state: formData.shippingState,
+              zip: formData.shippingZip,
+            },
+      };
+
+      await updateContractor(contractor.id, updates);
+
+      const updated: Contractor = {
+        ...contractor,
+        businessName: formData.businessName || null,
+        phone: formData.phone || undefined,
+        address: {
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+          lat,
+          lng,
+        },
+        serviceRadius: formData.serviceRadius,
+        shippingSameAsAddress: formData.shippingSameAsAddress,
+        shippingAddress: formData.shippingSameAsAddress
+          ? undefined
+          : {
+              street: formData.shippingStreet,
+              city: formData.shippingCity,
+              state: formData.shippingState,
+              zip: formData.shippingZip,
+            },
+      };
+      setContractor(updated);
+      setEditing(false);
+      setSuccessMessage('Profile updated successfully');
+    } catch (err) {
+      console.error('Error saving profile:', err);
+      setError('Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
-  const mapCenter = contractor?.address?.lat && contractor?.address?.lng
-    ? { lat: contractor.address.lat, lng: contractor.address.lng }
-    : null;
+  const updateField = <K extends keyof typeof formData>(
+    field: K,
+    value: (typeof formData)[K]
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setSuccessMessage(null);
+  };
 
   if (loading) {
     return (
@@ -66,15 +221,53 @@ export default function PortalProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <BackButton href="/portal" />
-        <div>
-          <h1 className="text-2xl font-bold text-white">My Profile</h1>
-          <p className="text-gray-400 mt-1">
-            View your contractor profile information
-          </p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <BackButton href="/portal" />
+          <div>
+            <h1 className="text-2xl font-bold text-white">My Profile</h1>
+            <p className="text-gray-400 mt-1">
+              {editing ? 'Edit your profile information' : 'View and manage your profile'}
+            </p>
+          </div>
         </div>
+
+        {contractor && !editing && (
+          <Button variant="outline" onClick={() => setEditing(true)}>
+            <Pencil className="w-4 h-4 mr-2" />
+            Edit Profile
+          </Button>
+        )}
+
+        {editing && (
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={handleCancel} disabled={saving}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Save Changes
+            </Button>
+          </div>
+        )}
       </div>
+
+      {/* Messages */}
+      {error && (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+          <p className="text-red-500">{error}</p>
+        </div>
+      )}
+      {successMessage && (
+        <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+          <p className="text-green-500">{successMessage}</p>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Account Info */}
@@ -89,28 +282,44 @@ export default function PortalProfilePage() {
               <label className="text-sm text-gray-400">Email</label>
               <p className="text-white">{user?.email || 'N/A'}</p>
             </div>
-            <div>
-              <label className="text-sm text-gray-400">Phone</label>
-              <p className="text-white">{user?.phone || 'N/A'}</p>
-            </div>
+            {editing ? (
+              <Input
+                label="Phone"
+                value={formData.phone}
+                onChange={(e) => updateField('phone', e.target.value)}
+                placeholder="(555) 123-4567"
+              />
+            ) : (
+              <div>
+                <label className="text-sm text-gray-400">Phone</label>
+                <p className="text-white">{contractor?.phone || user?.phone || 'N/A'}</p>
+              </div>
+            )}
           </div>
         </Card>
 
-        {/* Contractor Info */}
+        {/* Contractor Details */}
         {contractor && (
           <Card className="p-6">
             <h2 className="text-lg font-semibold text-white mb-4">Contractor Details</h2>
             <div className="space-y-4">
-              <div>
-                <label className="text-sm text-gray-400">Business Name</label>
-                <p className="text-white">{contractor.businessName || 'N/A'}</p>
-              </div>
+              {editing ? (
+                <Input
+                  label="Business Name"
+                  value={formData.businessName}
+                  onChange={(e) => updateField('businessName', e.target.value)}
+                  placeholder="Company or individual name"
+                />
+              ) : (
+                <div>
+                  <label className="text-sm text-gray-400">Business Name</label>
+                  <p className="text-white">{contractor.businessName || 'N/A'}</p>
+                </div>
+              )}
               <div>
                 <label className="text-sm text-gray-400">Status</label>
                 <div className="mt-1">
-                  <Badge
-                    variant={contractor.status === 'active' ? 'success' : 'warning'}
-                  >
+                  <Badge variant={contractor.status === 'active' ? 'success' : 'warning'}>
                     {contractor.status}
                   </Badge>
                 </div>
@@ -142,92 +351,274 @@ export default function PortalProfilePage() {
           </Card>
         )}
 
-        {/* Service Area */}
-        {contractor?.address && (
-          <Card className="p-6 lg:col-span-2">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Service Area</h2>
-              {!editingServiceArea ? (
-                <button
-                  onClick={() => setEditingServiceArea(true)}
-                  className="text-sm text-gold hover:text-gold/80 transition-colors"
-                >
-                  Edit
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setServiceRadius(contractor.serviceRadius || 50);
-                      setEditingServiceArea(false);
-                    }}
-                    className="text-sm text-gray-400 hover:text-white transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveServiceRadius}
-                    disabled={saving}
-                    className="text-sm px-3 py-1 bg-gold/20 text-gold border border-gold/30 rounded-lg hover:bg-gold/30 transition-colors disabled:opacity-50"
-                  >
-                    {saving ? 'Saving...' : 'Save'}
-                  </button>
+        {/* Address */}
+        {contractor && (
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Address</h2>
+            {editing ? (
+              <div className="space-y-4">
+                <Input
+                  label="Street Address"
+                  value={formData.street}
+                  onChange={(e) => updateField('street', e.target.value)}
+                  placeholder="123 Main St"
+                />
+                <Input
+                  label="City"
+                  value={formData.city}
+                  onChange={(e) => updateField('city', e.target.value)}
+                  placeholder="City"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5">State</label>
+                    <select
+                      value={formData.state}
+                      onChange={(e) => updateField('state', e.target.value)}
+                      className="w-full px-3 py-2 bg-brand-charcoal border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                    >
+                      <option value="">Select</option>
+                      {usStates.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Input
+                    label="ZIP"
+                    value={formData.zip}
+                    onChange={(e) => updateField('zip', e.target.value)}
+                    placeholder="12345"
+                  />
                 </div>
-              )}
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm text-gray-400">Address</label>
-                <p className="text-white">
-                  {contractor.address.street && `${contractor.address.street}, `}
-                  {contractor.address.city}, {contractor.address.state} {contractor.address.zip}
-                </p>
               </div>
+            ) : (
+              <div>
+                {contractor.address?.street ? (
+                  <p className="text-white">
+                    {contractor.address.street}
+                    <br />
+                    {contractor.address.city}, {contractor.address.state} {contractor.address.zip}
+                  </p>
+                ) : (
+                  <p className="text-gray-500">No address on file</p>
+                )}
+              </div>
+            )}
+          </Card>
+        )}
 
-              {editingServiceArea ? (
-                <div className="space-y-4">
+        {/* Shipping Address */}
+        {contractor && (
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Shipping Address
+            </h2>
+            {editing ? (
+              <div className="space-y-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.shippingSameAsAddress}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      updateField('shippingSameAsAddress', checked);
+                      if (!checked && !formData.shippingStreet) {
+                        setTempShipping({ street: '', city: '', state: '', zip: '' });
+                        setShowShippingModal(true);
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-brand-gold focus:ring-brand-gold"
+                  />
+                  <span className="text-sm text-gray-300">Same as address</span>
+                </label>
+
+                {!formData.shippingSameAsAddress && (
+                  <>
+                    {formData.shippingStreet ? (
+                      <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                        <p className="text-white text-sm">{formData.shippingStreet}</p>
+                        <p className="text-gray-400 text-sm">
+                          {[formData.shippingCity, formData.shippingState].filter(Boolean).join(', ')}{' '}
+                          {formData.shippingZip}
+                        </p>
+                        <Button
+                          variant="outline"
+                          className="mt-2 text-xs"
+                          onClick={() => {
+                            setTempShipping({
+                              street: formData.shippingStreet,
+                              city: formData.shippingCity,
+                              state: formData.shippingState,
+                              zip: formData.shippingZip,
+                            });
+                            setShowShippingModal(true);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setTempShipping({ street: '', city: '', state: '', zip: '' });
+                          setShowShippingModal(true);
+                        }}
+                      >
+                        Add Shipping Address
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              <div>
+                {contractor.shippingSameAsAddress === false && contractor.shippingAddress ? (
+                  <p className="text-white">
+                    {contractor.shippingAddress.street}
+                    <br />
+                    {contractor.shippingAddress.city}, {contractor.shippingAddress.state}{' '}
+                    {contractor.shippingAddress.zip}
+                  </p>
+                ) : (
+                  <p className="text-gray-500">Same as address</p>
+                )}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Service Area */}
+        {contractor && (
+          <Card className="p-6 lg:col-span-2">
+            <h2 className="text-lg font-semibold text-white mb-4">Service Area</h2>
+            <div className="space-y-4">
+              {editing ? (
+                <>
                   <Slider
                     label="How far are you willing to travel?"
-                    value={serviceRadius}
-                    onChange={setServiceRadius}
+                    value={formData.serviceRadius}
+                    onChange={(value) => updateField('serviceRadius', value)}
                     min={5}
                     max={400}
                     step={5}
                     formatValue={(value) => `${value} miles`}
                   />
-                  <TerritoryMap
-                    center={mapCenter}
-                    radius={serviceRadius}
-                    className="h-[350px]"
-                    interactive={false}
-                  />
-                </div>
-              ) : (
-                <div>
-                  <label className="text-sm text-gray-400">Service Radius</label>
-                  <p className="text-white">{contractor.serviceRadius || 50} miles</p>
                   {mapCenter && (
-                    <div className="mt-3">
-                      <TerritoryMap
-                        center={mapCenter}
-                        radius={contractor.serviceRadius || 50}
-                        className="h-[300px]"
-                        interactive={false}
-                      />
-                    </div>
+                    <TerritoryMap
+                      center={mapCenter}
+                      radius={formData.serviceRadius}
+                      className="h-[350px]"
+                      interactive={false}
+                    />
                   )}
-                </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-sm text-gray-400">Service Radius</label>
+                    <p className="text-white">{contractor.serviceRadius || 50} miles</p>
+                  </div>
+                  {mapCenter && (
+                    <TerritoryMap
+                      center={mapCenter}
+                      radius={contractor.serviceRadius || 50}
+                      className="h-[300px]"
+                      interactive={false}
+                    />
+                  )}
+                </>
               )}
             </div>
           </Card>
         )}
       </div>
 
-      <Card className="p-4 bg-gray-800/50">
-        <p className="text-gray-400 text-sm">
-          To update other profile information, please contact an administrator.
-        </p>
-      </Card>
+      {/* Shipping Address Modal */}
+      {showShippingModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-brand-charcoal border border-gray-700 rounded-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <h3 className="text-lg font-semibold text-white">Shipping Address</h3>
+              <button
+                onClick={() => setShowShippingModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <Input
+                label="Street Address"
+                value={tempShipping.street}
+                onChange={(e) => setTempShipping((prev) => ({ ...prev, street: e.target.value }))}
+                placeholder="123 Main St"
+              />
+              <Input
+                label="City"
+                value={tempShipping.city}
+                onChange={(e) => setTempShipping((prev) => ({ ...prev, city: e.target.value }))}
+                placeholder="City"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">State</label>
+                  <select
+                    value={tempShipping.state}
+                    onChange={(e) => setTempShipping((prev) => ({ ...prev, state: e.target.value }))}
+                    className="w-full px-3 py-2 bg-brand-charcoal border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                  >
+                    <option value="">Select</option>
+                    {usStates.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <Input
+                  label="ZIP"
+                  value={tempShipping.zip}
+                  onChange={(e) => setTempShipping((prev) => ({ ...prev, zip: e.target.value }))}
+                  placeholder="12345"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 p-4 border-t border-gray-700">
+              <Button
+                variant="outline"
+                onClick={() => setShowShippingModal(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    shippingStreet: tempShipping.street,
+                    shippingCity: tempShipping.city,
+                    shippingState: tempShipping.state,
+                    shippingZip: tempShipping.zip,
+                  }));
+                  setShowShippingModal(false);
+                  setSuccessMessage(null);
+                }}
+                className="flex-1"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!editing && (
+        <Card className="p-4 bg-gray-800/50">
+          <p className="text-gray-400 text-sm">
+            Status, trades, and tier are managed by an administrator.
+          </p>
+        </Card>
+      )}
     </div>
   );
 }
