@@ -40,7 +40,6 @@ const ROLE_LABELS: Record<string, string> = {
 
 const MAX_SEARCH_RADIUS_MILES = 400;
 const MILES_TO_METERS = 1609.34;
-const SERVICE_AREA_ROLES = new Set(['installer', 'service_tech']);
 
 // Dynamic opacity based on zoom: faint when zoomed out, darker when zoomed in
 function getCircleOpacity(zoom: number): { fill: number; stroke: number } {
@@ -334,9 +333,7 @@ export function TeamNetworkMap({
 
       // --- Service area circle for installers / service techs ---
       const entryRoles = entry.roles && entry.roles.length > 0 ? entry.roles : [entry.role];
-      const hasServiceRole = entryRoles.some((r) => SERVICE_AREA_ROLES.has(r));
-
-      if (hasServiceRole && entry.serviceRadius > 0) {
+      if (entry.serviceRadius > 0) {
         const circle = new window.google.maps.Circle({
           map: showServiceAreas ? map : null,
           center: { lat: entry.lat, lng: entry.lng },
@@ -409,7 +406,7 @@ export function TeamNetworkMap({
             </div>
             ${location ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">${location}</div>` : ''}
             <div style="font-size: 12px; color: #888; margin-top: 4px;">${entry.detail}</div>
-            ${displayRole === 'installer' || displayRole === 'service_tech' ? `<div style="font-size: 11px; color: #999; margin-top: 4px;">Service radius: ${entry.serviceRadius} mi</div>` : ''}
+            ${entry.serviceRadius ? `<div style="font-size: 11px; color: #999; margin-top: 4px;">Service radius: ${entry.serviceRadius} mi</div>` : ''}
           </div>
         `);
         infoWindow.open(map, marker);
