@@ -10,6 +10,7 @@ import { TerritoryMap } from '@/components/maps/TerritoryMap';
 import { Pencil, Save, Loader2, Package, X } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
 import { findAndLinkContractor, updateContractor } from '@/lib/firebase/contractors';
+import { deleteField } from 'firebase/firestore';
 import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
 import { Contractor, getRatingTier } from '@/types/contractor';
 
@@ -144,9 +145,10 @@ export default function PortalProfilePage() {
         }
       }
 
-      const updates: Parameters<typeof updateContractor>[1] = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updates: any = {
         businessName: formData.businessName || null,
-        phone: formData.phone || undefined,
+        phone: formData.phone || null,
         address: {
           street: formData.street,
           city: formData.city,
@@ -158,7 +160,7 @@ export default function PortalProfilePage() {
         serviceRadius: formData.serviceRadius,
         shippingSameAsAddress: formData.shippingSameAsAddress,
         shippingAddress: formData.shippingSameAsAddress
-          ? undefined
+          ? deleteField()
           : {
               street: formData.shippingStreet,
               city: formData.shippingCity,

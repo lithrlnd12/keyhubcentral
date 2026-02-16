@@ -13,6 +13,7 @@ import { Slider } from '@/components/ui/Slider';
 import { TerritoryMap } from '@/components/maps/TerritoryMap';
 import { Contractor, Trade, ContractorStatus } from '@/types/contractor';
 import { updateContractor, deleteContractor } from '@/lib/firebase/contractors';
+import { deleteField } from 'firebase/firestore';
 import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
 
 interface ContractorEditFormProps {
@@ -107,6 +108,7 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
     setSuccessMessage(null);
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await updateContractor(contractor.id, {
         businessName: formData.businessName || null,
         status: formData.status,
@@ -123,14 +125,14 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
         serviceRadius: formData.serviceRadius,
         shippingSameAsAddress: formData.shippingSameAsAddress,
         shippingAddress: formData.shippingSameAsAddress
-          ? undefined
+          ? deleteField()
           : {
               street: formData.shippingStreet,
               city: formData.shippingCity,
               state: formData.shippingState,
               zip: formData.shippingZip,
             },
-      });
+      } as any);
 
       setSuccessMessage('Changes saved successfully');
 
