@@ -14,6 +14,7 @@ export interface TeamMapEntry {
   state: string;
   serviceRadius: number;
   detail: string;
+  shippingAddress?: string;
 }
 
 interface TeamNetworkMapProps {
@@ -406,6 +407,7 @@ export function TeamNetworkMap({
             </div>
             ${location ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">${location}</div>` : ''}
             <div style="font-size: 12px; color: #888; margin-top: 4px;">${entry.detail}</div>
+            ${entry.shippingAddress ? `<div style="font-size: 11px; color: #999; margin-top: 4px;">Ships to: ${entry.shippingAddress}</div>` : ''}
             ${entry.serviceRadius ? `<div style="font-size: 11px; color: #999; margin-top: 4px;">Service radius: ${entry.serviceRadius} mi</div>` : ''}
           </div>
         `);

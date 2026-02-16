@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Mail, Phone, MapPin, Wrench, Target } from 'lucide-react';
+import { Mail, Phone, MapPin, Wrench, Target, Package } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { TerritoryMap } from '@/components/maps/TerritoryMap';
 import { Contractor } from '@/types/contractor';
@@ -76,6 +76,13 @@ export function ContractorInfo({ contractor }: ContractorInfoProps) {
             label="Address"
             value={formatAddress(contractor.address)}
           />
+          {contractor.shippingSameAsAddress === false && contractor.shippingAddress && (
+            <InfoRow
+              icon={<Package className="w-4 h-4" />}
+              label="Shipping Address"
+              value={formatAddress(contractor.shippingAddress)}
+            />
+          )}
         </CardContent>
       </Card>
 

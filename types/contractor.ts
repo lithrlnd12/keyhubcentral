@@ -47,6 +47,8 @@ export interface Contractor {
   phone?: string;
   businessName: string | null;
   address: Address;
+  shippingAddress?: Address;
+  shippingSameAsAddress?: boolean;
   trades: Trade[];
   skills: string[];
   licenses: License[];

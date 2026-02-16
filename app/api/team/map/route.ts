@@ -13,6 +13,7 @@ interface TeamMapEntry {
   state: string;
   serviceRadius: number;
   detail: string;
+  shippingAddress?: string;
 }
 
 const TRADE_ROLE_MAP: Record<string, 'installer' | 'service_tech'> = {
@@ -87,6 +88,9 @@ export async function GET(request: NextRequest) {
 
       if (lat != null && lng != null) {
         const trades = data.trades || [];
+        const shippingAddr = data.shippingSameAsAddress === false && data.shippingAddress
+          ? [data.shippingAddress.street, data.shippingAddress.city, data.shippingAddress.state, data.shippingAddress.zip].filter(Boolean).join(', ')
+          : undefined;
         entries.push({
           id: doc.id,
           name: data.businessName || data.contactName || 'Unknown',
@@ -98,6 +102,7 @@ export async function GET(request: NextRequest) {
           state: data.address?.state || '',
           serviceRadius: data.serviceRadius || 50,
           detail: trades.join(', ') || 'No trades listed',
+          shippingAddress: shippingAddr,
         });
       } else {
         const parts = [data.address?.street, data.address?.city, data.address?.state, data.address?.zip].filter(Boolean);
@@ -177,6 +182,9 @@ export async function GET(request: NextRequest) {
           'address.lng': coords.lng,
         }).catch((err) => console.error('Failed to backfill coords for contractor', doc.id, err));
         const trades = data.trades || [];
+        const shippingAddr = data.shippingSameAsAddress === false && data.shippingAddress
+          ? [data.shippingAddress.street, data.shippingAddress.city, data.shippingAddress.state, data.shippingAddress.zip].filter(Boolean).join(', ')
+          : undefined;
         return {
           id: doc.id,
           name: data.businessName || data.contactName || 'Unknown',
@@ -188,6 +196,7 @@ export async function GET(request: NextRequest) {
           state: data.address?.state || '',
           serviceRadius: data.serviceRadius || 50,
           detail: trades.join(', ') || 'No trades listed',
+          shippingAddress: shippingAddr,
         };
       }),
       // Users (sales_rep / pm)

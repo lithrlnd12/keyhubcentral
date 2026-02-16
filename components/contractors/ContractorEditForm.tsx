@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
+import { Save, Loader2, ArrowLeft, Trash2, Package, X } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -61,6 +61,20 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
     trades: contractor.trades,
     skills: contractor.skills,
     serviceRadius: contractor.serviceRadius,
+    shippingSameAsAddress: contractor.shippingSameAsAddress !== false,
+    shippingStreet: contractor.shippingAddress?.street || '',
+    shippingCity: contractor.shippingAddress?.city || '',
+    shippingState: contractor.shippingAddress?.state || '',
+    shippingZip: contractor.shippingAddress?.zip || '',
+  });
+
+  // Shipping address modal state
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [tempShipping, setTempShipping] = useState({
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
   });
 
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(
@@ -107,6 +121,15 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
         trades: formData.trades,
         skills: formData.skills,
         serviceRadius: formData.serviceRadius,
+        shippingSameAsAddress: formData.shippingSameAsAddress,
+        shippingAddress: formData.shippingSameAsAddress
+          ? undefined
+          : {
+              street: formData.shippingStreet,
+              city: formData.shippingCity,
+              state: formData.shippingState,
+              zip: formData.shippingZip,
+            },
       });
 
       setSuccessMessage('Changes saved successfully');
@@ -127,6 +150,15 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
         trades: formData.trades,
         skills: formData.skills,
         serviceRadius: formData.serviceRadius,
+        shippingSameAsAddress: formData.shippingSameAsAddress,
+        shippingAddress: formData.shippingSameAsAddress
+          ? undefined
+          : {
+              street: formData.shippingStreet,
+              city: formData.shippingCity,
+              state: formData.shippingState,
+              zip: formData.shippingZip,
+            },
       });
     } catch (err) {
       setError('Failed to save changes');
@@ -322,6 +354,156 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
             </div>
           </CardContent>
         </Card>
+
+        {/* Shipping Address */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Shipping Address
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.shippingSameAsAddress}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  updateField('shippingSameAsAddress', checked);
+                  if (!checked && !formData.shippingStreet) {
+                    setTempShipping({ street: '', city: '', state: '', zip: '' });
+                    setShowShippingModal(true);
+                  }
+                }}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-brand-gold focus:ring-brand-gold"
+              />
+              <span className="text-sm text-gray-300">Same as address</span>
+            </label>
+
+            {!formData.shippingSameAsAddress && (
+              <>
+                {formData.shippingStreet ? (
+                  <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                    <p className="text-white text-sm">
+                      {formData.shippingStreet}
+                    </p>
+                    <p className="text-gray-400 text-sm">
+                      {[formData.shippingCity, formData.shippingState].filter(Boolean).join(', ')}{' '}
+                      {formData.shippingZip}
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="mt-2 text-xs"
+                      onClick={() => {
+                        setTempShipping({
+                          street: formData.shippingStreet,
+                          city: formData.shippingCity,
+                          state: formData.shippingState,
+                          zip: formData.shippingZip,
+                        });
+                        setShowShippingModal(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setTempShipping({ street: '', city: '', state: '', zip: '' });
+                      setShowShippingModal(true);
+                    }}
+                  >
+                    Add Shipping Address
+                  </Button>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Shipping Address Modal */}
+        {showShippingModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-brand-charcoal border border-gray-700 rounded-xl max-w-md w-full">
+              <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                <h3 className="text-lg font-semibold text-white">Shipping Address</h3>
+                <button
+                  onClick={() => setShowShippingModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-4 space-y-4">
+                <Input
+                  label="Street Address"
+                  value={tempShipping.street}
+                  onChange={(e) => setTempShipping((prev) => ({ ...prev, street: e.target.value }))}
+                  placeholder="123 Main St"
+                />
+                <Input
+                  label="City"
+                  value={tempShipping.city}
+                  onChange={(e) => setTempShipping((prev) => ({ ...prev, city: e.target.value }))}
+                  placeholder="City"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                      State
+                    </label>
+                    <select
+                      value={tempShipping.state}
+                      onChange={(e) => setTempShipping((prev) => ({ ...prev, state: e.target.value }))}
+                      className="w-full px-3 py-2 bg-brand-charcoal border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                    >
+                      <option value="">Select</option>
+                      {usStates.map((state) => (
+                        <option key={state} value={state}>
+                          {state}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <Input
+                    label="ZIP"
+                    value={tempShipping.zip}
+                    onChange={(e) => setTempShipping((prev) => ({ ...prev, zip: e.target.value }))}
+                    placeholder="12345"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 p-4 border-t border-gray-700">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowShippingModal(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      shippingStreet: tempShipping.street,
+                      shippingCity: tempShipping.city,
+                      shippingState: tempShipping.state,
+                      shippingZip: tempShipping.zip,
+                    }));
+                    setShowShippingModal(false);
+                    setSuccessMessage(null);
+                  }}
+                  className="flex-1"
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Service Area */}
         <Card className="lg:col-span-2">
