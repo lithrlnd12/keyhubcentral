@@ -123,6 +123,17 @@ export function TeamNetworkMap({
     setVisibleRoles((prev) => ({ ...prev, [role]: !prev[role] }));
   }, []);
 
+  // Compute effective display role per entry based on active filters.
+  // For multi-trade members the color shifts to whichever trade filter is on.
+  function getEffectiveRole(entry: TeamMapEntry): string {
+    const entryRoles = entry.roles && entry.roles.length > 0 ? entry.roles : [entry.role];
+    const activeRoles = entryRoles.filter((r) => visibleRoles[r]);
+    if (activeRoles.length === 0) return entry.role;
+    // If the primary role is still active, keep it; otherwise pick the first active one
+    if (activeRoles.includes(entry.role)) return entry.role;
+    return activeRoles[0];
+  }
+
   // Filter entries by visible roles — check all roles so multi-trade members stay visible
   const filteredEntries = entries.filter((e) => {
     const entryRoles = e.roles && e.roles.length > 0 ? e.roles : [e.role];
@@ -290,7 +301,8 @@ export function TeamNetworkMap({
     const bounds = new window.google.maps.LatLngBounds();
 
     filteredEntries.forEach((entry) => {
-      const color = ROLE_COLORS[entry.role] || '#6B7280';
+      const displayRole = getEffectiveRole(entry);
+      const color = ROLE_COLORS[displayRole] || '#6B7280';
 
       // Create halo + dot container
       const container = document.createElement('div');
@@ -340,8 +352,8 @@ export function TeamNetworkMap({
       (marker as unknown as { _entryId: string })._entryId = entry.id;
 
       const location = [entry.city, entry.state].filter(Boolean).join(', ');
-      const roleLabel = ROLE_LABELS[entry.role] || entry.role;
-      const roleColor = ROLE_COLORS[entry.role] || '#6B7280';
+      const roleLabel = ROLE_LABELS[displayRole] || displayRole;
+      const roleColor = ROLE_COLORS[displayRole] || '#6B7280';
 
       marker.addListener('click', () => {
         infoWindow.setContent(`
@@ -353,7 +365,7 @@ export function TeamNetworkMap({
             </div>
             ${location ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">${location}</div>` : ''}
             <div style="font-size: 12px; color: #888; margin-top: 4px;">${entry.detail}</div>
-            ${entry.role === 'installer' || entry.role === 'service_tech' ? `<div style="font-size: 11px; color: #999; margin-top: 4px;">Service radius: ${entry.serviceRadius} mi</div>` : ''}
+            ${displayRole === 'installer' || displayRole === 'service_tech' ? `<div style="font-size: 11px; color: #999; margin-top: 4px;">Service radius: ${entry.serviceRadius} mi</div>` : ''}
           </div>
         `);
         infoWindow.open(map, marker);
@@ -369,7 +381,8 @@ export function TeamNetworkMap({
       if (map.getZoom()! > 12) map.setZoom(12);
       google.maps.event.removeListener(listener);
     });
-  }, [filteredEntries]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredEntries, visibleRoles]);
 
   const isLoading = mapLoading || externalLoading;
 
