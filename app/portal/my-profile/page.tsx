@@ -6,8 +6,9 @@ import { Badge, BackButton } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Slider } from '@/components/ui/Slider';
 import { Button } from '@/components/ui/Button';
+import { TagInput } from '@/components/ui/TagInput';
 import { TerritoryMap } from '@/components/maps/TerritoryMap';
-import { Pencil, Save, Loader2, Package, X } from 'lucide-react';
+import { Pencil, Save, Loader2, Package, X, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
 import { findAndLinkContractor, updateContractor } from '@/lib/firebase/contractors';
 import { deleteField } from 'firebase/firestore';
@@ -39,6 +40,7 @@ export default function PortalProfilePage() {
     city: '',
     state: '',
     zip: '',
+    skills: [] as string[],
     serviceRadius: 50,
     shippingSameAsAddress: true,
     shippingStreet: '',
@@ -96,6 +98,7 @@ export default function PortalProfilePage() {
       city: c.address?.city || '',
       state: c.address?.state || '',
       zip: c.address?.zip || '',
+      skills: c.skills || [],
       serviceRadius: c.serviceRadius || 50,
       shippingSameAsAddress: c.shippingSameAsAddress !== false,
       shippingStreet: c.shippingAddress?.street || '',
@@ -157,6 +160,7 @@ export default function PortalProfilePage() {
           lat,
           lng,
         },
+        skills: formData.skills,
         serviceRadius: formData.serviceRadius,
         shippingSameAsAddress: formData.shippingSameAsAddress,
         shippingAddress: formData.shippingSameAsAddress
@@ -183,6 +187,7 @@ export default function PortalProfilePage() {
           lat,
           lng,
         },
+        skills: formData.skills,
         serviceRadius: formData.serviceRadius,
         shippingSameAsAddress: formData.shippingSameAsAddress,
         shippingAddress: formData.shippingSameAsAddress
@@ -347,6 +352,45 @@ export default function PortalProfilePage() {
                   {contractor.rating?.overall
                     ? getRatingTier(contractor.rating.overall).replace('_', ' ')
                     : 'N/A'}
+                </p>
+              </div>
+              {editing ? (
+                <TagInput
+                  label="Skills & Certifications"
+                  value={formData.skills}
+                  onChange={(skills) => updateField('skills', skills)}
+                  placeholder="Press Enter to add..."
+                />
+              ) : (
+                contractor.skills?.length > 0 && (
+                  <div>
+                    <label className="text-sm text-gray-400">Skills & Certifications</label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {contractor.skills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </Card>
+        )}
+
+        {/* No contractor record notice */}
+        {!contractor && !loading && (
+          <Card className="p-6 lg:col-span-2">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-white font-medium">Contractor profile not found</h3>
+                <p className="text-gray-400 text-sm mt-1">
+                  Your account hasn&apos;t been linked to a contractor record yet. Please contact an administrator to set up your contractor profile.
                 </p>
               </div>
             </div>
