@@ -8,6 +8,7 @@ import { loginAs } from '../fixtures/auth';
 
 test.describe('Contractor Management', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test.describe('Contractor List', () => {
     test.beforeEach(async ({ page }) => {
@@ -132,6 +133,7 @@ test.describe('Contractor Management', () => {
 
 test.describe('Contractor Portal', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test.beforeEach(async ({ page }) => {
     await loginAs(page, 'contractor');
@@ -145,8 +147,8 @@ test.describe('Contractor Portal', () => {
   test('contractor can view assigned jobs', async ({ page }) => {
     await page.goto('/portal/jobs');
     await expect(page).toHaveURL(/\/portal\/jobs/);
-    // Should see jobs section
-    await expect(page.getByText(/job|assigned|my jobs/i).first()).toBeVisible();
+    // Should see jobs section (scope to main content to avoid hidden sidebar nav on mobile)
+    await expect(page.locator('main').getByText(/job|assigned|my jobs/i).first()).toBeVisible();
   });
 
   test('contractor can set availability', async ({ page }) => {
@@ -185,6 +187,7 @@ test.describe('Contractor Portal', () => {
 
 test.describe('Contractor Access Control', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Role tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test('PM can view all contractors', async ({ page }) => {
     await loginAs(page, 'pm');
@@ -208,6 +211,7 @@ test.describe('Contractor Access Control', () => {
 
 test.describe('Inventory Management', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test.beforeEach(async ({ page }) => {
     await loginAs(page, 'admin');

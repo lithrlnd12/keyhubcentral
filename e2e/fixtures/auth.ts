@@ -56,8 +56,9 @@ export async function loginAs(page: Page, role: TestUserRole): Promise<void> {
   // Clear any existing session to ensure clean login
   await page.context().clearCookies();
 
-  // Small delay to avoid Firebase rate limiting (auth/quota-exceeded)
-  await page.waitForTimeout(500);
+  // Stagger logins to avoid Firebase rate limiting (auth/quota-exceeded)
+  // Use a longer delay since multiple spec files run in parallel
+  await page.waitForTimeout(1000 + Math.random() * 1000);
 
   // Navigate to login page
   await page.goto('/login');

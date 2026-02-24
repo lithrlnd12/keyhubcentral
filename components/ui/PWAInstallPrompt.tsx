@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Download, Share, Plus, MoreVertical } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -13,6 +13,7 @@ type DeviceType = 'ios' | 'android' | 'desktop-chrome' | 'desktop-edge' | 'deskt
 export function PWAInstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
   const [deviceType, setDeviceType] = useState<DeviceType>('unknown');
   const [isStandalone, setIsStandalone] = useState(false);
 
@@ -47,7 +48,6 @@ export function PWAInstallPrompt() {
 
     if (isIOS) {
       setDeviceType('ios');
-      // Show iOS prompt after a short delay
       setTimeout(() => setShowPrompt(true), 2000);
     } else if (isAndroid) {
       setDeviceType('android');
@@ -62,16 +62,19 @@ export function PWAInstallPrompt() {
     // Listen for the beforeinstallprompt event (Chrome, Edge, Android)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      const promptEvent = e as BeforeInstallPromptEvent;
+      deferredPromptRef.current = promptEvent;
+      setDeferredPrompt(promptEvent);
       setTimeout(() => setShowPrompt(true), 2000);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // For browsers that don't fire beforeinstallprompt, show manual instructions
+    // Use ref so the timeout closure always sees the latest value
     if (!isIOS) {
       const timeout = setTimeout(() => {
-        if (!deferredPrompt) {
+        if (!deferredPromptRef.current) {
           setShowPrompt(true);
         }
       }, 3000);
@@ -84,7 +87,7 @@ export function PWAInstallPrompt() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, [deferredPrompt]);
+  }, []); // Run once only — ref keeps fallback timeout in sync
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -107,7 +110,7 @@ export function PWAInstallPrompt() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-x-0 bottom-0 z-50 flex justify-center p-4 pb-6">
       <div className="w-full max-w-md bg-dark-200 rounded-2xl shadow-2xl border border-dark-100 overflow-hidden animate-slide-up">
         {/* Header */}
         <div className="relative bg-gradient-to-r from-brand-gold/20 to-brand-gold/5 p-6 pb-4">

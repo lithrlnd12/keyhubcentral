@@ -23,30 +23,45 @@ interface JobDetailPageProps {
   params: { id: string };
 }
 
+// Stages that sales reps can view (up to and including front_end_hold)
+const SALES_REP_VISIBLE_STAGES = ['lead', 'sold', 'front_end_hold'];
+
 // Permission helpers
-function canViewJob(userRole: string | undefined, job: { salesRepId: string | null; crewIds: string[]; pmId: string | null }, userId: string | undefined): boolean {
+function canViewJob(
+  userRole: string | undefined,
+  job: { salesRepId: string | null; crewIds: string[]; pmId: string | null; status: string },
+  userId: string | undefined
+): boolean {
   if (!userRole) return false;
   if (['owner', 'admin', 'pm'].includes(userRole)) return true;
-  if (job.salesRepId === userId) return true;
   if (job.pmId === userId) return true;
   if (userId && job.crewIds.includes(userId)) return true;
+
+  // Sales rep can only view jobs assigned to them AND only up through front_end_hold
+  if (userRole === 'sales_rep' && job.salesRepId === userId) {
+    return SALES_REP_VISIBLE_STAGES.includes(job.status);
+  }
+
   return false;
 }
 
-function canEditJob(userRole: string | undefined, job: { salesRepId: string | null }, userId: string | undefined): boolean {
+function canEditJob(userRole: string | undefined, job: { salesRepId: string | null; status: string }, userId: string | undefined): boolean {
   if (!userRole) return false;
   // Admins and PMs can edit any job
   if (['owner', 'admin', 'pm'].includes(userRole)) return true;
-  // Sales rep can edit jobs they're assigned to
-  if (userRole === 'sales_rep' && job.salesRepId === userId) return true;
+  // Sales rep can edit jobs they're assigned to AND only up through front_end_hold
+  if (userRole === 'sales_rep' && job.salesRepId === userId) {
+    return SALES_REP_VISIBLE_STAGES.includes(job.status);
+  }
   return false;
 }
 
-function canEditCommission(userRole: string | undefined, job: { salesRepId: string | null }, userId: string | undefined): boolean {
+function canEditCommission(userRole: string | undefined, job: { salesRepId: string | null; status: string }, userId: string | undefined): boolean {
   if (!userRole) return false;
-  // Admins and sales rep assigned to job can edit commission
+  // Admins can edit commission on any job
   if (['owner', 'admin'].includes(userRole)) return true;
-  if (job.salesRepId === userId) return true;
+  // Sales rep can edit commission on jobs they're assigned to AND only up through front_end_hold
+  if (job.salesRepId === userId && SALES_REP_VISIBLE_STAGES.includes(job.status)) return true;
   return false;
 }
 

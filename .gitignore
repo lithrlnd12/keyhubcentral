@@ -51,3 +51,9 @@ workbox-*.js
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+.env*.local
+
+# Playwright
+test-results/
+playwright-report/
+auth_users.json

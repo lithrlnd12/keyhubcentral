@@ -8,6 +8,7 @@ import { loginAs } from '../fixtures/auth';
 
 test.describe('Lead Workflow', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test.describe('Lead List View', () => {
     test.beforeEach(async ({ page }) => {
@@ -17,8 +18,8 @@ test.describe('Lead Workflow', () => {
     test('can view leads list', async ({ page }) => {
       await page.goto('/kd');
       await expect(page).toHaveURL(/\/kd/);
-      // Should see leads page or dashboard
-      await expect(page.getByText(/lead|keynote|digital/i).first()).toBeVisible();
+      // Should see leads page or dashboard (scope to main content to avoid hidden sidebar nav on mobile)
+      await expect(page.locator('main').getByText(/lead|keynote|digital/i).first()).toBeVisible();
     });
 
     test('can access leads section', async ({ page }) => {
@@ -124,6 +125,7 @@ test.describe('Lead Workflow', () => {
 
 test.describe('Lead Access by Role', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Role tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test('sales rep can view assigned leads', async ({ page }) => {
     await loginAs(page, 'sales_rep');
@@ -151,6 +153,7 @@ test.describe('Lead Access by Role', () => {
 
 test.describe('Campaign Management', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test.describe('Admin Campaign Access', () => {
     test.beforeEach(async ({ page }) => {

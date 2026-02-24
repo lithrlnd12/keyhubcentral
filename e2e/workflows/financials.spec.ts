@@ -8,6 +8,7 @@ import { loginAs } from '../fixtures/auth';
 
 test.describe('Invoice Workflow', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test.describe('Invoice List', () => {
     test.beforeEach(async ({ page }) => {
@@ -97,6 +98,7 @@ test.describe('Invoice Workflow', () => {
 
 test.describe('P&L Reports', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test.describe('Admin P&L Access', () => {
     test.beforeEach(async ({ page }) => {
@@ -106,8 +108,8 @@ test.describe('P&L Reports', () => {
     test('can view P&L dashboard', async ({ page }) => {
       await page.goto('/financials');
       await expect(page).toHaveURL(/\/financials/);
-      // Should see financial overview
-      await expect(page.getByText(/revenue|expense|profit|financial/i).first()).toBeVisible();
+      // Should see financial overview (scope to main content to avoid hidden sidebar nav on mobile)
+      await expect(page.locator('main').getByText(/revenue|expense|profit|financial/i).first()).toBeVisible();
     });
 
     test('can view P&L by entity', async ({ page }) => {
@@ -145,6 +147,7 @@ test.describe('P&L Reports', () => {
 
 test.describe('Earnings View', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test('sales rep can view own earnings', async ({ page }) => {
     await loginAs(page, 'sales_rep');
@@ -168,6 +171,7 @@ test.describe('Earnings View', () => {
 
 test.describe('Contractor Invoices', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test.beforeEach(async ({ page }) => {
     await loginAs(page, 'contractor');
@@ -191,6 +195,7 @@ test.describe('Contractor Invoices', () => {
 
 test.describe('Payouts', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test('admin can view payouts', async ({ page }) => {
     await loginAs(page, 'admin');

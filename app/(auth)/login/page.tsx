@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Input } from '@/components/ui';
+import { PWAInstallPrompt } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
 
 export default function LoginPage() {
@@ -14,10 +15,20 @@ export default function LoginPage() {
   const [localError, setLocalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect when user is authenticated
+  // Redirect when user is authenticated (route by status and role)
   useEffect(() => {
     if (user && !loading) {
-      router.push('/overview');
+      if (user.status === 'pending') {
+        router.push('/pending');
+      } else if (user.role === 'contractor') {
+        router.push('/portal');
+      } else if (user.role === 'subscriber') {
+        router.push('/subscriber');
+      } else if (user.role === 'partner') {
+        router.push('/partner');
+      } else {
+        router.push('/overview');
+      }
     }
   }, [user, loading, router]);
 
@@ -37,6 +48,7 @@ export default function LoginPage() {
   };
 
   return (
+    <>
     <div className="bg-brand-charcoal rounded-xl p-6 shadow-xl border border-gray-800">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-white">Welcome back</h1>
@@ -88,5 +100,7 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+    <PWAInstallPrompt />
+    </>
   );
 }

@@ -7,8 +7,9 @@ import { Button, Input, Select } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
 import { UserRole } from '@/types/user';
 
-// Roles available for self-signup (excludes admin roles)
+// Roles available for self-signup
 const SIGNUP_ROLES = [
+  { value: 'admin', label: 'Administrator' },
   { value: 'contractor', label: 'Contractor / Installer' },
   { value: 'sales_rep', label: 'Sales Representative' },
   { value: 'partner', label: 'Partner Company' },

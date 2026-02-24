@@ -8,6 +8,7 @@ import { loginAs } from '../fixtures/auth';
 
 test.describe('Partner Portal', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test.beforeEach(async ({ page }) => {
     await loginAs(page, 'partner');
@@ -16,7 +17,8 @@ test.describe('Partner Portal', () => {
   test('partner sees portal dashboard', async ({ page }) => {
     await page.goto('/partner');
     await expect(page).toHaveURL(/\/partner/);
-    await expect(page.getByText(/partner|dashboard|welcome/i).first()).toBeVisible();
+    // Scope to main content to avoid hidden sidebar nav on mobile
+    await expect(page.locator('main').getByText(/partner|dashboard|welcome/i).first()).toBeVisible();
   });
 
   test('partner can view labor requests', async ({ page }) => {
@@ -73,6 +75,7 @@ test.describe('Partner Portal', () => {
 
 test.describe('Partner Management (Admin)', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Workflow tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test.beforeEach(async ({ page }) => {
     await loginAs(page, 'admin');
@@ -98,8 +101,8 @@ test.describe('Partner Management (Admin)', () => {
 
   test('partner requests shows pending requests', async ({ page }) => {
     await page.goto('/admin/partner-requests');
-    // Should show requests or empty state
-    await expect(page.getByText(/request|pending|labor|service|no requests/i).first()).toBeVisible();
+    // Should show requests or empty state (scope to main content to avoid hidden sidebar nav on mobile)
+    await expect(page.locator('main').getByText(/request|pending|labor|service|no requests/i).first()).toBeVisible();
   });
 
   test('admin can respond to labor request', async ({ page }) => {
@@ -115,6 +118,7 @@ test.describe('Partner Management (Admin)', () => {
 
 test.describe('Partner Access Control', () => {
   test.skip(({ browserName }) => browserName !== 'chromium', 'Role tests only run on Chromium');
+  test.describe.configure({ mode: 'serial' });
 
   test('partner cannot access main dashboard', async ({ page }) => {
     await loginAs(page, 'partner');
