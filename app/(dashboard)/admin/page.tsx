@@ -305,6 +305,60 @@ export default function AdminPage() {
     }
   };
 
+  const handleFixSalesReps = async () => {
+    setSyncing(true);
+    try {
+      // Find all active sales_rep users
+      const salesRepQuery = query(
+        collection(db, 'users'),
+        where('role', '==', 'sales_rep'),
+        where('status', '==', 'active')
+      );
+      const salesRepSnap = await getDocs(salesRepQuery);
+
+      let created = 0;
+      let skipped = 0;
+
+      await Promise.all(
+        salesRepSnap.docs.map(async (userDoc) => {
+          const userData = userDoc.data() as UserProfile;
+          // Check if contractor profile already exists
+          const existing = await getDocs(
+            query(collection(db, 'contractors'), where('userId', '==', userData.uid))
+          );
+          if (existing.empty) {
+            await addDoc(collection(db, 'contractors'), {
+              userId: userData.uid,
+              businessName: userData.displayName || null,
+              address: { street: '', city: '', state: '', zip: '' },
+              trades: ['sales_rep'],
+              skills: [],
+              licenses: [],
+              insurance: null,
+              w9Url: null,
+              achInfo: null,
+              serviceRadius: 25,
+              rating: { overall: 3.0, customer: 3.0, speed: 3.0, warranty: 3.0, internal: 3.0 },
+              status: 'active',
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+            created++;
+          } else {
+            skipped++;
+          }
+        })
+      );
+
+      alert(`Done. Created ${created} contractor profile(s). ${skipped} already existed.`);
+    } catch (error) {
+      console.error('Error fixing sales reps:', error);
+      alert('Failed to fix sales reps');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSyncClaims = async () => {
     if (!user?.uid) return;
     setSyncing(true);
@@ -346,6 +400,14 @@ export default function AdminPage() {
           <p className="text-gray-400 mt-1">User management and settings</p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleFixSalesReps}
+            disabled={syncing}
+          >
+            <Users className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            Fix Sales Reps
+          </Button>
           <Button
             variant="outline"
             onClick={handleSyncClaims}
