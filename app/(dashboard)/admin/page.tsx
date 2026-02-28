@@ -150,37 +150,35 @@ export default function AdminPage() {
 
       await updateDoc(doc(db, 'users', uid), updateData);
 
-      // If approving as contractor, also create a contractor profile
-      if (role === 'contractor') {
-        if (pendingUser) {
-          await addDoc(collection(db, 'contractors'), {
-            userId: uid,
-            businessName: pendingUser.displayName || null,
-            address: {
-              street: '',
-              city: '',
-              state: '',
-              zip: pendingUser.baseZipCode || '',
-            },
-            trades: [],
-            skills: [],
-            licenses: [],
-            insurance: null,
-            w9Url: null,
-            achInfo: null,
-            serviceRadius: 25,
-            rating: {
-              overall: 3.0,
-              customer: 3.0,
-              speed: 3.0,
-              warranty: 3.0,
-              internal: 3.0,
-            },
-            status: 'active',
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
-        }
+      // If approving as contractor or sales_rep, also create a contractor profile
+      if ((role === 'contractor' || role === 'sales_rep') && pendingUser) {
+        await addDoc(collection(db, 'contractors'), {
+          userId: uid,
+          businessName: pendingUser.displayName || null,
+          address: {
+            street: '',
+            city: '',
+            state: '',
+            zip: pendingUser.baseZipCode || '',
+          },
+          trades: role === 'sales_rep' ? ['sales_rep'] : [],
+          skills: [],
+          licenses: [],
+          insurance: null,
+          w9Url: null,
+          achInfo: null,
+          serviceRadius: 25,
+          rating: {
+            overall: 3.0,
+            customer: 3.0,
+            speed: 3.0,
+            warranty: 3.0,
+            internal: 3.0,
+          },
+          status: 'active',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
       }
 
       const token = await getIdToken();
@@ -249,15 +247,14 @@ export default function AdminPage() {
 
       await updateDoc(doc(db, 'users', uid), updateData);
 
-      // If changing to contractor role, check if contractor profile exists
-      if (role === 'contractor') {
+      // If changing to contractor or sales_rep role, ensure a contractor profile exists
+      if (role === 'contractor' || role === 'sales_rep') {
         const contractorQuery = query(
           collection(db, 'contractors'),
           where('userId', '==', uid)
         );
         const contractorSnapshot = await getDocs(contractorQuery);
 
-        // If no contractor profile exists, create one
         if (contractorSnapshot.empty) {
           const activeUser = activeUsers.find((u) => u.uid === uid);
           if (activeUser) {
@@ -270,7 +267,7 @@ export default function AdminPage() {
                 state: '',
                 zip: activeUser.baseZipCode || '',
               },
-              trades: [],
+              trades: role === 'sales_rep' ? ['sales_rep'] : [],
               skills: [],
               licenses: [],
               insurance: null,
