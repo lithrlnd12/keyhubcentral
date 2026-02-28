@@ -6,6 +6,8 @@ import { Contractor } from '@/types/contractor';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { getContractor, getContractorByUserId } from '@/lib/firebase/contractors';
+import { getUserProfile } from '@/lib/firebase/auth';
+import { UserProfile } from '@/types/user';
 import { Users, UserPlus, X, User, MapPin, Star, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import Link from 'next/link';
@@ -19,6 +21,7 @@ interface JobCrewProps {
 interface CrewMember {
   id: string;
   contractor: Contractor | null;
+  userProfile: UserProfile | null;
   role: 'crew' | 'pm' | 'sales';
   loading: boolean;
 }
@@ -34,24 +37,24 @@ export function JobCrew({ job, canEdit, onUpdate }: JobCrewProps) {
 
       // Add PM if assigned
       if (job.pmId) {
-        crewMembers.push({ id: job.pmId, contractor: null, role: 'pm', loading: true });
+        crewMembers.push({ id: job.pmId, contractor: null, userProfile: null, role: 'pm', loading: true });
       }
 
       // Add sales rep if assigned
       if (job.salesRepId) {
-        crewMembers.push({ id: job.salesRepId, contractor: null, role: 'sales', loading: true });
+        crewMembers.push({ id: job.salesRepId, contractor: null, userProfile: null, role: 'sales', loading: true });
       }
 
       // Add crew members
       job.crewIds.forEach((id) => {
         if (id !== job.pmId && id !== job.salesRepId) {
-          crewMembers.push({ id, contractor: null, role: 'crew', loading: true });
+          crewMembers.push({ id, contractor: null, userProfile: null, role: 'crew', loading: true });
         }
       });
 
       setCrew(crewMembers);
 
-      // Load contractor details (try by doc ID first, then by userId)
+      // Load contractor details (try by doc ID first, then by userId, then user profile)
       const loaded = await Promise.all(
         crewMembers.map(async (member) => {
           try {
@@ -59,7 +62,12 @@ export function JobCrew({ job, canEdit, onUpdate }: JobCrewProps) {
             if (!contractor) {
               contractor = await getContractorByUserId(member.id);
             }
-            return { ...member, contractor, loading: false };
+            if (contractor) {
+              return { ...member, contractor, loading: false };
+            }
+            // Fall back to user profile (e.g. salesRepId / pmId store user UIDs)
+            const userProfile = await getUserProfile(member.id);
+            return { ...member, userProfile, loading: false };
           } catch {
             return { ...member, loading: false };
           }
@@ -200,14 +208,42 @@ export function JobCrew({ job, canEdit, onUpdate }: JobCrewProps) {
                       )}
                     </div>
                   </div>
+                ) : member.userProfile ? (
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">
+                          {member.userProfile.displayName || member.userProfile.email}
+                        </p>
+                        <span
+                          className={cn(
+                            'inline-flex px-2 py-0.5 text-xs rounded-full border',
+                            getRoleColor(member.role)
+                          )}
+                        >
+                          {getRoleLabel(member.role)}
+                        </span>
+                      </div>
+                    </div>
+                    {canEdit && (
+                      <button
+                        onClick={() => handleRemove(member.id, member.role)}
+                        className="text-gray-500 hover:text-red-400 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
                       <User className="w-5 h-5 text-gray-500" />
                     </div>
                     <div>
-                      <p className="text-gray-400 text-sm">Unknown contractor</p>
-                      <p className="text-gray-500 text-xs">ID: {member.id}</p>
+                      <p className="text-gray-400 text-sm">Unknown</p>
                     </div>
                   </div>
                 )}
