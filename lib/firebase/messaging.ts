@@ -21,6 +21,31 @@ export function initializeMessaging(): Messaging | null {
   return messaging;
 }
 
+// Send Firebase config to the service worker so it can initialize.
+// Service workers cannot access NEXT_PUBLIC_* env vars directly.
+async function sendConfigToServiceWorker(): Promise<void> {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const sw = registration.active ?? registration.waiting;
+    if (sw) {
+      sw.postMessage({
+        type: 'FIREBASE_CONFIG',
+        config: {
+          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Failed to send config to service worker:', error);
+  }
+}
+
 // Request notification permission and get FCM token
 export async function requestNotificationPermission(userId: string): Promise<string | null> {
   const messagingInstance = initializeMessaging();
@@ -35,6 +60,9 @@ export async function requestNotificationPermission(userId: string): Promise<str
       console.log('Notification permission denied');
       return null;
     }
+
+    // Initialize the service worker with Firebase config before requesting token
+    await sendConfigToServiceWorker();
 
     // Get FCM token
     const token = await getToken(messagingInstance, {

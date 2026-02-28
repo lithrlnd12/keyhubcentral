@@ -4,47 +4,54 @@
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-// Initialize Firebase in the service worker
-firebase.initializeApp({
-  apiKey: self.FIREBASE_CONFIG?.apiKey || '',
-  authDomain: self.FIREBASE_CONFIG?.authDomain || '',
-  projectId: self.FIREBASE_CONFIG?.projectId || '',
-  storageBucket: self.FIREBASE_CONFIG?.storageBucket || '',
-  messagingSenderId: self.FIREBASE_CONFIG?.messagingSenderId || '',
-  appId: self.FIREBASE_CONFIG?.appId || '',
-});
+// Firebase is initialized lazily via a message from the main app,
+// because service workers cannot access NEXT_PUBLIC_* env vars.
+let messaging = null;
 
-const messaging = firebase.messaging();
+function setupMessaging() {
+  if (messaging) return;
+  messaging = firebase.messaging();
 
-// Priority-based notification settings
-const NOTIFICATION_CONFIG = {
-  urgent: { requireInteraction: true, silent: false },
-  high: { requireInteraction: true, silent: false },
-  medium: { requireInteraction: false, silent: false },
-  low: { requireInteraction: false, silent: true },
-};
+  // Handle background messages
+  messaging.onBackgroundMessage((payload) => {
+    console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
-// Handle background messages
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message:', payload);
+    const data = payload.data || {};
+    const priority = data.priority || 'medium';
 
-  const data = payload.data || {};
-  const priority = data.priority || 'medium';
-  const config = NOTIFICATION_CONFIG[priority] || NOTIFICATION_CONFIG.medium;
+    const NOTIFICATION_CONFIG = {
+      urgent: { requireInteraction: true, silent: false },
+      high: { requireInteraction: true, silent: false },
+      medium: { requireInteraction: false, silent: false },
+      low: { requireInteraction: false, silent: true },
+    };
 
-  const notificationTitle = payload.notification?.title || data.title || 'KeyHub Central';
-  const notificationOptions = {
-    body: payload.notification?.body || data.body || '',
-    icon: '/logo.svg',
-    badge: '/logo.svg',
-    data: data,
-    tag: data.type || 'default',
-    requireInteraction: config.requireInteraction,
-    silent: config.silent,
-    actions: getNotificationActions(data.type),
-  };
+    const config = NOTIFICATION_CONFIG[priority] || NOTIFICATION_CONFIG.medium;
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+    const notificationTitle = payload.notification?.title || data.title || 'KeyHub Central';
+    const notificationOptions = {
+      body: payload.notification?.body || data.body || '',
+      icon: '/logo.svg',
+      badge: '/logo.svg',
+      data: data,
+      tag: data.type || 'default',
+      requireInteraction: config.requireInteraction,
+      silent: config.silent,
+      actions: getNotificationActions(data.type),
+    };
+
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  });
+}
+
+// Receive Firebase config from the main app and initialize
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'FIREBASE_CONFIG') {
+    if (firebase.apps.length === 0) {
+      firebase.initializeApp(event.data.config);
+    }
+    setupMessaging();
+  }
 });
 
 // Get actions based on notification type
