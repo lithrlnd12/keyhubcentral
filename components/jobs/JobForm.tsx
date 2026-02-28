@@ -28,6 +28,8 @@ import {
 import Link from 'next/link';
 import { ContractorRecommendations } from './ContractorRecommendations';
 import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
+import { getUsersByRole } from '@/lib/firebase/auth';
+import { UserProfile } from '@/types/user';
 
 interface JobFormProps {
   job?: Job;
@@ -83,6 +85,7 @@ export function JobForm({ job, initialTab = 'customer', defaultSalesRepId }: Job
   const [scheduledTimeBlock, setScheduledTimeBlock] = useState<TimeBlock | undefined>(undefined);
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeStatus, setGeocodeStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [salesReps, setSalesReps] = useState<UserProfile[]>([]);
 
   const [formData, setFormData] = useState<JobFormData>({
     jobNumber: job?.jobNumber || '',
@@ -112,6 +115,11 @@ export function JobForm({ job, initialTab = 'customer', defaultSalesRepId }: Job
       });
     }
   }, [job]);
+
+  // Load sales reps for assignment picker
+  useEffect(() => {
+    getUsersByRole('sales_rep').then(setSalesReps);
+  }, []);
 
   const updateField = <K extends keyof JobFormData>(
     field: K,
@@ -752,6 +760,53 @@ export function JobForm({ job, initialTab = 'customer', defaultSalesRepId }: Job
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Sales Rep Assignment */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">
+                  Sales Rep
+                </label>
+                {formData.salesRepId ? (
+                  <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-blue-400" />
+                      </div>
+                      <span className="text-white font-medium">
+                        {salesReps.find((r) => r.uid === formData.salesRepId)?.displayName ||
+                          salesReps.find((r) => r.uid === formData.salesRepId)?.email ||
+                          formData.salesRepId}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full border bg-blue-500/20 text-blue-400 border-blue-500/30">
+                        Sales Rep
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, salesRepId: null }))}
+                      className="text-gray-500 hover:text-red-400 transition-colors"
+                    >
+                      <span className="sr-only">Remove</span>
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) setFormData((prev) => ({ ...prev, salesRepId: e.target.value }));
+                    }}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-brand-gold/50"
+                  >
+                    <option value="">— Select a sales rep —</option>
+                    {salesReps.map((rep) => (
+                      <option key={rep.uid} value={rep.uid}>
+                        {rep.displayName || rep.email}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
               {/* Schedule Selection */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
