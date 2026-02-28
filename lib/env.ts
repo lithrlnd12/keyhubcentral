@@ -13,6 +13,8 @@ export const env = createEnv({
     GOOGLE_CALENDAR_CLIENT_SECRET: z.string().optional(),
     GMAIL_CLIENT_ID: z.string().optional(),
     GMAIL_CLIENT_SECRET: z.string().optional(),
+    // Server-only Maps key for geocoding (no HTTP referrer restriction needed)
+    GOOGLE_MAPS_SERVER_API_KEY: z.string().optional(),
   },
 
   /**
@@ -40,6 +42,7 @@ export const env = createEnv({
     GOOGLE_CALENDAR_CLIENT_SECRET: process.env.GOOGLE_CALENDAR_CLIENT_SECRET,
     GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID,
     GMAIL_CLIENT_SECRET: process.env.GMAIL_CLIENT_SECRET,
+    GOOGLE_MAPS_SERVER_API_KEY: process.env.GOOGLE_MAPS_SERVER_API_KEY,
     // Client (Firebase)
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,

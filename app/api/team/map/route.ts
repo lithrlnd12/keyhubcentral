@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { verifyFirebaseAuth, hasRole } from '@/lib/auth/verifyRequest';
+import { env } from '@/lib/env';
 
 interface TeamMapEntry {
   id: string;
@@ -39,7 +40,9 @@ function getPrimaryTradeRole(trades: string[]): 'installer' | 'service_tech' {
 }
 
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  // Prefer the server-only key (no HTTP referrer restriction) for server-side geocoding.
+  // Fall back to the public key if the server key isn't configured yet.
+  const apiKey = env.GOOGLE_MAPS_SERVER_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   if (!apiKey) return null;
 
   try {
