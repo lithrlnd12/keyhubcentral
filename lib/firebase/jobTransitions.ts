@@ -29,23 +29,31 @@ const TRANSITION_PERMISSIONS: Partial<Record<JobStatus, Partial<Record<JobStatus
   sold: {
     front_end_hold: ['owner', 'admin', 'pm'],
     production: ['owner', 'admin', 'pm'],
+    lead: ['owner', 'admin'], // rollback
   },
   front_end_hold: {
     production: ['owner', 'admin', 'pm'],
+    sold: ['owner', 'admin'], // rollback
   },
   production: {
     scheduled: ['owner', 'admin', 'pm'],
+    front_end_hold: ['owner', 'admin'], // rollback
   },
   scheduled: {
     started: ['owner', 'admin', 'pm'],
+    production: ['owner', 'admin'], // rollback
   },
   started: {
     complete: ['owner', 'admin', 'pm'],
+    scheduled: ['owner', 'admin'], // rollback
   },
   complete: {
     paid_in_full: ['owner', 'admin', 'pm'],
+    started: ['owner', 'admin'], // rollback
   },
-  paid_in_full: {},
+  paid_in_full: {
+    complete: ['owner', 'admin'], // rollback (payouts may need manual adjustment)
+  },
 };
 
 export function canUserTransition(
@@ -330,4 +338,9 @@ export function getPreviousStatus(currentStatus: JobStatus): JobStatus | null {
     return null;
   }
   return JOB_STATUS_ORDER[currentIndex - 1];
+}
+
+// Check if a transition is a rollback (moving backward in the pipeline)
+export function isRollback(current: JobStatus, next: JobStatus): boolean {
+  return JOB_STATUS_ORDER.indexOf(next) < JOB_STATUS_ORDER.indexOf(current);
 }

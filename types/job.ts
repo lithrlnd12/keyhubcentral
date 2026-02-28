@@ -222,5 +222,6 @@ export function getNextStatus(current: JobStatus): JobStatus | null {
 export function canTransitionStatus(current: JobStatus, next: JobStatus): boolean {
   const currentIndex = JOB_STATUS_ORDER.indexOf(current);
   const nextIndex = JOB_STATUS_ORDER.indexOf(next);
-  return nextIndex === currentIndex + 1;
+  // Allow moving forward one step or backward one step (rollback)
+  return nextIndex === currentIndex + 1 || nextIndex === currentIndex - 1;
 }

@@ -114,7 +114,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
 
   return (
     <div className="space-y-6">
-      <JobHeader job={job} canEdit={canEdit} onUpdate={update} />
+      <JobHeader job={job} canEdit={canEdit} onUpdate={update} userId={user?.uid} userRole={user?.role} />
 
       <Tabs defaultValue="info">
         <TabsList>
