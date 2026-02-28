@@ -315,7 +315,7 @@ export function ContractorNetworkMap({
 
       const location = [c.city, c.state].filter(Boolean).join(', ');
 
-      marker.addListener('click', () => {
+      marker.addListener('gmp-click', () => {
         infoWindow.setContent(`
           <div style="color: #1a1a1a; font-family: system-ui, sans-serif; padding: 4px 0;">
             <div style="font-weight: 600; font-size: 14px;">${c.businessName || 'Unnamed'}</div>
