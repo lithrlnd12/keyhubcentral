@@ -44,6 +44,7 @@ export function Logo({ size = 'md', showText = false, variant = 'full', classNam
       width={sizes[size].width}
       height={sizes[size].height}
       priority
+      style={{ height: 'auto' }}
       className={cn('object-contain', className)}
     />
   );
