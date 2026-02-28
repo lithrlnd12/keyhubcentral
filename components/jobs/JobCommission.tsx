@@ -62,7 +62,7 @@ export function JobCommission({ job, canEdit, canApprove, userId, onUpdate }: Jo
         approvedAt: commission?.approvedAt || null,
         approvedBy: commission?.approvedBy || null,
         paidAt: commission?.paidAt || null,
-        notes: notes || null,
+        notes: notes || undefined,
       };
 
       await onUpdate({ commission: newCommission });
