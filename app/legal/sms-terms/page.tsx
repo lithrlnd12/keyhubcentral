@@ -71,7 +71,7 @@ export default function SmsTermsPage() {
                 any message you receive from us, or contact us at:
               </p>
               <ul className="list-disc list-inside mt-2 ml-4 text-gray-400">
-                <li>Email: support@keyhubcentral.com</li>
+                <li>Email: zach.rhyne@keytradesolutions.com</li>
                 <li>Phone: (405) 990-7821</li>
               </ul>
             </section>
@@ -114,8 +114,8 @@ export default function SmsTermsPage() {
             <section className="pt-6 border-t border-gray-700">
               <h2 className="text-xl font-semibold text-white mb-3">Contact Information</h2>
               <p>
-                KeyHub Central<br />
-                Email: support@keyhubcentral.com<br />
+                Key Trade Solutions LLC<br />
+                Email: zach.rhyne@keytradesolutions.com<br />
                 Phone: (405) 990-7821
               </p>
             </section>

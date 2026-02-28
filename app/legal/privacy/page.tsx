@@ -139,8 +139,8 @@ export default function PrivacyPolicyPage() {
                 If you have questions about this Privacy Policy or our data practices, please contact us at:
               </p>
               <p className="mt-3">
-                KeyHub Central<br />
-                Email: privacy@keyhubcentral.com<br />
+                Key Trade Solutions LLC<br />
+                Email: zach.rhyne@keytradesolutions.com<br />
                 Phone: (405) 990-7821
               </p>
             </section>
