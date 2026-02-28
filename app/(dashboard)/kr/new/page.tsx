@@ -23,5 +23,9 @@ export default function NewJobPage() {
     );
   }
 
-  return <JobForm />;
+  return (
+    <JobForm
+      defaultSalesRepId={user?.role === 'sales_rep' ? user.uid : undefined}
+    />
+  );
 }

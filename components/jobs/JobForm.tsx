@@ -32,6 +32,7 @@ import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
 interface JobFormProps {
   job?: Job;
   initialTab?: string;
+  defaultSalesRepId?: string;
 }
 
 type JobFormData = {
@@ -74,7 +75,7 @@ const DEFAULT_WARRANTY: Warranty = {
   status: 'pending',
 };
 
-export function JobForm({ job, initialTab = 'customer' }: JobFormProps) {
+export function JobForm({ job, initialTab = 'customer', defaultSalesRepId }: JobFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +90,7 @@ export function JobForm({ job, initialTab = 'customer' }: JobFormProps) {
     customer: job?.customer || DEFAULT_CUSTOMER,
     costs: job?.costs || DEFAULT_COSTS,
     notes: job?.notes || '',
-    salesRepId: job?.salesRepId || null,
+    salesRepId: job?.salesRepId || defaultSalesRepId || null,
     pmId: job?.pmId || null,
     crewIds: job?.crewIds || [],
     warranty: job?.warranty || DEFAULT_WARRANTY,
