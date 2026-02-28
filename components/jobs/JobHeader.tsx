@@ -48,7 +48,7 @@ export function JobHeader({ job, canEdit, onUpdate, userId, userRole }: JobHeade
   const overdue = isJobOverdue(job);
   const nextStatus = getNextStatus(job.status);
   const prevStatus = getPreviousStatus(job.status);
-  const canRollback = ['owner', 'admin'].includes(userRole || '') && !!prevStatus;
+  const canRollback = canEdit && !!prevStatus;
 
   const handleAdvanceStatus = async () => {
     if (!nextStatus) return;

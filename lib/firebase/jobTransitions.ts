@@ -29,30 +29,30 @@ const TRANSITION_PERMISSIONS: Partial<Record<JobStatus, Partial<Record<JobStatus
   sold: {
     front_end_hold: ['owner', 'admin', 'pm'],
     production: ['owner', 'admin', 'pm'],
-    lead: ['owner', 'admin'], // rollback
+    lead: ['owner', 'admin', 'pm', 'sales_rep'], // rollback — mirrors lead→sold
   },
   front_end_hold: {
     production: ['owner', 'admin', 'pm'],
-    sold: ['owner', 'admin'], // rollback
+    sold: ['owner', 'admin', 'pm'], // rollback — mirrors sold→front_end_hold
   },
   production: {
     scheduled: ['owner', 'admin', 'pm'],
-    front_end_hold: ['owner', 'admin'], // rollback
+    front_end_hold: ['owner', 'admin', 'pm'], // rollback — mirrors front_end_hold→production
   },
   scheduled: {
     started: ['owner', 'admin', 'pm'],
-    production: ['owner', 'admin'], // rollback
+    production: ['owner', 'admin', 'pm'], // rollback — mirrors production→scheduled
   },
   started: {
     complete: ['owner', 'admin', 'pm'],
-    scheduled: ['owner', 'admin'], // rollback
+    scheduled: ['owner', 'admin', 'pm'], // rollback — mirrors scheduled→started
   },
   complete: {
     paid_in_full: ['owner', 'admin', 'pm'],
-    started: ['owner', 'admin'], // rollback
+    started: ['owner', 'admin', 'pm'], // rollback — mirrors started→complete
   },
   paid_in_full: {
-    complete: ['owner', 'admin'], // rollback (payouts may need manual adjustment)
+    complete: ['owner', 'admin'], // rollback only owner/admin — payouts need manual adjustment
   },
 };
 
