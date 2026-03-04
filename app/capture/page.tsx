@@ -207,7 +207,7 @@ export default function LeadCapturePage() {
         }).catch((err) => console.error('Failed to send confirmation email:', err));
       }
 
-      // Send initial SMS immediately if text preference selected
+      // Send initial SMS or trigger Vapi call based on preference
       if (phoneNumber && contactPreference === 'sms') {
         fetch('/api/sms/send-initial', {
           method: 'POST',
@@ -218,6 +218,16 @@ export default function LeadCapturePage() {
             customerName,
           }),
         }).catch((err) => console.error('Failed to send initial SMS:', err));
+      } else if (phoneNumber && contactPreference === 'phone') {
+        fetch('/api/voice/call-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId: leadRef.id,
+            phone: phoneNumber,
+            customerName,
+          }),
+        }).catch((err) => console.error('Failed to trigger Vapi call:', err));
       }
 
       setSubmitted(true);
