@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { CheckCircle, Loader2, Paperclip, X, FileText, ImageIcon, Phone, MessageSquare } from 'lucide-react';
-import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
 import { LeadAttachment, ContactPreference } from '@/types/lead';
@@ -11,8 +11,7 @@ import { LeadAttachment, ContactPreference } from '@/types/lead';
 // ===========================================
 // FEATURE FLAGS - Set to true to re-enable
 // ===========================================
-const ENABLE_PHONE_CONTACT = false;  // Phone field, text/call preference, opt-in checkbox
-const ENABLE_AUTO_CALL = false;      // Vapi auto-call functionality
+const ENABLE_PHONE_CONTACT = true;   // Phone field, text/call preference, opt-in checkbox
 // ===========================================
 
 interface FormData {
@@ -156,27 +155,9 @@ export default function LeadCapturePage() {
       const phoneNumber = formData.phone.trim();
       const contactPreference = formData.contactPreference || 'phone'; // Default to phone
 
-      let scheduledCallAt = null;
-      let scheduledSmsAt = null;
-      let autoCallEnabled = false;
-      let autoSmsEnabled = false;
-
-      // Auto-call/SMS feature - temporarily disabled via ENABLE_AUTO_CALL flag
-      if (ENABLE_AUTO_CALL && phoneNumber) {
-        const contactTime = new Date();
-        // contactTime.setMinutes(contactTime.getMinutes() + 10); // Production: 10 min delay
-
-        if (contactPreference === 'sms') {
-          scheduledSmsAt = Timestamp.fromDate(contactTime);
-          autoSmsEnabled = true;
-        } else {
-          scheduledCallAt = Timestamp.fromDate(contactTime);
-          autoCallEnabled = true;
-        }
-      }
-
-      // Create lead directly in Firestore
-      await addDoc(collection(db, 'leads'), {
+      // Build lead document - exclude privileged fields blocked by Firestore rules
+      // (assignedTo, salesRepId, linkedJobId, convertedBy are not allowed for public creates)
+      const leadData: Record<string, unknown> = {
         source: 'event',
         campaignId: null,
         market: 'General',
@@ -199,26 +180,19 @@ export default function LeadCapturePage() {
         },
         quality: 'warm',
         status: 'new',
-        assignedTo: null,
-        assignedType: null,
-        returnReason: null,
-        returnedAt: null,
-        // Contact preference
         contactPreference: phoneNumber ? contactPreference : null,
-        // Auto-call fields
-        scheduledCallAt,
-        autoCallEnabled,
         callAttempts: 0,
-        // Auto-SMS fields
-        scheduledSmsAt,
-        autoSmsEnabled,
         smsAttempts: 0,
-        // SMS/Call opt-in consent (TCPA/CTIA compliance)
         smsCallOptIn: formData.smsCallOptIn,
         smsCallOptInAt: formData.smsCallOptIn ? serverTimestamp() : null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      });
+      };
+
+      // Create lead directly in Firestore
+      const leadRef = await addDoc(collection(db, 'leads'), leadData);
+
+      const customerName = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
 
       // Send confirmation email (fire and forget - don't block submission)
       if (formData.email.trim()) {
@@ -227,10 +201,23 @@ export default function LeadCapturePage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: formData.email.trim(),
-            customerName: `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim(),
+            customerName,
             contactPreference: contactPreference,
           }),
         }).catch((err) => console.error('Failed to send confirmation email:', err));
+      }
+
+      // Send initial SMS immediately if text preference selected
+      if (phoneNumber && contactPreference === 'sms') {
+        fetch('/api/sms/send-initial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId: leadRef.id,
+            phone: phoneNumber,
+            customerName,
+          }),
+        }).catch((err) => console.error('Failed to send initial SMS:', err));
       }
 
       setSubmitted(true);
@@ -660,6 +647,19 @@ export default function LeadCapturePage() {
             </a>.
           </p>
         </form>
+
+        {/* Call Key Renovations */}
+        <div className="mt-6 pt-6 border-t border-gray-700 text-center">
+          <p className="text-sm text-gray-400 mb-2">Or give us a call directly</p>
+          <a
+            href="tel:8127766215"
+            className="inline-flex items-center gap-2 text-brand-gold hover:text-brand-gold-light font-semibold text-lg transition-colors"
+          >
+            <Phone className="w-5 h-5" />
+            (812) 776-6215
+          </a>
+          <p className="text-xs text-gray-500 mt-1">Key Renovations</p>
+        </div>
       </div>
     </div>
   );
