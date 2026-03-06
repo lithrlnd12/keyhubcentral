@@ -57,8 +57,8 @@ service cloud.firestore {
         request.resource.data.role == 'pending' &&
         !request.resource.data.keys().hasAny(['approvedAt', 'approvedBy']);
 
-      // Internal users can read user profiles (needed for user lookups)
-      allow read: if isOwnDocument(userId) || isInternalUser();
+      // Active users can read user profiles (needed for messaging contacts, user lookups)
+      allow read: if isOwnDocument(userId) || isActiveUser();
 
       // Only admins can update user status/role, users can update own profile fields
       allow update: if isAdmin() ||
