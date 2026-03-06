@@ -13,6 +13,8 @@ import {
   getDocs,
   serverTimestamp,
   increment,
+  arrayUnion,
+  arrayRemove,
   Timestamp,
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
@@ -218,6 +220,39 @@ export async function updateGroupName(
   groupName: string
 ): Promise<void> {
   await updateDoc(doc(db, CONVERSATIONS, conversationId), { groupName });
+}
+
+// ---------- Reactions ----------
+
+export async function toggleReaction(
+  conversationId: string,
+  messageId: string,
+  emoji: string,
+  userId: string
+): Promise<void> {
+  const msgRef = doc(db, CONVERSATIONS, conversationId, MESSAGES, messageId);
+  const msgSnap = await getDoc(msgRef);
+
+  if (!msgSnap.exists()) return;
+
+  const data = msgSnap.data();
+  const reactions: Record<string, string[]> = data.reactions || {};
+  const users = reactions[emoji] || [];
+
+  if (users.includes(userId)) {
+    // Remove reaction
+    const updated = users.filter((uid) => uid !== userId);
+    if (updated.length === 0) {
+      // Remove the emoji key entirely
+      const { [emoji]: _, ...rest } = reactions;
+      await updateDoc(msgRef, { reactions: rest });
+    } else {
+      await updateDoc(msgRef, { [`reactions.${emoji}`]: updated });
+    }
+  } else {
+    // Add reaction
+    await updateDoc(msgRef, { [`reactions.${emoji}`]: arrayUnion(userId) });
+  }
 }
 
 // ---------- Get total unread count ----------

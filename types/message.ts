@@ -7,6 +7,7 @@ export interface Message {
   text: string;
   timestamp: Timestamp;
   readBy: string[];
+  reactions?: Record<string, string[]>; // emoji -> array of userIds
 }
 
 export interface Conversation {

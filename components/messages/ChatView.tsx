@@ -5,18 +5,113 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Send, Users, Loader2, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
 import { useChat } from '@/lib/hooks/useMessages';
+import { toggleReaction } from '@/lib/firebase/messages';
 import { cn } from '@/lib/utils';
 import type { Conversation, Message } from '@/types/message';
+
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+
+function ReactionPicker({
+  onSelect,
+  onClose,
+  position,
+}: {
+  onSelect: (emoji: string) => void;
+  onClose: () => void;
+  position: 'left' | 'right';
+}) {
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={pickerRef}
+      className={cn(
+        'absolute bottom-full mb-1 flex items-center gap-0.5 bg-gray-800 border border-gray-700 rounded-full px-1.5 py-1 shadow-lg z-10',
+        position === 'right' ? 'right-0' : 'left-0'
+      )}
+    >
+      {REACTION_EMOJIS.map((emoji) => (
+        <button
+          key={emoji}
+          onClick={() => {
+            onSelect(emoji);
+            onClose();
+          }}
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-700 active:scale-110 transition-all text-lg"
+        >
+          {emoji}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ReactionBar({
+  reactions,
+  userId,
+  onToggle,
+}: {
+  reactions: Record<string, string[]>;
+  userId: string;
+  onToggle: (emoji: string) => void;
+}) {
+  const entries = Object.entries(reactions).filter(([, users]) => users.length > 0);
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1 mt-0.5 px-1">
+      {entries.map(([emoji, users]) => {
+        const isMine = users.includes(userId);
+        return (
+          <button
+            key={emoji}
+            onClick={() => onToggle(emoji)}
+            className={cn(
+              'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs transition-colors',
+              isMine
+                ? 'bg-brand-gold/20 border border-brand-gold/30'
+                : 'bg-gray-800 border border-gray-700 hover:bg-gray-700'
+            )}
+          >
+            <span className="text-sm">{emoji}</span>
+            {users.length > 1 && (
+              <span className={cn('text-[10px] font-medium', isMine ? 'text-brand-gold' : 'text-gray-400')}>
+                {users.length}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function MessageBubble({
   message,
   isMine,
   showSender,
+  conversationId,
+  userId,
 }: {
   message: Message;
   isMine: boolean;
   showSender: boolean;
+  conversationId: string;
+  userId: string;
 }) {
+  const [showPicker, setShowPicker] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const time = message.timestamp?.toDate?.()
     ? message.timestamp.toDate().toLocaleTimeString('en-US', {
         hour: 'numeric',
@@ -24,21 +119,74 @@ function MessageBubble({
       })
     : '';
 
+  const handleReaction = async (emoji: string) => {
+    await toggleReaction(conversationId, message.id, emoji, userId);
+  };
+
+  // Double-tap to react (mobile-friendly)
+  const lastTap = useRef(0);
+  const handleTap = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      // Double tap — quick react with thumbs up
+      handleReaction('👍');
+      lastTap.current = 0;
+    } else {
+      lastTap.current = now;
+    }
+  };
+
+  // Long press to open picker
+  const handleTouchStart = () => {
+    longPressTimer.current = setTimeout(() => {
+      setShowPicker(true);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const reactions = message.reactions || {};
+
   return (
-    <div className={cn('flex flex-col mb-1', isMine ? 'items-end' : 'items-start')}>
+    <div className={cn('flex flex-col mb-1.5', isMine ? 'items-end' : 'items-start')}>
       {showSender && !isMine && (
         <span className="text-xs text-gray-500 ml-3 mb-0.5">{message.senderName}</span>
       )}
-      <div
-        className={cn(
-          'max-w-[80%] px-3 py-2 rounded-2xl text-sm break-words',
-          isMine
-            ? 'bg-brand-gold text-brand-black rounded-br-md'
-            : 'bg-gray-800 text-gray-100 rounded-bl-md'
+      <div className="relative">
+        <div
+          onClick={handleTap}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setShowPicker(true);
+          }}
+          className={cn(
+            'max-w-[80%] px-3 py-2 rounded-2xl text-sm break-words cursor-pointer select-none',
+            isMine
+              ? 'bg-brand-gold text-brand-black rounded-br-md'
+              : 'bg-gray-800 text-gray-100 rounded-bl-md'
+          )}
+        >
+          {message.text}
+        </div>
+
+        {showPicker && (
+          <ReactionPicker
+            onSelect={handleReaction}
+            onClose={() => setShowPicker(false)}
+            position={isMine ? 'right' : 'left'}
+          />
         )}
-      >
-        {message.text}
       </div>
+
+      <ReactionBar reactions={reactions} userId={userId} onToggle={handleReaction} />
       <span className="text-[10px] text-gray-600 mt-0.5 px-1">{time}</span>
     </div>
   );
@@ -204,6 +352,8 @@ export function ChatView({ conversation }: { conversation: Conversation }) {
                     message={msg}
                     isMine={msg.senderId === user?.uid}
                     showSender={showSender}
+                    conversationId={conversation.id}
+                    userId={user?.uid || ''}
                   />
                 );
               })}
