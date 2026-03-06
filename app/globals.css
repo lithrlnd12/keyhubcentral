@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Brand CSS variables — values must match lib/config/tenant.ts colors */
 :root {
   --brand-gold: #D4A84B;
   --brand-gold-light: #E5C77A;

@@ -3,14 +3,13 @@ import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/lib/hooks';
 import { ToastProvider } from '@/components/ui/Toast';
 import './globals.css';
+import { tenant } from '@/lib/config/tenant';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'KeyHub Central',
-  description:
-    'Unified business management for Keynote Digital, Key Trade Solutions, and Key Renovations',
-  manifest: '/manifest.json',
+  title: tenant.appName,
+  description: tenant.description,
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -25,12 +24,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'KeyHub',
+    title: tenant.shortName,
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1A1A1A',
+  themeColor: tenant.colors.background,
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

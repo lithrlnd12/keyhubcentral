@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
+import { tenant } from '@/lib/config/tenant';
 
 interface TerritoryMapProps {
   center: { lat: number; lng: number } | null;
@@ -100,7 +101,7 @@ export function TerritoryMap({
         <div style="
           width: 24px;
           height: 24px;
-          background: #D4A84B;
+          background: ${tenant.colors.primary};
           border: 3px solid #ffffff;
           border-radius: 50%;
           box-shadow: 0 2px 6px rgba(0,0,0,0.3);
@@ -122,9 +123,9 @@ export function TerritoryMap({
         map,
         center,
         radius: radius * MILES_TO_METERS,
-        fillColor: '#D4A84B',
+        fillColor: tenant.colors.primary,
         fillOpacity: 0.15,
-        strokeColor: '#D4A84B',
+        strokeColor: tenant.colors.primary,
         strokeOpacity: 0.8,
         strokeWeight: 2,
       });
@@ -215,7 +216,7 @@ export function TerritoryMap({
       <div style="
         width: 24px;
         height: 24px;
-        background: #D4A84B;
+        background: ${tenant.colors.primary};
         border: 3px solid #ffffff;
         border-radius: 50%;
         box-shadow: 0 2px 6px rgba(0,0,0,0.3);
@@ -235,9 +236,9 @@ export function TerritoryMap({
       map,
       center,
       radius: radius * MILES_TO_METERS,
-      fillColor: '#D4A84B',
+      fillColor: tenant.colors.primary,
       fillOpacity: 0.15,
-      strokeColor: '#D4A84B',
+      strokeColor: tenant.colors.primary,
       strokeOpacity: 0.8,
       strokeWeight: 2,
     });

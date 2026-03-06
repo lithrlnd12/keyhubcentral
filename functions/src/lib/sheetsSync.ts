@@ -6,6 +6,7 @@ import {
   deleteRowByInvoiceNumber,
   formatHeaderRow,
 } from './googleSheets';
+import { getEntityFullName } from '../config/tenant';
 
 // Sheet tab names
 export const SHEET_TABS = {
@@ -58,20 +59,7 @@ interface InvoiceData {
  * Format entity code to full name
  */
 function formatEntityName(entity: string): string {
-  switch (entity) {
-    case 'kd':
-      return 'Keynote Digital';
-    case 'kts':
-      return 'Key Trade Solutions';
-    case 'kr':
-      return 'Key Renovations';
-    case 'customer':
-      return 'Customer';
-    case 'subscriber':
-      return 'Subscriber';
-    default:
-      return entity;
-  }
+  return getEntityFullName(entity);
 }
 
 /**

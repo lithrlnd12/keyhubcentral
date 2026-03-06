@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as nodemailer from 'nodemailer';
+import { tenant } from '../config/tenant';
 
 // Runtime options
 const runtimeOpts: functions.RuntimeOptions = {
@@ -51,8 +52,8 @@ export const onLeadCreated = functions
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
 
         <!-- Header -->
-        <div style="background: #1A1A1A; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="color: #D4A84B; margin: 0; font-size: 28px;">Key Renovations</h1>
+        <div style="background: ${tenant.colors.background}; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="color: ${tenant.colors.primary}; margin: 0; font-size: 28px;">${tenant.entities.kr.label}</h1>
         </div>
 
         <!-- Content -->
@@ -61,9 +62,9 @@ export const onLeadCreated = functions
 
           <p>Hi ${customerName},</p>
 
-          <p>Thank you for requesting an initial quote from Key Renovations. We're excited to learn more about your project!</p>
+          <p>Thank you for requesting an initial quote from ${tenant.entities.kr.label}. We're excited to learn more about your project!</p>
 
-          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #D4A84B;">
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${tenant.colors.primary};">
             <p style="margin: 0;">
               <strong>What's next?</strong><br>
               One of our specialists will reach out to you shortly by <strong>${contactMethod}</strong> to discuss your project and schedule a free consultation.
@@ -81,17 +82,17 @@ export const onLeadCreated = functions
 
           <p style="margin-top: 30px;">
             Warm regards,<br>
-            <strong>The Key Renovations Team</strong>
+            <strong>The ${tenant.entities.kr.label} Team</strong>
           </p>
         </div>
 
         <!-- Footer -->
-        <div style="background: #1A1A1A; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+        <div style="background: ${tenant.colors.background}; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
           <p style="color: #888; margin: 0; font-size: 14px;">
-            Key Renovations - Quality Home Improvements
+            ${tenant.entities.kr.label} - Quality Home Improvements
           </p>
           <p style="color: #666; margin: 10px 0 0 0; font-size: 12px;">
-            Oklahoma City Metro Area
+            ${tenant.serviceArea}
           </p>
         </div>
 
@@ -100,9 +101,9 @@ export const onLeadCreated = functions
     `;
 
     const mailOptions = {
-      from: '"Key Renovations" <' + process.env.GMAIL_USER + '>',
+      from: `"${tenant.entities.kr.label}" <${process.env.GMAIL_USER}>`,
       to: email,
-      subject: 'Thank You for Your Quote Request - Key Renovations',
+      subject: `Thank You for Your Quote Request - ${tenant.entities.kr.label}`,
       html: emailHtml,
     };
 

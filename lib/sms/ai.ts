@@ -2,6 +2,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { SmsAnalysis } from '@/types/lead';
+import { tenant } from '@/lib/config/tenant';
 
 // Generic message type that works with both client and admin Firebase SDKs
 interface ConversationMessage {
@@ -11,7 +12,7 @@ interface ConversationMessage {
 }
 
 // System prompt for Riley (SMS version - optimized for short messages)
-const SMS_SYSTEM_PROMPT = `You are Riley, a friendly text message assistant from Key Trade Solutions, texting on behalf of Key Renovations.
+const SMS_SYSTEM_PROMPT = `You are Riley, a friendly text message assistant from ${tenant.entities.kts.label}, texting on behalf of ${tenant.entities.kr.label}.
 
 IMPORTANT SMS RULES:
 - Keep messages SHORT (under 160 characters when possible, max 300)
@@ -20,9 +21,9 @@ IMPORTANT SMS RULES:
 - Don't sound robotic or scripted
 - Use casual punctuation, but stay professional
 
-About Key Renovations:
+About ${tenant.entities.kr.label}:
 - We specialize in cost-effective home and rental property renovations
-- We serve the Oklahoma City area
+- We serve the ${tenant.serviceArea}
 - Services: kitchens, bathrooms, flooring, general renovations
 - We offer FREE quotes and in-home consultations
 
@@ -38,7 +39,7 @@ If they say "STOP", "unsubscribe", or want to be removed, respect that IMMEDIATE
 
 If they seem uninterested or busy, offer to text back at a better time.
 
-Be warm and genuine - you're from Oklahoma!`;
+Be warm and genuine - be personable!`;
 
 // Analysis prompt to extract structured data from conversation
 const ANALYSIS_PROMPT = `Analyze this SMS conversation and extract the following information. Return ONLY valid JSON, no markdown or explanation.
@@ -117,7 +118,7 @@ export async function generateSmsResponse(
 // Generate initial outreach message
 export function getInitialMessage(customerName: string): string {
   const firstName = customerName.split(' ')[0];
-  return `Hi ${firstName}! This is Riley from Key Renovations. Thanks for your interest in our services! What type of project are you thinking about? (kitchen, bathroom, flooring, or something else?)`;
+  return `Hi ${firstName}! This is Riley from ${tenant.entities.kr.label}. Thanks for your interest in our services! What type of project are you thinking about? (kitchen, bathroom, flooring, or something else?)`;
 }
 
 // Analyze conversation and extract structured data

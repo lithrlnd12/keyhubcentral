@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
+import { tenant } from './config/tenant';
 
 // Initialize Firebase Admin first, before any other imports that use Firestore
 admin.initializeApp();
@@ -54,9 +55,7 @@ export { onLeadCreatedAutoAssign, onUserGeocode } from './triggers/leadAutoAssig
 export { seedTestUsers, deleteTestUsers } from './triggers/testUserTriggers';
 
 // Admin emails to notify when new users sign up
-const ADMIN_EMAILS = [
-  'aaron@innovativeaiconsulting.com',
-];
+const ADMIN_EMAILS = tenant.adminEmails;
 
 // Configure email transporter (lazy initialization to avoid deployment timeout)
 function getTransporter() {
@@ -82,13 +81,13 @@ export const onUserCreated = functions.firestore
     }
 
     const mailOptions = {
-      from: '"KeyHub Central" <noreply@keyhubcentral.com>',
+      from: `"${tenant.appName}" <${tenant.noreplyEmail}>`,
       to: ADMIN_EMAILS.join(', '),
-      subject: '🔔 New User Pending Approval - KeyHub Central',
+      subject: `🔔 New User Pending Approval - ${tenant.appName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: #1A1A1A; padding: 20px; text-align: center;">
-            <h1 style="color: #D4A84B; margin: 0;">KeyHub Central</h1>
+          <div style="background: ${tenant.colors.background}; padding: 20px; text-align: center;">
+            <h1 style="color: ${tenant.colors.primary}; margin: 0;">${tenant.appName}</h1>
           </div>
 
           <div style="padding: 30px; background: #f5f5f5;">
@@ -104,23 +103,23 @@ export const onUserCreated = functions.firestore
             </div>
 
             <p>
-              <a href="https://keyhubcentral.com/admin"
-                 style="display: inline-block; background: #D4A84B; color: #1A1A1A; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              <a href="https://${tenant.domain}/admin"
+                 style="display: inline-block; background: ${tenant.colors.primary}; color: ${tenant.colors.background}; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
                 Review & Approve
               </a>
             </p>
 
             <p style="color: #666; font-size: 14px; margin-top: 30px;">
               You can also approve this user directly in the
-              <a href="https://console.firebase.google.com/project/key-hub-central/firestore/data/users/${userId}">
+              <a href="https://console.firebase.google.com/project/${tenant.firebaseProjectId}/firestore/data/users/${userId}">
                 Firebase Console
               </a>.
             </p>
           </div>
 
-          <div style="background: #1A1A1A; padding: 15px; text-align: center;">
+          <div style="background: ${tenant.colors.background}; padding: 15px; text-align: center;">
             <p style="color: #888; margin: 0; font-size: 12px;">
-              KeyHub Central - Unified Business Management
+              ${tenant.appName} - ${tenant.tagline}
             </p>
           </div>
         </div>
@@ -147,29 +146,29 @@ export const onUserApproved = functions.firestore
     // Check if user was just approved
     if (beforeData.status === 'pending' && afterData.status === 'active') {
       const mailOptions = {
-        from: '"KeyHub Central" <noreply@keyhubcentral.com>',
+        from: `"${tenant.appName}" <${tenant.noreplyEmail}>`,
         to: afterData.email,
-        subject: '✅ Your KeyHub Central Account is Approved!',
+        subject: `✅ Your ${tenant.appName} Account is Approved!`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: #1A1A1A; padding: 20px; text-align: center;">
-              <h1 style="color: #D4A84B; margin: 0;">KeyHub Central</h1>
+            <div style="background: ${tenant.colors.background}; padding: 20px; text-align: center;">
+              <h1 style="color: ${tenant.colors.primary}; margin: 0;">${tenant.appName}</h1>
             </div>
 
             <div style="padding: 30px; background: #f5f5f5;">
-              <h2 style="color: #333;">Welcome to KeyHub Central! 🎉</h2>
+              <h2 style="color: #333;">Welcome to ${tenant.appName}! 🎉</h2>
 
               <p>Hi ${afterData.displayName || 'there'},</p>
 
-              <p>Great news! Your account has been approved and you now have access to KeyHub Central.</p>
+              <p>Great news! Your account has been approved and you now have access to ${tenant.appName}.</p>
 
               <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <p><strong>Your Role:</strong> ${afterData.role?.replace('_', ' ').toUpperCase()}</p>
               </div>
 
               <p>
-                <a href="https://keyhubcentral.com/login"
-                   style="display: inline-block; background: #D4A84B; color: #1A1A1A; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                <a href="https://${tenant.domain}/login"
+                   style="display: inline-block; background: ${tenant.colors.primary}; color: ${tenant.colors.background}; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
                   Sign In Now
                 </a>
               </p>
@@ -179,9 +178,9 @@ export const onUserApproved = functions.firestore
               </p>
             </div>
 
-            <div style="background: #1A1A1A; padding: 15px; text-align: center;">
+            <div style="background: ${tenant.colors.background}; padding: 15px; text-align: center;">
               <p style="color: #888; margin: 0; font-size: 12px;">
-                KeyHub Central - Unified Business Management
+                ${tenant.appName} - ${tenant.tagline}
               </p>
             </div>
           </div>

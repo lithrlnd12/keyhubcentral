@@ -2,6 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { JobTypeData } from '@/lib/utils/dashboard';
+import { tenant } from '@/lib/config/tenant';
 
 interface JobTypeChartProps {
   data: JobTypeData[];
@@ -42,10 +43,10 @@ export function JobTypeChart({ data }: JobTypeChartProps) {
           axisLine={{ stroke: '#374151' }}
           tickLine={false}
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(212, 168, 75, 0.1)' }} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: `${tenant.colors.primary}1A` }} />
         <Bar
           dataKey="count"
-          fill="#D4A84B"
+          fill={tenant.colors.primary}
           radius={[4, 4, 0, 0]}
           maxBarSize={50}
         />

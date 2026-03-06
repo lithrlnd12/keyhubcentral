@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { tenant } from '@/lib/config/tenant';
 
 export interface SliderProps {
   value: number;
@@ -64,7 +65,7 @@ export function Slider({
             [&::-moz-range-thumb]:cursor-pointer
             [&::-moz-range-thumb]:border-0"
           style={{
-            background: `linear-gradient(to right, #D4A84B 0%, #D4A84B ${percentage}%, #374151 ${percentage}%, #374151 100%)`,
+            background: `linear-gradient(to right, ${tenant.colors.primary} 0%, ${tenant.colors.primary} ${percentage}%, #374151 ${percentage}%, #374151 100%)`,
           }}
         />
       </div>

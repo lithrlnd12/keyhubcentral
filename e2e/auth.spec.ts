@@ -5,7 +5,7 @@ test.describe('Authentication', () => {
     await page.goto('/login');
 
     // Check page title
-    await expect(page).toHaveTitle(/KeyHub Central/);
+    await expect(page).toHaveTitle(/KeyHub/);
 
     // Check login form elements exist
     await expect(page.getByRole('heading', { name: /welcome back/i })).toBeVisible();

@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin';
 // Dynamic import to avoid deployment timeout
 import type { sheets_v4 } from 'googleapis';
+import { tenant, getEntityFullName as getTenantEntityName } from '../config/tenant';
 
 let sheetsClient: sheets_v4.Sheets | null = null;
 
@@ -84,14 +85,7 @@ interface EntityPnL {
 
 // Get entity full name
 function getEntityFullName(entity: string): string {
-  switch (entity) {
-    case 'kd': return 'Keynote Digital';
-    case 'kts': return 'Key Trade Solutions';
-    case 'kr': return 'Key Renovations';
-    case 'customer': return 'Customers';
-    case 'subscriber': return 'Subscribers';
-    default: return entity;
-  }
+  return getTenantEntityName(entity);
 }
 
 // Calculate P&L for an entity
@@ -315,7 +309,7 @@ export async function rebuildPnLSheet(): Promise<void> {
   const trendData: (string | number)[][] = [
     ['Monthly P&L Trend', '', '', '', '', '', 'Last Updated:', new Date().toLocaleString()],
     [],
-    ['Month', 'Keynote Digital', 'Key Trade Solutions', 'Key Renovations', 'Combined Net Income'],
+    ['Month', tenant.entities.kd.label, tenant.entities.kts.label, tenant.entities.kr.label, 'Combined Net Income'],
   ];
 
   const now = new Date();

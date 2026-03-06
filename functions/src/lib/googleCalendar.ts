@@ -1,12 +1,13 @@
 // Dynamic import to avoid deployment timeout
 import type { calendar_v3 } from 'googleapis';
 import * as admin from 'firebase-admin';
+import { tenant } from '../config/tenant';
 
 // Status titles for calendar events
 export const CALENDAR_EVENT_TITLES: Record<string, string> = {
-  busy: 'Busy - KeyHub',
-  unavailable: 'Unavailable - KeyHub',
-  on_leave: 'On Leave - KeyHub',
+  busy: `Busy - ${tenant.shortName}`,
+  unavailable: `Unavailable - ${tenant.shortName}`,
+  on_leave: `On Leave - ${tenant.shortName}`,
 };
 
 // Time block configuration (must match frontend types/availability.ts)
@@ -21,7 +22,7 @@ export const TIME_BLOCK_CONFIG = {
 export const TIME_BLOCKS: TimeBlock[] = ['am', 'pm', 'evening'];
 
 // Marker to identify our events
-export const KEYHUB_EVENT_MARKER = 'Synced from KeyHub Central';
+export const KEYHUB_EVENT_MARKER = `Synced from ${tenant.appName}`;
 
 // Get OAuth2 client with user's tokens (async to support dynamic import)
 async function getOAuth2Client() {

@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import * as nodemailer from 'nodemailer';
+import { tenant, getEntityFullName } from '../config/tenant';
 
 // Runtime options
 const runtimeOpts: functions.RuntimeOptions = {
@@ -67,12 +68,7 @@ function formatDate(timestamp: admin.firestore.Timestamp): string {
 
 // Get entity display name
 function getEntityName(entity: string): string {
-  switch (entity) {
-    case 'kd': return 'Keynote Digital';
-    case 'kts': return 'Key Trade Solutions';
-    case 'kr': return 'Key Renovations';
-    default: return entity;
-  }
+  return getEntityFullName(entity);
 }
 
 interface SendInvoiceData {
@@ -151,8 +147,8 @@ export const sendInvoiceEmail = functions
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">
 
         <!-- Header -->
-        <div style="background: #1A1A1A; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="color: #D4A84B; margin: 0; font-size: 28px;">INVOICE</h1>
+        <div style="background: ${tenant.colors.background}; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="color: ${tenant.colors.primary}; margin: 0; font-size: 28px;">INVOICE</h1>
           <p style="color: #888; margin: 10px 0 0 0;">${escapeHtml(invoice.invoiceNumber)}</p>
         </div>
 
@@ -184,11 +180,11 @@ export const sendInvoiceEmail = functions
               </td>
               <td style="text-align: center; padding: 10px; border-left: 1px solid #eee;">
                 <p style="margin: 0; color: #666; font-size: 12px;">Due Date</p>
-                <p style="margin: 5px 0 0 0; font-weight: bold; color: #D4A84B;">${formatDate(invoice.dueDate)}</p>
+                <p style="margin: 5px 0 0 0; font-weight: bold; color: ${tenant.colors.primary};">${formatDate(invoice.dueDate)}</p>
               </td>
               <td style="text-align: center; padding: 10px; border-left: 1px solid #eee;">
                 <p style="margin: 0; color: #666; font-size: 12px;">Amount Due</p>
-                <p style="margin: 5px 0 0 0; font-weight: bold; font-size: 18px; color: #1A1A1A;">${formatCurrency(invoice.total)}</p>
+                <p style="margin: 5px 0 0 0; font-weight: bold; font-size: 18px; color: ${tenant.colors.background};">${formatCurrency(invoice.total)}</p>
               </td>
             </tr>
           </table>
@@ -196,7 +192,7 @@ export const sendInvoiceEmail = functions
           <!-- Line Items -->
           <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden;">
             <thead>
-              <tr style="background: #1A1A1A;">
+              <tr style="background: ${tenant.colors.background};">
                 <th style="padding: 12px; text-align: left; color: white;">Description</th>
                 <th style="padding: 12px; text-align: center; color: white;">Qty</th>
                 <th style="padding: 12px; text-align: right; color: white;">Rate</th>
@@ -217,9 +213,9 @@ export const sendInvoiceEmail = functions
                 <td style="padding: 12px; text-align: right; color: #22c55e;">-${formatCurrency(invoice.discount)}</td>
               </tr>
               ` : ''}
-              <tr style="background: #1A1A1A;">
+              <tr style="background: ${tenant.colors.background};">
                 <td colspan="3" style="padding: 15px; text-align: right; color: white; font-weight: bold;">Total Due</td>
-                <td style="padding: 15px; text-align: right; color: #D4A84B; font-weight: bold; font-size: 20px;">${formatCurrency(invoice.total)}</td>
+                <td style="padding: 15px; text-align: right; color: ${tenant.colors.primary}; font-weight: bold; font-size: 20px;">${formatCurrency(invoice.total)}</td>
               </tr>
             </tfoot>
           </table>
@@ -234,12 +230,12 @@ export const sendInvoiceEmail = functions
         </div>
 
         <!-- Footer -->
-        <div style="background: #1A1A1A; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+        <div style="background: ${tenant.colors.background}; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
           <p style="color: #888; margin: 0; font-size: 12px;">
             Thank you for your business!
           </p>
           <p style="color: #666; margin: 10px 0 0 0; font-size: 11px;">
-            KeyHub Central - Unified Business Management
+            ${tenant.appName} - ${tenant.tagline}
           </p>
         </div>
 
@@ -351,8 +347,8 @@ export const sendContractEmail = functions
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
 
         <!-- Header -->
-        <div style="background: #1A1A1A; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-          <h1 style="color: #D4A84B; margin: 0; font-size: 24px;">Key Renovations</h1>
+        <div style="background: ${tenant.colors.background}; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="color: ${tenant.colors.primary}; margin: 0; font-size: 24px;">${tenant.entities.kr.label}</h1>
           <p style="color: #888; margin: 10px 0 0 0;">Signed Contract</p>
         </div>
 
@@ -362,13 +358,13 @@ export const sendContractEmail = functions
           <p style="font-size: 16px; margin-bottom: 20px;">Dear ${escapeHtml(customerName)},</p>
 
           <p style="margin-bottom: 20px;">
-            Thank you for choosing Key Renovations for your home improvement project.
+            Thank you for choosing ${tenant.entities.kr.label} for your home improvement project.
             Please find attached your signed <strong>${escapeHtml(documentTypeLabel)}</strong>.
           </p>
 
           <!-- Contract Details Box -->
           <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 1px solid #eee;">
-            <h3 style="margin: 0 0 15px 0; color: #1A1A1A; font-size: 16px;">Contract Details</h3>
+            <h3 style="margin: 0 0 15px 0; color: ${tenant.colors.background}; font-size: 16px;">Contract Details</h3>
             <table style="width: 100%; font-size: 14px;">
               <tr>
                 <td style="padding: 8px 0; color: #666;">Document Type:</td>
@@ -385,7 +381,7 @@ export const sendContractEmail = functions
               ${contract.formData?.purchasePrice ? `
               <tr>
                 <td style="padding: 8px 0; color: #666;">Contract Amount:</td>
-                <td style="padding: 8px 0; font-weight: bold; color: #D4A84B;">${formatCurrency(contract.formData.purchasePrice)}</td>
+                <td style="padding: 8px 0; font-weight: bold; color: ${tenant.colors.primary};">${formatCurrency(contract.formData.purchasePrice)}</td>
               </tr>
               ` : ''}
             </table>
@@ -394,7 +390,7 @@ export const sendContractEmail = functions
           <!-- View Contract Button -->
           <div style="text-align: center; margin: 30px 0;">
             <a href="${sanitizeUrl(contract.pdfUrl)}"
-               style="display: inline-block; background: #D4A84B; color: #1A1A1A; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
+               style="display: inline-block; background: ${tenant.colors.primary}; color: ${tenant.colors.background}; text-decoration: none; padding: 14px 30px; border-radius: 6px; font-weight: bold; font-size: 16px;">
               View Signed Contract
             </a>
           </div>
@@ -406,14 +402,14 @@ export const sendContractEmail = functions
 
           <p style="margin-top: 30px;">
             Best regards,<br>
-            <strong>Key Renovations Team</strong>
+            <strong>${tenant.entities.kr.label} Team</strong>
           </p>
         </div>
 
         <!-- Footer -->
-        <div style="background: #1A1A1A; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
-          <p style="color: #D4A84B; margin: 0; font-size: 14px; font-weight: bold;">
-            Key Renovations
+        <div style="background: ${tenant.colors.background}; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+          <p style="color: ${tenant.colors.primary}; margin: 0; font-size: 14px; font-weight: bold;">
+            ${tenant.entities.kr.label}
           </p>
           <p style="color: #888; margin: 10px 0 0 0; font-size: 12px;">
             Professional Home Remodeling Services
@@ -430,7 +426,7 @@ export const sendContractEmail = functions
     // Send email
     const transporter = getTransporter();
     const mailOptions = {
-      from: `"Key Renovations" <${process.env.GMAIL_USER}>`,
+      from: `"${tenant.entities.kr.label}" <${process.env.GMAIL_USER}>`,
       to: toEmail,
       subject: `Your Signed ${documentTypeLabel} - Job #${jobNumber}`,
       html: emailHtml,

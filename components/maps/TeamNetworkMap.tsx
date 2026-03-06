@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Loader2, Search, X, Eye, EyeOff } from 'lucide-react';
+import { tenant } from '@/lib/config/tenant';
 
 export interface TeamMapEntry {
   id: string;
@@ -191,9 +192,9 @@ export function TeamNetworkMap({
         map,
         center: { lat, lng },
         radius: MAX_SEARCH_RADIUS_MILES * 1609.34,
-        fillColor: '#D4A84B',
+        fillColor: tenant.colors.primary,
         fillOpacity: 0.08,
-        strokeColor: '#D4A84B',
+        strokeColor: tenant.colors.primary,
         strokeOpacity: 0.5,
         strokeWeight: 1,
       });

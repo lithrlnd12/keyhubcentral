@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyFirebaseAuth, isAdmin } from '@/lib/auth/verifyRequest';
+import { tenant } from '@/lib/config/tenant';
 
 // POST - Trigger P&L rebuild which now includes expenses
 export async function POST(request: NextRequest) {
@@ -20,9 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call the Cloud Function to rebuild P&L (which now includes expenses)
-    const functionUrl = process.env.NODE_ENV === 'production'
-      ? 'https://us-central1-key-hub-central.cloudfunctions.net/triggerPnLRebuild'
-      : 'https://us-central1-key-hub-central.cloudfunctions.net/triggerPnLRebuild';
+    const functionUrl = `https://us-central1-${tenant.firebaseProjectId}.cloudfunctions.net/triggerPnLRebuild`;
 
     const response = await fetch(functionUrl, {
       method: 'POST',

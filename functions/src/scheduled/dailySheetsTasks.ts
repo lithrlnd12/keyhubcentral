@@ -105,7 +105,7 @@ export const manualRebuildSheets = functions
 
 /**
  * Simple HTTP endpoint to trigger rebuild (for testing only)
- * Call via: https://us-central1-key-hub-central.cloudfunctions.net/triggerRebuild
+ * Call via: https://us-central1-<projectId>.cloudfunctions.net/triggerRebuild
  */
 export const triggerRebuild = functions
   .runWith(runtimeOpts)
@@ -142,7 +142,7 @@ export const dailyPnLSync = functions
 
 /**
  * HTTP endpoint to trigger P&L rebuild
- * Call via: https://us-central1-key-hub-central.cloudfunctions.net/triggerPnLRebuild
+ * Call via: https://us-central1-<projectId>.cloudfunctions.net/triggerPnLRebuild
  */
 export const triggerPnLRebuild = functions
   .runWith(runtimeOpts)
