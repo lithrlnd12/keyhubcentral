@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Users,
   Briefcase,
-  Megaphone,
   FileText,
   Settings,
   Cog,
@@ -14,7 +13,6 @@ import {
   Building2,
   Wrench,
   Target,
-  UserCircle,
   Package,
   Receipt,
   Calendar,
@@ -27,6 +25,7 @@ import {
   X,
   Phone,
   MessageSquare,
+  CreditCard,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
 import { useAuth, useNewCallsCount } from '@/lib/hooks';
@@ -36,63 +35,81 @@ import { cn } from '@/lib/utils';
 import { canManageUsers, canViewFinancials, canManageCampaigns, canManagePartnerRequests, isPartner, canViewInventory, UserRole } from '@/types/user';
 import { tenant } from '@/lib/config/tenant';
 
-// Contractor can access portal
+// Role helpers
 const isContractor = (role: UserRole): boolean => role === 'contractor';
-
-// Subscriber can access subscriber portal
 const isSubscriber = (role: UserRole): boolean => role === 'subscriber';
-
-// Non-contractors and non-subscribers (internal staff)
-const isInternalStaff = (role: UserRole): boolean => !['contractor', 'subscriber'].includes(role);
+const isInternalStaff = (role: UserRole): boolean => !['contractor', 'subscriber', 'partner'].includes(role);
+const canAccessSettings = (role: UserRole): boolean =>
+  ['owner', 'admin', 'pm', 'sales_rep'].includes(role);
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: (role: UserRole) => boolean;
-  badgeKey?: 'newCalls' | 'unreadMessages'; // Key for dynamic badge count
+  badgeKey?: 'newCalls' | 'unreadMessages';
+  section: 'main' | 'work' | 'communicate' | 'finance' | 'admin';
 }
 
-// Can access settings (staff with calendar sync capability)
-const canAccessSettings = (role: UserRole): boolean =>
-  ['owner', 'admin', 'pm', 'sales_rep'].includes(role);
-
 const navItems: NavItem[] = [
-  // Internal staff items
-  { label: 'Overview', href: '/overview', icon: LayoutDashboard, permission: isInternalStaff },
-  { label: 'KTS', href: '/kts', icon: Wrench, permission: isInternalStaff },
-  { label: 'Calls', href: '/kts/calls', icon: Phone, permission: isInternalStaff, badgeKey: 'newCalls' },
-  { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: canViewInventory },
-  { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: canViewInventory },
-  { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff },
-  { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: canManageCampaigns },
-  { label: 'Financials', href: '/financials', icon: FileText, permission: canViewFinancials },
-  { label: 'Partners', href: '/admin/partners', icon: Briefcase, permission: canManagePartnerRequests },
-  { label: 'Partner Requests', href: '/admin/partner-requests', icon: Users, permission: canManagePartnerRequests },
-  { label: 'Messages', href: '/messages', icon: MessageSquare, permission: isInternalStaff, badgeKey: 'unreadMessages' },
-  { label: 'Admin', href: '/admin', icon: Settings, permission: canManageUsers },
-  { label: 'Settings', href: '/settings', icon: Cog, permission: canAccessSettings },
+  // ── MAIN ──
+  { label: 'Overview', href: '/overview', icon: LayoutDashboard, permission: isInternalStaff, section: 'main' },
+  { label: 'Dashboard', href: '/portal', icon: LayoutDashboard, permission: isContractor, section: 'main' },
+  { label: 'Dashboard', href: '/partner', icon: LayoutDashboard, permission: isPartner, section: 'main' },
+  { label: 'My Leads', href: '/subscriber', icon: Users, permission: isSubscriber, section: 'main' },
 
-  // Contractor portal items
-  { label: 'Dashboard', href: '/portal', icon: LayoutDashboard, permission: isContractor },
-  { label: 'Calendar', href: '/portal/calendar', icon: Calendar, permission: isContractor },
-  { label: 'My Jobs', href: '/portal/jobs', icon: Briefcase, permission: isContractor },
-  { label: 'Financials', href: '/portal/financials', icon: DollarSign, permission: isContractor },
-  { label: 'Inventory', href: '/portal/inventory', icon: Package, permission: isContractor },
-  { label: 'Messages', href: '/messages', icon: MessageSquare, permission: isContractor, badgeKey: 'unreadMessages' },
+  // ── WORK ──
+  { label: 'KTS', href: '/kts', icon: Wrench, permission: isInternalStaff, section: 'work' },
+  { label: 'Calls', href: '/kts/calls', icon: Phone, permission: isInternalStaff, badgeKey: 'newCalls', section: 'work' },
+  { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work' },
+  { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work' },
+  { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff, section: 'work' },
+  { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: canManageCampaigns, section: 'work' },
+  // Contractor work
+  { label: 'Calendar', href: '/portal/calendar', icon: Calendar, permission: isContractor, section: 'work' },
+  { label: 'My Jobs', href: '/portal/jobs', icon: Briefcase, permission: isContractor, section: 'work' },
+  { label: 'Inventory', href: '/portal/inventory', icon: Package, permission: isContractor, section: 'work' },
+  // Partner work
+  { label: 'Labor Requests', href: '/partner/labor-requests', icon: Wrench, permission: isPartner, section: 'work' },
+  { label: 'Service Tickets', href: '/partner/service-tickets', icon: ClipboardList, permission: isPartner, section: 'work' },
+  { label: 'History', href: '/partner/history', icon: History, permission: isPartner, section: 'work' },
+  // Subscriber work
+  { label: 'Subscription', href: '/subscriber/subscription', icon: CreditCard, permission: isSubscriber, section: 'work' },
+
+  // ── COMMUNICATE ──
+  { label: 'Messages', href: '/messages', icon: MessageSquare, badgeKey: 'unreadMessages', section: 'communicate' },
+
+  // ── FINANCE ──
+  { label: 'Financials', href: '/financials', icon: FileText, permission: canViewFinancials, section: 'finance' },
+  { label: 'Financials', href: '/portal/financials', icon: DollarSign, permission: isContractor, section: 'finance' },
+
+  // ── ADMIN ──
+  { label: 'Partners', href: '/admin/partners', icon: Briefcase, permission: canManagePartnerRequests, section: 'admin' },
+  { label: 'Partner Requests', href: '/admin/partner-requests', icon: Users, permission: canManagePartnerRequests, section: 'admin' },
+  { label: 'Admin', href: '/admin', icon: Settings, permission: canManageUsers, section: 'admin' },
+];
+
+const SECTION_LABELS: Record<string, string> = {
+  main: '',
+  work: 'Work',
+  communicate: 'Connect',
+  finance: 'Finance',
+  admin: 'Admin',
+};
+
+// Footer items (Profile, Settings) rendered separately in user section
+interface FooterItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  permission?: (role: UserRole) => boolean;
+}
+
+const footerItems: FooterItem[] = [
+  { label: 'Profile', href: '/profile', icon: User, permission: (r) => isInternalStaff(r) || isSubscriber(r) },
   { label: 'Profile', href: '/portal/my-profile', icon: User, permission: isContractor },
+  { label: 'Settings', href: '/settings', icon: Cog, permission: (r) => canAccessSettings(r) && !isContractor(r) },
   { label: 'Settings', href: '/portal/settings', icon: Cog, permission: isContractor },
-
-  // Partner portal items
-  { label: 'Dashboard', href: '/partner', icon: LayoutDashboard, permission: isPartner },
-  { label: 'Labor Requests', href: '/partner/labor-requests', icon: Wrench, permission: isPartner },
-  { label: 'Service Tickets', href: '/partner/service-tickets', icon: ClipboardList, permission: isPartner },
-  { label: 'Messages', href: '/messages', icon: MessageSquare, permission: isPartner, badgeKey: 'unreadMessages' },
-  { label: 'History', href: '/partner/history', icon: History, permission: isPartner },
-
-  // Subscriber items
-  { label: 'My Leads', href: '/subscriber', icon: Users, permission: isSubscriber },
-  { label: 'Messages', href: '/messages', icon: MessageSquare, permission: isSubscriber, badgeKey: 'unreadMessages' },
 ];
 
 export function SideNav() {
@@ -102,7 +119,6 @@ export function SideNav() {
   const { count: newCallsCount } = useNewCallsCount();
   const unreadMessages = useUnreadMessageCount();
 
-  // Badge counts lookup
   const badgeCounts: Record<string, number> = {
     newCalls: newCallsCount,
     unreadMessages,
@@ -112,7 +128,26 @@ export function SideNav() {
     (item) => !item.permission || (user?.role && item.permission(user.role))
   );
 
-  // Sidebar content (shared between desktop and mobile)
+  const filteredFooterItems = footerItems.filter(
+    (item) => !item.permission || (user?.role && item.permission(user.role))
+  );
+
+  // Group items by section
+  const sections = ['main', 'work', 'communicate', 'finance', 'admin'] as const;
+  const grouped = sections
+    .map((section) => ({
+      key: section,
+      label: SECTION_LABELS[section],
+      items: filteredNavItems.filter((item) => item.section === section),
+    }))
+    .filter((section) => section.items.length > 0);
+
+  // Get home href for logo link
+  const homeHref = user?.role === 'contractor' ? '/portal'
+    : user?.role === 'partner' ? '/partner'
+    : user?.role === 'subscriber' ? '/subscriber'
+    : '/overview';
+
   const sidebarContent = (
     <>
       {/* Logo */}
@@ -120,7 +155,7 @@ export function SideNav() {
         "flex items-center h-16 border-b border-gray-800 transition-all duration-300",
         isCollapsed ? "px-2 justify-center" : "px-4 justify-between"
       )}>
-        <Link href="/overview" onClick={closeMobile}>
+        <Link href={homeHref} onClick={closeMobile}>
           {isCollapsed ? (
             <Logo size="sm" variant="icon" />
           ) : (
@@ -134,11 +169,7 @@ export function SideNav() {
           className="hidden md:flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {isCollapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <ChevronLeft className="w-4 h-4" />
-          )}
+          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
 
         {/* Mobile close button */}
@@ -151,12 +182,74 @@ export function SideNav() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {filteredNavItems.map((item) => {
+      <nav className="flex-1 px-2 py-3 overflow-y-auto">
+        {grouped.map((section, sectionIdx) => (
+          <div key={section.key} className={sectionIdx > 0 ? 'mt-4' : ''}>
+            {/* Section header */}
+            {section.label && !isCollapsed && (
+              <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider px-3 mb-1.5">
+                {section.label}
+              </p>
+            )}
+            {section.label && isCollapsed && sectionIdx > 0 && (
+              <div className="h-px bg-gray-800 mx-2 mb-2" />
+            )}
+
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const isActive = pathname.startsWith(item.href);
+                const Icon = item.icon;
+                const badgeCount = item.badgeKey ? badgeCounts[item.badgeKey] : 0;
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeMobile}
+                    title={isCollapsed ? item.label : undefined}
+                    className={cn(
+                      'flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                      isCollapsed ? 'px-2 justify-center' : 'px-3',
+                      isActive
+                        ? 'bg-brand-gold/10 text-brand-gold'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    )}
+                  >
+                    <div className="relative flex-shrink-0">
+                      <Icon className="w-5 h-5" />
+                      {badgeCount > 0 && isCollapsed && (
+                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-gold rounded-full text-[10px] font-bold text-brand-black flex items-center justify-center">
+                          {badgeCount > 9 ? '9+' : badgeCount}
+                        </span>
+                      )}
+                    </div>
+                    {!isCollapsed && (
+                      <>
+                        <span className="truncate flex-1">{item.label}</span>
+                        {badgeCount > 0 && (
+                          <span className="px-1.5 py-0.5 bg-brand-gold/15 text-brand-gold text-xs font-semibold rounded-full">
+                            {badgeCount > 99 ? '99+' : badgeCount}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* User section */}
+      <div className={cn(
+        "border-t border-gray-800 transition-all duration-300",
+        isCollapsed ? "p-2" : "px-2 py-3"
+      )}>
+        {/* Footer nav items (Profile, Settings) */}
+        {filteredFooterItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
-          const badgeCount = item.badgeKey ? badgeCounts[item.badgeKey] : 0;
-
           return (
             <Link
               key={item.href}
@@ -164,45 +257,29 @@ export function SideNav() {
               onClick={closeMobile}
               title={isCollapsed ? item.label : undefined}
               className={cn(
-                'flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+                'flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                 isCollapsed ? 'px-2 justify-center' : 'px-3',
                 isActive
                   ? 'bg-brand-gold/10 text-brand-gold'
                   : 'text-gray-400 hover:text-white hover:bg-white/5'
               )}
             >
-              <div className="relative flex-shrink-0">
-                <Icon className="w-5 h-5" />
-                {badgeCount > 0 && isCollapsed && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center">
-                    {badgeCount > 9 ? '9+' : badgeCount}
-                  </span>
-                )}
-              </div>
-              {!isCollapsed && (
-                <>
-                  <span className="truncate flex-1">{item.label}</span>
-                  {badgeCount > 0 && (
-                    <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-xs font-medium rounded-full">
-                      {badgeCount > 99 ? '99+' : badgeCount}
-                    </span>
-                  )}
-                </>
-              )}
+              <Icon className="w-5 h-5 flex-shrink-0" />
+              {!isCollapsed && <span>{item.label}</span>}
             </Link>
           );
         })}
-      </nav>
 
-      {/* User section */}
-      <div className={cn(
-        "border-t border-gray-800 transition-all duration-300",
-        isCollapsed ? "p-2" : "p-4"
-      )}>
+        {/* Divider before user info */}
+        <div className={cn("my-2", isCollapsed ? "mx-1" : "mx-2")}>
+          <div className="h-px bg-gray-800" />
+        </div>
+
+        {/* User info */}
         {!isCollapsed && (
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-brand-charcoal flex items-center justify-center flex-shrink-0">
-              <span className="text-brand-gold font-medium">
+          <div className="flex items-center gap-3 px-3 py-2">
+            <div className="w-9 h-9 rounded-full bg-brand-charcoal flex items-center justify-center flex-shrink-0">
+              <span className="text-brand-gold font-medium text-sm">
                 {user?.displayName?.charAt(0).toUpperCase() || 'U'}
               </span>
             </div>
@@ -210,7 +287,7 @@ export function SideNav() {
               <p className="text-sm font-medium text-white truncate">
                 {user?.displayName || 'User'}
               </p>
-              <p className="text-xs text-gray-500 capitalize">
+              <p className="text-[11px] text-gray-500 capitalize">
                 {user?.role?.replace('_', ' ') || 'Loading...'}
               </p>
             </div>
@@ -218,9 +295,9 @@ export function SideNav() {
         )}
 
         {isCollapsed && (
-          <div className="flex justify-center mb-2">
-            <div className="w-10 h-10 rounded-full bg-brand-charcoal flex items-center justify-center">
-              <span className="text-brand-gold font-medium">
+          <div className="flex justify-center mb-1">
+            <div className="w-9 h-9 rounded-full bg-brand-charcoal flex items-center justify-center">
+              <span className="text-brand-gold font-medium text-sm">
                 {user?.displayName?.charAt(0).toUpperCase() || 'U'}
               </span>
             </div>
@@ -231,7 +308,7 @@ export function SideNav() {
           onClick={() => signOut()}
           title={isCollapsed ? 'Sign out' : undefined}
           className={cn(
-            "flex items-center gap-2 w-full py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors",
+            "flex items-center gap-2 w-full py-2 text-sm text-gray-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-colors",
             isCollapsed ? "px-2 justify-center" : "px-3"
           )}
         >
