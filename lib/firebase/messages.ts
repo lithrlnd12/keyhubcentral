@@ -9,6 +9,7 @@ import {
   onSnapshot,
   addDoc,
   updateDoc,
+  deleteDoc,
   getDoc,
   getDocs,
   writeBatch,
@@ -345,6 +346,38 @@ export async function updateGroupName(
   groupName: string
 ): Promise<void> {
   await updateDoc(doc(db, CONVERSATIONS, conversationId), { groupName });
+}
+
+// ---------- Delete job-linked chat ----------
+
+export async function deleteJobChat(
+  jobId: string,
+  userId: string
+): Promise<void> {
+  // Find conversation linked to this job
+  const q = query(
+    collection(db, CONVERSATIONS),
+    where('jobId', '==', jobId),
+    where('participants', 'array-contains', userId)
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) return;
+
+  for (const convDoc of snapshot.docs) {
+    // Delete all messages in the subcollection first
+    const messagesSnap = await getDocs(
+      collection(db, CONVERSATIONS, convDoc.id, MESSAGES)
+    );
+    const batch = writeBatch(db);
+    messagesSnap.docs.forEach((msgDoc) => batch.delete(msgDoc.ref));
+    if (messagesSnap.docs.length > 0) {
+      await batch.commit();
+    }
+
+    // Delete the conversation document
+    await deleteDoc(convDoc.ref);
+  }
 }
 
 // ---------- Reactions ----------

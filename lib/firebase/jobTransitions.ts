@@ -4,6 +4,7 @@ import { Job, JobStatus, JOB_STATUS_ORDER, canTransitionStatus } from '@/types/j
 import { allMaterialsHaveArrivalDates, allMaterialsReady } from './jobMaterials';
 import { hasCompletionCertificate } from './completionCert';
 import { generateJobPayouts } from './payouts';
+import { deleteJobChat } from './messages';
 
 export interface TransitionResult {
   success: boolean;
@@ -294,6 +295,16 @@ export async function transitionJobStatus(
       attachments: [],
       createdAt: serverTimestamp(),
     });
+
+    // Delete job-linked group chat when job is complete
+    if (newStatus === 'complete') {
+      try {
+        await deleteJobChat(jobId, userId);
+      } catch (chatError) {
+        console.error('Failed to delete job chat:', chatError);
+        // Don't fail the transition for chat cleanup
+      }
+    }
 
     // Generate payouts when transitioning to paid_in_full
     let payouts: { leadFeePayoutId?: string; laborPayoutId?: string } | undefined;
