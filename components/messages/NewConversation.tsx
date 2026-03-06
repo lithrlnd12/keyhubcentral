@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, X, Users, Check, Loader2 } from 'lucide-react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/hooks';
 import { useCreateConversation } from '@/lib/hooks/useMessages';
@@ -56,13 +56,13 @@ export function NewConversation() {
     async function fetchUsers() {
       const q = query(
         collection(db, 'users'),
-        where('status', '==', 'active'),
-        orderBy('displayName')
+        where('status', '==', 'active')
       );
       const snapshot = await getDocs(q);
       const results = snapshot.docs
         .map((doc) => ({ uid: doc.id, ...doc.data() } as UserEntry))
-        .filter((u) => u.uid !== user?.uid); // Exclude self
+        .filter((u) => u.uid !== user?.uid)
+        .sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
       setUsers(results);
       setLoadingUsers(false);
     }
