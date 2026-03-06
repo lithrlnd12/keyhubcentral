@@ -44,6 +44,10 @@ interface NotificationPreferences {
     systemAlerts: boolean;
     partnerRequests: boolean;
   };
+  messages?: {
+    directMessages: boolean;
+    groupMessages: boolean;
+  };
 }
 
 interface FCMToken {
@@ -673,6 +677,95 @@ export const onPartnerServiceTicket = functions.firestore
       (prefs) => prefs.admin?.partnerRequests ?? false
     );
 
+    return null;
+  });
+
+// ==================== MESSAGE NOTIFICATIONS ====================
+
+// When a new message is sent in a conversation
+export const onNewMessage = functions.firestore
+  .document('conversations/{conversationId}/messages/{messageId}')
+  .onCreate(async (snapshot, context) => {
+    const messageData = snapshot.data();
+    const conversationId = context.params.conversationId;
+
+    if (!messageData) return null;
+
+    const senderId = messageData.senderId;
+    const senderName = messageData.senderName || 'Someone';
+    const messageText = messageData.text || '';
+
+    // Get the conversation to find participants and type
+    const conversationDoc = await getDb()
+      .collection('conversations')
+      .doc(conversationId)
+      .get();
+
+    if (!conversationDoc.exists) {
+      console.log(`Conversation ${conversationId} not found`);
+      return null;
+    }
+
+    const conversationData = conversationDoc.data()!;
+    const participants: string[] = conversationData.participants || [];
+    const conversationType: string = conversationData.type || '1:1';
+    const groupName: string = conversationData.groupName || 'Group';
+
+    // Determine notification type
+    const notificationType = conversationType === '1:1' ? 'new_direct_message' : 'new_group_message';
+    const category = 'messages';
+    const priority = conversationType === '1:1' ? 'high' : 'medium';
+
+    // Truncate message for notification preview
+    const previewText = messageText.length > 80
+      ? messageText.substring(0, 80) + '...'
+      : messageText;
+
+    // Build notification title
+    const title = conversationType === '1:1'
+      ? senderName
+      : `${senderName} in ${groupName}`;
+
+    // Notify all participants except sender
+    const notifyPromises = participants
+      .filter((uid: string) => uid !== senderId)
+      .map(async (recipientId: string) => {
+        // Check recipient preferences
+        const userDoc = await getDb().collection('users').doc(recipientId).get();
+        if (!userDoc.exists) return;
+
+        const userData = userDoc.data()!;
+        const prefs = userData.notificationPreferences as NotificationPreferences | undefined;
+
+        // Check if messages notifications are enabled
+        // Default to true if messages preferences haven't been set yet
+        if (prefs) {
+          if (!prefs.pushEnabled) return;
+
+          if (prefs.messages) {
+            if (conversationType === '1:1' && !prefs.messages.directMessages) return;
+            if (conversationType === 'group' && !prefs.messages.groupMessages) return;
+          }
+          // If prefs.messages doesn't exist, default to sending (backwards compat)
+        }
+
+        await sendPushNotification(recipientId, {
+          type: notificationType,
+          category,
+          priority: priority as 'high' | 'medium',
+          title,
+          body: previewText,
+          data: {
+            actionUrl: `/messages/${conversationId}`,
+            conversationId,
+            senderName,
+            messageText: previewText,
+            groupName,
+          },
+        });
+      });
+
+    await Promise.all(notifyPromises);
     return null;
   });
 

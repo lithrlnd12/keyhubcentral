@@ -80,6 +80,12 @@ function getNotificationActions(type) {
         { action: 'review', title: 'Review' },
         { action: 'dismiss', title: 'Dismiss' },
       ];
+    case 'new_direct_message':
+    case 'new_group_message':
+      return [
+        { action: 'reply', title: 'Open Chat' },
+        { action: 'dismiss', title: 'Dismiss' },
+      ];
     default:
       return [
         { action: 'view', title: 'View' },
@@ -136,6 +142,11 @@ function getNotificationUrl(data) {
       return '/admin';
     case 'new_applicant':
       return data.applicantId ? `/recruiting/applicants/${data.applicantId}` : '/recruiting';
+
+    // Messages
+    case 'new_direct_message':
+    case 'new_group_message':
+      return data.conversationId ? `/messages/${data.conversationId}` : '/messages';
 
     default:
       return data.actionUrl || '/overview';

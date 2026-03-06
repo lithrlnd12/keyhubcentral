@@ -264,6 +264,30 @@ export function NotificationSettings() {
         )}
       </Card>
 
+      {/* Message Notifications */}
+      <Card>
+        <CardTitle>Message Notifications</CardTitle>
+        <CardDescription>
+          Get notified when you receive new messages
+        </CardDescription>
+        <div className="mt-4 divide-y divide-gray-800">
+          <SettingRow
+            label="Direct messages"
+            description="When someone sends you a 1:1 message"
+            enabled={preferences.messages?.directMessages ?? true}
+            onChange={(v) => handleToggle('messages', 'directMessages', v)}
+            disabled={saving || !preferences.pushEnabled}
+          />
+          <SettingRow
+            label="Group messages"
+            description="When someone sends a message in a group chat"
+            enabled={preferences.messages?.groupMessages ?? true}
+            onChange={(v) => handleToggle('messages', 'groupMessages', v)}
+            disabled={saving || !preferences.pushEnabled}
+          />
+        </div>
+      </Card>
+
       {/* Compliance Alerts */}
       {showCompliance && (
         <Card>

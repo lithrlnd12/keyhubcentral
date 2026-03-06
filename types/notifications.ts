@@ -6,7 +6,8 @@ export type NotificationCategory =
   | 'jobs'
   | 'leads'
   | 'financial'
-  | 'admin';
+  | 'admin'
+  | 'messages';
 
 // Notification priority levels
 export type NotificationPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -47,7 +48,10 @@ export type NotificationType =
   | 'partner_labor_request_new'
   | 'partner_labor_request_status_changed'
   | 'partner_ticket_new'
-  | 'partner_ticket_status_changed';
+  | 'partner_ticket_status_changed'
+  // Messages
+  | 'new_direct_message'
+  | 'new_group_message';
 
 // Map notification types to categories
 export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCategory> = {
@@ -86,6 +90,9 @@ export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCateg
   partner_labor_request_status_changed: 'admin',
   partner_ticket_new: 'admin',
   partner_ticket_status_changed: 'admin',
+  // Messages
+  new_direct_message: 'messages',
+  new_group_message: 'messages',
 };
 
 // Map notification types to priorities
@@ -125,6 +132,9 @@ export const NOTIFICATION_PRIORITIES: Record<NotificationType, NotificationPrior
   partner_labor_request_status_changed: 'medium',
   partner_ticket_new: 'high',
   partner_ticket_status_changed: 'medium',
+  // Messages
+  new_direct_message: 'high',
+  new_group_message: 'medium',
 };
 
 // Quiet hours configuration
@@ -170,6 +180,11 @@ export interface AdminPreferences {
   partnerRequests: boolean;
 }
 
+export interface MessagesPreferences {
+  directMessages: boolean;
+  groupMessages: boolean;
+}
+
 // Complete notification preferences
 export interface NotificationPreferences {
   // Master controls
@@ -185,6 +200,7 @@ export interface NotificationPreferences {
   leads: LeadsPreferences;
   financial: FinancialPreferences;
   admin: AdminPreferences;
+  messages: MessagesPreferences;
 }
 
 // FCM token info
@@ -269,6 +285,10 @@ export function getDefaultPreferences(role: string): NotificationPreferences {
       newApplicants: false,
       systemAlerts: false,
       partnerRequests: false,
+    },
+    messages: {
+      directMessages: true,
+      groupMessages: true,
     },
   };
 
@@ -540,6 +560,18 @@ export function getNotificationTemplate(
       body: `Your service ticket ${data.ticketNumber} status changed to ${data.status}.`,
       actionUrl: data.ticketId ? `/partner/service-tickets/${data.ticketId}` : '/partner/service-tickets',
     },
+
+    // Messages
+    new_direct_message: {
+      title: `${data.senderName}`,
+      body: data.messageText || 'Sent you a message',
+      actionUrl: data.conversationId ? `/messages/${data.conversationId}` : '/messages',
+    },
+    new_group_message: {
+      title: `${data.senderName} in ${data.groupName || 'Group'}`,
+      body: data.messageText || 'Sent a message',
+      actionUrl: data.conversationId ? `/messages/${data.conversationId}` : '/messages',
+    },
   };
 
   return templates[type];
@@ -626,6 +658,17 @@ export function isNotificationEnabled(
         case 'partner_ticket_new':
         case 'partner_ticket_status_changed':
           return preferences.admin.partnerRequests;
+      }
+      break;
+
+    case 'messages':
+      // Default to true if messages preferences haven't been initialized yet
+      if (!preferences.messages) return true;
+      switch (type) {
+        case 'new_direct_message':
+          return preferences.messages.directMessages;
+        case 'new_group_message':
+          return preferences.messages.groupMessages;
       }
       break;
   }

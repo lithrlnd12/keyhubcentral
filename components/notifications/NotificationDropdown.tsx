@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Check, CheckCheck, X, AlertCircle, Briefcase, DollarSign, Users, FileText } from 'lucide-react';
+import { Bell, Check, CheckCheck, X, AlertCircle, Briefcase, DollarSign, Users, FileText, MessageSquare } from 'lucide-react';
 import { useNotifications } from '@/lib/hooks';
 import { NotificationRecord, NotificationCategory } from '@/types/notifications';
 import { Spinner } from '@/components/ui/Spinner';
@@ -13,6 +13,7 @@ const CATEGORY_ICONS: Record<NotificationCategory, React.ElementType> = {
   leads: Users,
   financial: DollarSign,
   admin: AlertCircle,
+  messages: MessageSquare,
 };
 
 const CATEGORY_COLORS: Record<NotificationCategory, string> = {
@@ -21,6 +22,7 @@ const CATEGORY_COLORS: Record<NotificationCategory, string> = {
   leads: 'bg-green-500/20 text-green-400',
   financial: 'bg-purple-500/20 text-purple-400',
   admin: 'bg-red-500/20 text-red-400',
+  messages: 'bg-brand-gold/20 text-brand-gold',
 };
 
 const PRIORITY_STYLES: Record<string, string> = {

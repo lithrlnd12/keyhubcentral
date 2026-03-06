@@ -45,6 +45,7 @@ export {
   onInvoiceOverdue,
   onPartnerLaborRequest,
   onPartnerServiceTicket,
+  onNewMessage,
   testNotification,
 } from './triggers/notificationTriggers';
 
