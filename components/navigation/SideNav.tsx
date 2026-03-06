@@ -87,10 +87,12 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/partner', icon: LayoutDashboard, permission: isPartner },
   { label: 'Labor Requests', href: '/partner/labor-requests', icon: Wrench, permission: isPartner },
   { label: 'Service Tickets', href: '/partner/service-tickets', icon: ClipboardList, permission: isPartner },
+  { label: 'Messages', href: '/messages', icon: MessageSquare, permission: isPartner, badgeKey: 'unreadMessages' },
   { label: 'History', href: '/partner/history', icon: History, permission: isPartner },
 
   // Subscriber items
   { label: 'My Leads', href: '/subscriber', icon: Users, permission: isSubscriber },
+  { label: 'Messages', href: '/messages', icon: MessageSquare, permission: isSubscriber, badgeKey: 'unreadMessages' },
 ];
 
 export function SideNav() {

@@ -53,6 +53,7 @@ const contractorNavItems: NavItem[] = [
 const subscriberNavItems: NavItem[] = [
   { label: 'Home', href: '/subscriber', icon: LayoutDashboard },
   { label: 'Leads', href: '/subscriber/leads', icon: Users },
+  { label: 'Messages', href: '/messages', icon: MessageSquare, badgeKey: 'unreadMessages' },
   { label: 'Plan', href: '/subscriber/subscription', icon: CreditCard },
   { label: 'Profile', href: '/profile', icon: User },
 ];
@@ -61,6 +62,7 @@ const subscriberNavItems: NavItem[] = [
 const partnerNavItems: NavItem[] = [
   { label: 'Home', href: '/partner', icon: LayoutDashboard },
   { label: 'Labor', href: '/partner/labor-requests', icon: Wrench },
+  { label: 'Messages', href: '/messages', icon: MessageSquare, badgeKey: 'unreadMessages' },
   { label: 'Service', href: '/partner/service-tickets', icon: ClipboardList },
   { label: 'History', href: '/partner/history', icon: History },
 ];
