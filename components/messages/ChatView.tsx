@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Send, Users, Loader2, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Send, Users, Loader2, ChevronUp, Check, CheckCheck, UserPlus } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
 import { useChat } from '@/lib/hooks/useMessages';
 import { toggleReaction } from '@/lib/firebase/messages';
 import { cn } from '@/lib/utils';
 import type { Conversation, Message } from '@/types/message';
+import { AddPeopleSheet } from './AddPeopleSheet';
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
@@ -102,12 +103,16 @@ function MessageBubble({
   showSender,
   conversationId,
   userId,
+  participants,
+  isLastMine,
 }: {
   message: Message;
   isMine: boolean;
   showSender: boolean;
   conversationId: string;
   userId: string;
+  participants: string[];
+  isLastMine: boolean;
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -187,7 +192,21 @@ function MessageBubble({
       </div>
 
       <ReactionBar reactions={reactions} userId={userId} onToggle={handleReaction} />
-      <span className="text-[10px] text-gray-600 mt-0.5 px-1">{time}</span>
+      <div className="flex items-center gap-1 mt-0.5 px-1">
+        <span className="text-[10px] text-gray-600">{time}</span>
+        {isMine && isLastMine && (
+          (() => {
+            const otherParticipants = participants.filter((p) => p !== userId);
+            const allRead = otherParticipants.length > 0 &&
+              otherParticipants.every((p) => message.readBy?.includes(p));
+            return allRead ? (
+              <CheckCheck className="w-3 h-3 text-brand-gold" />
+            ) : (
+              <Check className="w-3 h-3 text-gray-600" />
+            );
+          })()
+        )}
+      </div>
     </div>
   );
 }
@@ -211,6 +230,7 @@ export function ChatView({ conversation }: { conversation: Conversation }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [showAddPeople, setShowAddPeople] = useState(false);
 
   // Display name
   const displayName =
@@ -298,11 +318,26 @@ export function ChatView({ conversation }: { conversation: Conversation }) {
             </span>
           )}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold text-white truncate">{displayName}</h3>
           {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
         </div>
+        <button
+          onClick={() => setShowAddPeople(true)}
+          className="p-2 rounded-lg hover:bg-gray-800 transition-colors flex-shrink-0"
+          title="Add people"
+        >
+          <UserPlus className="w-5 h-5 text-gray-400" />
+        </button>
       </div>
+
+      {/* Add People Sheet */}
+      {showAddPeople && (
+        <AddPeopleSheet
+          conversation={conversation}
+          onClose={() => setShowAddPeople(false)}
+        />
+      )}
 
       {/* Messages */}
       <div
@@ -337,28 +372,35 @@ export function ChatView({ conversation }: { conversation: Conversation }) {
             No messages yet. Say hi!
           </div>
         ) : (
-          groupedMessages.map((group) => (
-            <div key={group.date}>
-              <DateDivider date={group.date} />
-              {group.messages.map((msg, i) => {
-                const prevMsg = i > 0 ? group.messages[i - 1] : null;
-                const showSender =
-                  conversation.type === 'group' &&
-                  (!prevMsg || prevMsg.senderId !== msg.senderId);
+          (() => {
+            // Find the last message sent by current user (for read receipt)
+            const lastMineId = [...messages].reverse().find((m) => m.senderId === user?.uid)?.id;
 
-                return (
-                  <MessageBubble
-                    key={msg.id}
-                    message={msg}
-                    isMine={msg.senderId === user?.uid}
-                    showSender={showSender}
-                    conversationId={conversation.id}
-                    userId={user?.uid || ''}
-                  />
-                );
-              })}
-            </div>
-          ))
+            return groupedMessages.map((group) => (
+              <div key={group.date}>
+                <DateDivider date={group.date} />
+                {group.messages.map((msg, i) => {
+                  const prevMsg = i > 0 ? group.messages[i - 1] : null;
+                  const showSender =
+                    conversation.type === 'group' &&
+                    (!prevMsg || prevMsg.senderId !== msg.senderId);
+
+                  return (
+                    <MessageBubble
+                      key={msg.id}
+                      message={msg}
+                      isMine={msg.senderId === user?.uid}
+                      showSender={showSender}
+                      conversationId={conversation.id}
+                      userId={user?.uid || ''}
+                      participants={conversation.participants}
+                      isLastMine={msg.id === lastMineId}
+                    />
+                  );
+                })}
+              </div>
+            ));
+          })()
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -379,10 +421,10 @@ export function ChatView({ conversation }: { conversation: Conversation }) {
             onClick={handleSend}
             disabled={!text.trim() || sending}
             className={cn(
-              'p-2.5 rounded-full transition-colors flex-shrink-0',
+              'w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0',
               text.trim()
-                ? 'bg-brand-gold text-brand-black hover:bg-brand-gold-light'
-                : 'bg-gray-800 text-gray-600'
+                ? 'bg-brand-gold text-brand-black hover:bg-brand-gold-light active:scale-95 shadow-md shadow-brand-gold/20'
+                : 'bg-gray-700 text-gray-400'
             )}
           >
             {sending ? (

@@ -203,8 +203,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {/* Mobile bottom navigation */}
       <BottomNav />
 
-      {/* AI Chat Widget */}
-      <AIChatWidget />
+      {/* AI Chat Widget — hidden on messages pages to avoid overlapping send button */}
+      {!pathname.startsWith('/messages') && <AIChatWidget />}
     </div>
   );
 }

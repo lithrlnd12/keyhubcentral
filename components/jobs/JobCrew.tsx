@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Job } from '@/types/job';
 import { Contractor } from '@/types/contractor';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { getContractor, getContractorByUserId } from '@/lib/firebase/contractors';
 import { getUserProfile } from '@/lib/firebase/auth';
+import { findOrCreateJobChat } from '@/lib/firebase/messages';
+import { useAuth } from '@/lib/hooks';
 import { UserProfile } from '@/types/user';
-import { Users, UserPlus, X, User, MapPin, Star, Loader2 } from 'lucide-react';
+import { Users, UserPlus, X, User, MapPin, Star, Loader2, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import Link from 'next/link';
 
@@ -27,8 +30,48 @@ interface CrewMember {
 }
 
 export function JobCrew({ job, canEdit, onUpdate }: JobCrewProps) {
+  const router = useRouter();
+  const { user } = useAuth();
   const [crew, setCrew] = useState<CrewMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [startingChat, setStartingChat] = useState(false);
+
+  // Open or create a group chat for this job's crew
+  const handleChatWithCrew = async () => {
+    if (!user?.uid || crew.length === 0) return;
+    setStartingChat(true);
+    try {
+      // Collect all crew member user IDs + current user
+      const memberIds = crew.map((m) => m.id);
+      if (!memberIds.includes(user.uid)) {
+        memberIds.push(user.uid);
+      }
+
+      // Build participant names from loaded data
+      const participantNames: Record<string, string> = {};
+      for (const member of crew) {
+        participantNames[member.id] =
+          member.contractor?.businessName ||
+          member.userProfile?.displayName ||
+          'Unknown';
+      }
+      participantNames[user.uid] = user.displayName || 'Unknown';
+
+      const groupLabel = `${job.jobNumber} - ${job.customer.name}`;
+      const convId = await findOrCreateJobChat(
+        job.id,
+        memberIds,
+        participantNames,
+        user.uid,
+        groupLabel
+      );
+      router.push(`/messages/${convId}`);
+    } catch (error) {
+      console.error('Failed to start job chat:', error);
+    } finally {
+      setStartingChat(false);
+    }
+  };
 
   // Load contractor details for all crew members
   useEffect(() => {
@@ -124,14 +167,31 @@ export function JobCrew({ job, canEdit, onUpdate }: JobCrewProps) {
           <Users className="w-5 h-5 text-brand-gold" />
           Assigned Crew ({crew.length})
         </CardTitle>
-        {canEdit && (
-          <Link href={`/kr/${job.id}/edit?tab=crew`}>
-            <Button variant="outline" size="sm">
-              <UserPlus className="w-4 h-4 mr-1" />
-              Manage Crew
+        <div className="flex gap-2">
+          {crew.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleChatWithCrew}
+              disabled={startingChat}
+            >
+              {startingChat ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <MessageCircle className="w-4 h-4 mr-1" />
+              )}
+              Chat with Crew
             </Button>
-          </Link>
-        )}
+          )}
+          {canEdit && (
+            <Link href={`/kr/${job.id}/edit?tab=crew`}>
+              <Button variant="outline" size="sm">
+                <UserPlus className="w-4 h-4 mr-1" />
+                Manage Crew
+              </Button>
+            </Link>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (

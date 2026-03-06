@@ -16,6 +16,7 @@ export interface Conversation {
   participants: string[];
   participantNames: Record<string, string>;
   groupName?: string;
+  jobId?: string | null;
   lastMessage: {
     text: string;
     senderId: string;

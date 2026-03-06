@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { MessageSquarePlus, Users, User } from 'lucide-react';
+import { Pencil, Users, User, MessageSquarePlus, Briefcase } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
 import { useConversations } from '@/lib/hooks/useMessages';
 import { cn } from '@/lib/utils';
@@ -57,9 +57,11 @@ function ConversationItem({
       {/* Avatar */}
       <div className={cn(
         'flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center',
-        conversation.type === 'group' ? 'bg-brand-gold/20' : 'bg-gray-700'
+        conversation.jobId ? 'bg-blue-500/20' : conversation.type === 'group' ? 'bg-brand-gold/20' : 'bg-gray-700'
       )}>
-        {conversation.type === 'group' ? (
+        {conversation.jobId ? (
+          <Briefcase className="w-5 h-5 text-blue-400" />
+        ) : conversation.type === 'group' ? (
           <Users className="w-5 h-5 text-brand-gold" />
         ) : (
           <User className="w-5 h-5 text-gray-400" />
@@ -116,7 +118,7 @@ export function ConversationList({ activeId }: { activeId?: string }) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="relative flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
         <h2 className="text-lg font-semibold text-white">Messages</h2>
@@ -154,6 +156,15 @@ export function ConversationList({ activeId }: { activeId?: string }) {
           ))
         )}
       </div>
+
+      {/* FAB - Google Messages style compose button */}
+      <button
+        onClick={() => router.push('/messages/new')}
+        className="absolute bottom-20 right-4 md:bottom-6 md:right-6 w-14 h-14 bg-brand-gold text-brand-black rounded-full shadow-lg shadow-brand-gold/25 flex items-center justify-center hover:bg-brand-gold-light active:scale-95 transition-all z-10"
+        aria-label="New message"
+      >
+        <Pencil className="w-6 h-6" />
+      </button>
     </div>
   );
 }

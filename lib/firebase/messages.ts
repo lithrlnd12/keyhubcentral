@@ -11,6 +11,7 @@ import {
   updateDoc,
   getDoc,
   getDocs,
+  writeBatch,
   serverTimestamp,
   increment,
   arrayUnion,
@@ -138,6 +139,28 @@ export async function markConversationRead(
   await updateDoc(doc(db, CONVERSATIONS, conversationId), {
     [`unreadCount.${userId}`]: 0,
   });
+
+  // Also mark individual messages as read by this user
+  const recentQ = query(
+    collection(db, CONVERSATIONS, conversationId, MESSAGES),
+    orderBy('timestamp', 'desc'),
+    limit(50)
+  );
+  const snapshot = await getDocs(recentQ);
+  const batch = writeBatch(db);
+  let updates = 0;
+
+  for (const msgDoc of snapshot.docs) {
+    const data = msgDoc.data();
+    if (!data.readBy?.includes(userId)) {
+      batch.update(msgDoc.ref, { readBy: arrayUnion(userId) });
+      updates++;
+    }
+  }
+
+  if (updates > 0) {
+    await batch.commit();
+  }
 }
 
 // ---------- Create conversation ----------
@@ -179,6 +202,12 @@ export async function createConversation(
     if (existing) return existing.id;
   }
 
+  // For groups, check if an identical group already exists
+  if (type === 'group') {
+    const existing = await findExistingGroup(participants, createdBy);
+    if (existing) return existing.id;
+  }
+
   // Initialize unread count for all participants
   const unreadCount: Record<string, number> = {};
   for (const uid of participants) {
@@ -213,6 +242,102 @@ export async function addParticipant(
     [`participantNames.${userId}`]: userName,
     [`unreadCount.${userId}`]: 0,
   });
+}
+
+// ---------- Find existing group by exact participants ----------
+
+export async function findExistingGroup(
+  participants: string[],
+  asUser?: string
+): Promise<Conversation | null> {
+  if (participants.length < 2) return null;
+
+  // Query groups containing the requesting user (or first participant)
+  // Must use a participant in the query to satisfy Firestore security rules
+  const queryUser = asUser || participants[0];
+  const q = query(
+    collection(db, CONVERSATIONS),
+    where('type', '==', 'group'),
+    where('participants', 'array-contains', queryUser)
+  );
+
+  const snapshot = await getDocs(q);
+
+  // Check for exact participant match (same members, same count)
+  const sorted = [...participants].sort();
+  for (const d of snapshot.docs) {
+    const data = d.data();
+    const docParticipants = [...(data.participants as string[])].sort();
+    if (
+      docParticipants.length === sorted.length &&
+      docParticipants.every((p, i) => p === sorted[i])
+    ) {
+      return { id: d.id, ...data } as Conversation;
+    }
+  }
+
+  return null;
+}
+
+// ---------- Find or create job-linked chat ----------
+
+export async function findOrCreateJobChat(
+  jobId: string,
+  participants: string[],
+  participantNames: Record<string, string>,
+  createdBy: string,
+  groupName: string
+): Promise<string> {
+  // Look for existing conversation linked to this job
+  // Must include array-contains for current user to satisfy Firestore security rules
+  const q = query(
+    collection(db, CONVERSATIONS),
+    where('jobId', '==', jobId),
+    where('participants', 'array-contains', createdBy)
+  );
+  const snapshot = await getDocs(q);
+
+  if (!snapshot.empty) {
+    const existing = snapshot.docs[0];
+    const data = existing.data();
+    const existingParticipants = data.participants as string[];
+
+    // Sync participants — add any new crew members
+    const newMembers = participants.filter((p) => !existingParticipants.includes(p));
+    if (newMembers.length > 0) {
+      const updates: Record<string, unknown> = {
+        participants: [...existingParticipants, ...newMembers],
+      };
+      for (const uid of newMembers) {
+        updates[`participantNames.${uid}`] = participantNames[uid] || 'Unknown';
+        updates[`unreadCount.${uid}`] = 0;
+      }
+      await updateDoc(existing.ref, updates);
+    }
+
+    return existing.id;
+  }
+
+  // Create new job-linked group conversation
+  const unreadCount: Record<string, number> = {};
+  for (const uid of participants) {
+    unreadCount[uid] = 0;
+  }
+
+  const docRef = await addDoc(collection(db, CONVERSATIONS), {
+    type: 'group',
+    participants,
+    participantNames,
+    groupName,
+    jobId,
+    lastMessage: null,
+    unreadCount,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    createdBy,
+  });
+
+  return docRef.id;
 }
 
 export async function updateGroupName(
