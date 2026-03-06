@@ -67,6 +67,14 @@ export {
   useInboundCallMutations,
 } from './useInboundCalls';
 
+// Messaging hooks
+export {
+  useConversations,
+  useChat,
+  useCreateConversation,
+  useUnreadMessageCount,
+} from './useMessages';
+
 // Google Calendar hooks
 export {
   useGoogleCalendarEvents,

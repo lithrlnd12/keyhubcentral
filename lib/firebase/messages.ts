@@ -1,0 +1,242 @@
+import {
+  collection,
+  doc,
+  query,
+  where,
+  orderBy,
+  limit,
+  startAfter,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  increment,
+  Timestamp,
+  QueryDocumentSnapshot,
+} from 'firebase/firestore';
+import { db } from './config';
+import type { Conversation, Message } from '@/types/message';
+
+const CONVERSATIONS = 'conversations';
+const MESSAGES = 'messages';
+
+// ---------- Subscriptions ----------
+
+export function subscribeToConversations(
+  userId: string,
+  callback: (conversations: Conversation[]) => void
+): () => void {
+  const q = query(
+    collection(db, CONVERSATIONS),
+    where('participants', 'array-contains', userId),
+    orderBy('updatedAt', 'desc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const conversations = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Conversation[];
+    callback(conversations);
+  });
+}
+
+export function subscribeToMessages(
+  conversationId: string,
+  callback: (messages: Message[]) => void,
+  messageLimit = 50
+): () => void {
+  const q = query(
+    collection(db, CONVERSATIONS, conversationId, MESSAGES),
+    orderBy('timestamp', 'desc'),
+    limit(messageLimit)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const messages = snapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      .reverse() as Message[];
+    callback(messages);
+  });
+}
+
+// ---------- Load older messages (pagination) ----------
+
+export async function loadOlderMessages(
+  conversationId: string,
+  beforeTimestamp: Timestamp,
+  messageLimit = 30
+): Promise<Message[]> {
+  const q = query(
+    collection(db, CONVERSATIONS, conversationId, MESSAGES),
+    orderBy('timestamp', 'desc'),
+    startAfter(beforeTimestamp),
+    limit(messageLimit)
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() }) as Message)
+    .reverse();
+}
+
+// ---------- Send message ----------
+
+export async function sendMessage(
+  conversationId: string,
+  senderId: string,
+  senderName: string,
+  text: string,
+  participants: string[]
+): Promise<void> {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+
+  // Add message to subcollection
+  await addDoc(collection(db, CONVERSATIONS, conversationId, MESSAGES), {
+    senderId,
+    senderName,
+    text: trimmed,
+    timestamp: serverTimestamp(),
+    readBy: [senderId],
+  });
+
+  // Build unread increment for all participants except sender
+  const unreadUpdates: Record<string, ReturnType<typeof increment>> = {};
+  for (const uid of participants) {
+    if (uid !== senderId) {
+      unreadUpdates[`unreadCount.${uid}`] = increment(1);
+    }
+  }
+
+  // Update conversation metadata
+  await updateDoc(doc(db, CONVERSATIONS, conversationId), {
+    lastMessage: {
+      text: trimmed.length > 100 ? trimmed.slice(0, 100) + '...' : trimmed,
+      senderId,
+      senderName,
+      timestamp: serverTimestamp(),
+    },
+    updatedAt: serverTimestamp(),
+    ...unreadUpdates,
+  });
+}
+
+// ---------- Mark as read ----------
+
+export async function markConversationRead(
+  conversationId: string,
+  userId: string
+): Promise<void> {
+  await updateDoc(doc(db, CONVERSATIONS, conversationId), {
+    [`unreadCount.${userId}`]: 0,
+  });
+}
+
+// ---------- Create conversation ----------
+
+export async function findExisting1on1(
+  userId: string,
+  otherUserId: string
+): Promise<Conversation | null> {
+  // Query for conversations where current user is a participant
+  const q = query(
+    collection(db, CONVERSATIONS),
+    where('type', '==', '1:1'),
+    where('participants', 'array-contains', userId)
+  );
+
+  const snapshot = await getDocs(q);
+
+  // Check if other user is also a participant
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    if (data.participants.includes(otherUserId)) {
+      return { id: doc.id, ...data } as Conversation;
+    }
+  }
+
+  return null;
+}
+
+export async function createConversation(
+  type: '1:1' | 'group',
+  participants: string[],
+  participantNames: Record<string, string>,
+  createdBy: string,
+  groupName?: string
+): Promise<string> {
+  // For 1:1, check if conversation already exists
+  if (type === '1:1' && participants.length === 2) {
+    const existing = await findExisting1on1(participants[0], participants[1]);
+    if (existing) return existing.id;
+  }
+
+  // Initialize unread count for all participants
+  const unreadCount: Record<string, number> = {};
+  for (const uid of participants) {
+    unreadCount[uid] = 0;
+  }
+
+  const docRef = await addDoc(collection(db, CONVERSATIONS), {
+    type,
+    participants,
+    participantNames,
+    groupName: groupName || null,
+    lastMessage: null,
+    unreadCount,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    createdBy,
+  });
+
+  return docRef.id;
+}
+
+// ---------- Group management ----------
+
+export async function addParticipant(
+  conversationId: string,
+  userId: string,
+  userName: string,
+  currentParticipants: string[]
+): Promise<void> {
+  await updateDoc(doc(db, CONVERSATIONS, conversationId), {
+    participants: [...currentParticipants, userId],
+    [`participantNames.${userId}`]: userName,
+    [`unreadCount.${userId}`]: 0,
+  });
+}
+
+export async function updateGroupName(
+  conversationId: string,
+  groupName: string
+): Promise<void> {
+  await updateDoc(doc(db, CONVERSATIONS, conversationId), { groupName });
+}
+
+// ---------- Get total unread count ----------
+
+export function subscribeToUnreadCount(
+  userId: string,
+  callback: (count: number) => void
+): () => void {
+  const q = query(
+    collection(db, CONVERSATIONS),
+    where('participants', 'array-contains', userId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    let total = 0;
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      total += data.unreadCount?.[userId] || 0;
+    }
+    callback(total);
+  });
+}

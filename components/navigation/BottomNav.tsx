@@ -17,23 +17,26 @@ import {
   Calendar,
   DollarSign,
   Phone,
+  MessageSquare,
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks';
+import { useUnreadMessageCount } from '@/lib/hooks/useMessages';
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  badgeKey?: 'unreadMessages';
 }
 
 // Internal staff nav items
 const internalNavItems: NavItem[] = [
   { label: 'Home', href: '/overview', icon: LayoutDashboard },
   { label: 'KTS', href: '/kts', icon: Wrench },
+  { label: 'Messages', href: '/messages', icon: MessageSquare, badgeKey: 'unreadMessages' },
   { label: 'Calls', href: '/kts/calls', icon: Phone },
-  { label: 'KD', href: '/kd', icon: Target },
   { label: 'Profile', href: '/profile', icon: User },
 ];
 
@@ -41,8 +44,8 @@ const internalNavItems: NavItem[] = [
 const contractorNavItems: NavItem[] = [
   { label: 'Home', href: '/portal', icon: LayoutDashboard },
   { label: 'Calendar', href: '/portal/calendar', icon: Calendar },
+  { label: 'Messages', href: '/messages', icon: MessageSquare, badgeKey: 'unreadMessages' },
   { label: 'Jobs', href: '/portal/jobs', icon: Wrench },
-  { label: 'Money', href: '/portal/financials', icon: DollarSign },
   { label: 'More', href: '/portal/my-profile', icon: User },
 ];
 
@@ -65,6 +68,7 @@ const partnerNavItems: NavItem[] = [
 export function BottomNav() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const unreadMessages = useUnreadMessageCount();
 
   const isContractor = user?.role === 'contractor';
   const isSubscriber = user?.role === 'subscriber';
@@ -102,6 +106,7 @@ export function BottomNav() {
         {filteredItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
+          const badgeCount = item.badgeKey === 'unreadMessages' ? unreadMessages : 0;
 
           return (
             <Link
@@ -112,7 +117,14 @@ export function BottomNav() {
                 isActive ? 'text-brand-gold' : 'text-gray-500'
               )}
             >
-              <Icon className="w-5 h-5 mb-1" />
+              <div className="relative">
+                <Icon className="w-5 h-5 mb-1" />
+                {badgeCount > 0 && (
+                  <span className="absolute -top-1 -right-2 min-w-[16px] h-4 bg-blue-500 rounded-full text-[10px] font-bold text-white flex items-center justify-center px-0.5">
+                    {badgeCount > 9 ? '9+' : badgeCount}
+                  </span>
+                )}
+              </div>
               <span className="text-xs font-medium">{item.label}</span>
             </Link>
           );

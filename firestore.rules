@@ -613,5 +613,35 @@ service cloud.firestore {
       // Only owner can delete contracts
       allow delete: if isOwner();
     }
+
+    // Internal messaging - conversations
+    match /conversations/{conversationId} {
+      // Participants can read their own conversations
+      allow read: if isActiveUser() &&
+        request.auth.uid in resource.data.participants;
+
+      // Any active user can create a conversation (they must be a participant)
+      allow create: if isActiveUser() &&
+        request.auth.uid in request.resource.data.participants;
+
+      // Participants can update conversation (for unreadCount, lastMessage)
+      allow update: if isActiveUser() &&
+        request.auth.uid in resource.data.participants;
+
+      // Only owner can delete conversations
+      allow delete: if isOwner();
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        // Participants of the parent conversation can read messages
+        allow read: if isActiveUser() &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+
+        // Participants can send messages (senderId must match auth uid)
+        allow create: if isActiveUser() &&
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+          request.resource.data.senderId == request.auth.uid;
+      }
+    }
   }
 }

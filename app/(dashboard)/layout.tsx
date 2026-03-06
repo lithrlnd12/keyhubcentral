@@ -8,16 +8,18 @@ import { useAuth } from '@/lib/hooks';
 import { SidebarProvider, useSidebar } from '@/lib/contexts';
 import { ADMIN_ROLES, UserRole } from '@/types/user';
 import { cn } from '@/lib/utils';
+import { tenant } from '@/lib/config/tenant';
 
 const PAGE_TITLES: Record<string, string> = {
   '/overview': 'Dashboard',
-  '/kts': 'Key Trade Solutions',
-  '/kr': 'Key Renovations',
-  '/kd': 'Keynote Digital',
+  '/kts': tenant.entities.kts.label,
+  '/kr': tenant.entities.kr.label,
+  '/kd': tenant.entities.kd.label,
   '/financials': 'Financials',
   '/admin': 'Admin',
   '/profile': 'Profile',
   '/settings': 'Settings',
+  '/messages': 'Messages',
 };
 
 // Roles that should use the main dashboard (not special portals)
@@ -31,6 +33,9 @@ const ADMIN_FINANCIAL_ROUTES = ['/financials/pnl', '/financials/payouts'];
 
 // Check if user can access the current route based on their role
 function canAccessRoute(role: UserRole, pathname: string): boolean {
+  // Messages is accessible to all authenticated roles
+  if (pathname.startsWith('/messages')) return true;
+
   // Subscriber can only access /subscriber routes
   if (role === 'subscriber') {
     return pathname.startsWith('/subscriber');
@@ -92,17 +97,18 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       }
 
       // Contractors and partners have separate layouts - redirect them
-      if (user.role === 'contractor') {
+      // (except /messages which is shared across all roles)
+      if (user.role === 'contractor' && !pathname.startsWith('/messages')) {
         router.push('/portal');
         return;
       }
-      if (user.role === 'partner') {
+      if (user.role === 'partner' && !pathname.startsWith('/messages')) {
         router.push('/partner');
         return;
       }
 
-      // Subscriber trying to access non-subscriber routes
-      if (user.role === 'subscriber' && !pathname.startsWith('/subscriber')) {
+      // Subscriber trying to access non-subscriber routes (except messages)
+      if (user.role === 'subscriber' && !pathname.startsWith('/subscriber') && !pathname.startsWith('/messages')) {
         router.push('/subscriber');
         return;
       }
@@ -153,7 +159,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }
 
   // Don't render for roles that have their own separate layouts
-  if (['contractor', 'partner'].includes(user.role)) {
+  // (except /messages which is shared)
+  if (['contractor', 'partner'].includes(user.role) && !pathname.startsWith('/messages')) {
     return null;
   }
 

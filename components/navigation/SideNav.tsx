@@ -26,12 +26,15 @@ import {
   ChevronRight,
   X,
   Phone,
+  MessageSquare,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
 import { useAuth, useNewCallsCount } from '@/lib/hooks';
+import { useUnreadMessageCount } from '@/lib/hooks/useMessages';
 import { useSidebar } from '@/lib/contexts';
 import { cn } from '@/lib/utils';
 import { canManageUsers, canViewFinancials, canManageCampaigns, canManagePartnerRequests, isPartner, canViewInventory, UserRole } from '@/types/user';
+import { tenant } from '@/lib/config/tenant';
 
 // Contractor can access portal
 const isContractor = (role: UserRole): boolean => role === 'contractor';
@@ -47,7 +50,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   permission?: (role: UserRole) => boolean;
-  badgeKey?: 'newCalls'; // Key for dynamic badge count
+  badgeKey?: 'newCalls' | 'unreadMessages'; // Key for dynamic badge count
 }
 
 // Can access settings (staff with calendar sync capability)
@@ -61,11 +64,12 @@ const navItems: NavItem[] = [
   { label: 'Calls', href: '/kts/calls', icon: Phone, permission: isInternalStaff, badgeKey: 'newCalls' },
   { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: canViewInventory },
   { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: canViewInventory },
-  { label: 'Key Renovations', href: '/kr', icon: Building2, permission: isInternalStaff },
-  { label: 'Keynote Digital', href: '/kd', icon: Target, permission: canManageCampaigns },
+  { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff },
+  { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: canManageCampaigns },
   { label: 'Financials', href: '/financials', icon: FileText, permission: canViewFinancials },
   { label: 'Partners', href: '/admin/partners', icon: Briefcase, permission: canManagePartnerRequests },
   { label: 'Partner Requests', href: '/admin/partner-requests', icon: Users, permission: canManagePartnerRequests },
+  { label: 'Messages', href: '/messages', icon: MessageSquare, permission: isInternalStaff, badgeKey: 'unreadMessages' },
   { label: 'Admin', href: '/admin', icon: Settings, permission: canManageUsers },
   { label: 'Settings', href: '/settings', icon: Cog, permission: canAccessSettings },
 
@@ -75,6 +79,7 @@ const navItems: NavItem[] = [
   { label: 'My Jobs', href: '/portal/jobs', icon: Briefcase, permission: isContractor },
   { label: 'Financials', href: '/portal/financials', icon: DollarSign, permission: isContractor },
   { label: 'Inventory', href: '/portal/inventory', icon: Package, permission: isContractor },
+  { label: 'Messages', href: '/messages', icon: MessageSquare, permission: isContractor, badgeKey: 'unreadMessages' },
   { label: 'Profile', href: '/portal/my-profile', icon: User, permission: isContractor },
   { label: 'Settings', href: '/portal/settings', icon: Cog, permission: isContractor },
 
@@ -93,10 +98,12 @@ export function SideNav() {
   const { user, signOut } = useAuth();
   const { isCollapsed, isMobileOpen, toggleCollapsed, closeMobile } = useSidebar();
   const { count: newCallsCount } = useNewCallsCount();
+  const unreadMessages = useUnreadMessageCount();
 
   // Badge counts lookup
   const badgeCounts: Record<string, number> = {
     newCalls: newCallsCount,
+    unreadMessages,
   };
 
   const filteredNavItems = navItems.filter(
