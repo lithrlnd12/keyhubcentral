@@ -162,7 +162,7 @@ function MessageBubble({
       {showSender && !isMine && (
         <span className="text-xs text-gray-500 ml-3 mb-0.5">{message.senderName}</span>
       )}
-      <div className="relative">
+      <div className="relative max-w-[80%]">
         <div
           onClick={handleTap}
           onTouchStart={handleTouchStart}
@@ -173,7 +173,7 @@ function MessageBubble({
             setShowPicker(true);
           }}
           className={cn(
-            'max-w-[80%] px-3 py-2 rounded-2xl text-sm break-words cursor-pointer select-none',
+            'px-3 py-2 rounded-2xl text-sm break-words cursor-pointer select-none',
             isMine
               ? 'bg-brand-gold text-brand-black rounded-br-md'
               : 'bg-gray-800 text-gray-100 rounded-bl-md'

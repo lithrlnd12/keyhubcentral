@@ -72,6 +72,9 @@ export default function LaborRequestDetailPage() {
     setStartingChat(true);
     try {
       const participants = [request.submittedBy, ...request.assignedContractorIds];
+      if (!participants.includes(user.uid)) {
+        participants.push(user.uid);
+      }
       const participantNames: Record<string, string> = {};
       for (const uid of participants) {
         const profile = await getUserProfile(uid);
