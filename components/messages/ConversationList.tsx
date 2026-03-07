@@ -22,15 +22,15 @@ function timeAgo(timestamp: { toDate: () => Date } | null): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// Swipe threshold in pixels
 const SWIPE_THRESHOLD = 80;
-const ACTION_WIDTH = 160; // total width of both action buttons
+const ACTION_WIDTH = 160;
 
 function ConversationItem({
   conversation,
   currentUserId,
   isActive,
   onClick,
+  onContextMenu,
   onArchive,
   onDelete,
 }: {
@@ -38,6 +38,7 @@ function ConversationItem({
   currentUserId: string;
   isActive: boolean;
   onClick: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
   onArchive: () => void;
   onDelete: () => void;
 }) {
@@ -53,10 +54,6 @@ function ConversationItem({
   const isHorizontalSwipe = useRef<boolean | null>(null);
   const itemRef = useRef<HTMLDivElement>(null);
 
-  // Context menu state (desktop)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-
-  // Display name: group name, or the other person's name for 1:1
   const displayName =
     conversation.type === 'group'
       ? conversation.groupName || 'Group Chat'
@@ -81,7 +78,6 @@ function ConversationItem({
     const dx = e.touches[0].clientX - touchStartX.current;
     const dy = e.touches[0].clientY - touchStartY.current;
 
-    // Determine swipe direction on first significant movement
     if (isHorizontalSwipe.current === null) {
       if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
         isHorizontalSwipe.current = Math.abs(dx) > Math.abs(dy);
@@ -90,14 +86,11 @@ function ConversationItem({
     }
 
     if (!isHorizontalSwipe.current) return;
-
     e.preventDefault();
 
-    // Only allow swiping left (negative offset)
     const startOffset = revealed ? -ACTION_WIDTH : 0;
     const raw = startOffset + dx;
-    const clamped = Math.max(-ACTION_WIDTH, Math.min(0, raw));
-    setOffsetX(clamped);
+    setOffsetX(Math.max(-ACTION_WIDTH, Math.min(0, raw)));
   }, [swiping, revealed]);
 
   const handleTouchEnd = useCallback(() => {
@@ -105,11 +98,9 @@ function ConversationItem({
     isHorizontalSwipe.current = null;
 
     if (offsetX < -SWIPE_THRESHOLD) {
-      // Reveal actions
       setOffsetX(-ACTION_WIDTH);
       setRevealed(true);
     } else {
-      // Snap back
       setOffsetX(0);
       setRevealed(false);
     }
@@ -118,43 +109,23 @@ function ConversationItem({
   // Close swipe on outside tap
   useEffect(() => {
     if (!revealed) return;
-    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
       if (itemRef.current && !itemRef.current.contains(e.target as Node)) {
         setOffsetX(0);
         setRevealed(false);
       }
     };
-    document.addEventListener('touchstart', handleOutsideClick);
-    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutside);
+    document.addEventListener('mousedown', handleOutside);
     return () => {
-      document.removeEventListener('touchstart', handleOutsideClick);
-      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutside);
+      document.removeEventListener('mousedown', handleOutside);
     };
   }, [revealed]);
 
-  // --- Right-click handler (desktop) ---
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY });
-  }, []);
-
-  // Close context menu
-  useEffect(() => {
-    if (!contextMenu) return;
-    const close = () => setContextMenu(null);
-    window.addEventListener('click', close);
-    window.addEventListener('contextmenu', close);
-    window.addEventListener('scroll', close, true);
-    return () => {
-      window.removeEventListener('click', close);
-      window.removeEventListener('contextmenu', close);
-      window.removeEventListener('scroll', close, true);
-    };
-  }, [contextMenu]);
-
   return (
     <div ref={itemRef} className="relative overflow-hidden">
-      {/* Action buttons behind the item (revealed on swipe) */}
+      {/* Action buttons behind (revealed on swipe) */}
       <div className="absolute inset-y-0 right-0 flex">
         <button
           onClick={(e) => { e.stopPropagation(); onArchive(); }}
@@ -177,7 +148,7 @@ function ConversationItem({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onContextMenu={handleContextMenu}
+        onContextMenu={onContextMenu}
         onClick={() => {
           if (revealed) {
             setOffsetX(0);
@@ -247,30 +218,6 @@ function ConversationItem({
           )}
         </div>
       </div>
-
-      {/* Desktop context menu */}
-      {contextMenu && (
-        <div
-          className="fixed z-50 bg-gray-900 border border-gray-700 rounded-lg shadow-xl py-1 min-w-[160px]"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={() => { setContextMenu(null); onArchive(); }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-800 transition-colors"
-          >
-            <Archive className="w-4 h-4 text-green-400" />
-            Archive
-          </button>
-          <button
-            onClick={() => { setContextMenu(null); onDelete(); }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-gray-800 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -280,6 +227,27 @@ export function ConversationList({ activeId }: { activeId?: string }) {
   const { user } = useAuth();
   const { conversations, loading } = useConversations();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; convId: string } | null>(null);
+
+  // Close context menu on any click or scroll
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    window.addEventListener('click', close);
+    window.addEventListener('contextmenu', close);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('contextmenu', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [contextMenu]);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, convId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY, convId });
+  }, []);
 
   const handleArchive = async (convId: string) => {
     if (!user?.uid) return;
@@ -294,7 +262,6 @@ export function ConversationList({ activeId }: { activeId?: string }) {
     if (!confirmDelete) return;
     await deleteConversation(confirmDelete);
     setConfirmDelete(null);
-    // Navigate away if we deleted the active conversation
     if (confirmDelete === activeId) {
       router.push('/messages');
     }
@@ -343,6 +310,7 @@ export function ConversationList({ activeId }: { activeId?: string }) {
               currentUserId={user?.uid || ''}
               isActive={conv.id === activeId}
               onClick={() => router.push(`/messages/${conv.id}`)}
+              onContextMenu={(e) => handleContextMenu(e, conv.id)}
               onArchive={() => handleArchive(conv.id)}
               onDelete={() => handleDelete(conv.id)}
             />
@@ -350,7 +318,7 @@ export function ConversationList({ activeId }: { activeId?: string }) {
         )}
       </div>
 
-      {/* FAB - Google Messages style compose button */}
+      {/* FAB */}
       <button
         onClick={() => router.push('/messages/new')}
         className="absolute bottom-20 right-4 md:bottom-6 md:right-6 w-14 h-14 bg-brand-gold text-brand-black rounded-full shadow-lg shadow-brand-gold/25 flex items-center justify-center hover:bg-brand-gold-light active:scale-95 transition-all z-10"
@@ -358,6 +326,36 @@ export function ConversationList({ activeId }: { activeId?: string }) {
       >
         <Pencil className="w-6 h-6" />
       </button>
+
+      {/* Right-click context menu (rendered at list level, outside overflow containers) */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-gray-900 border border-gray-700 rounded-lg shadow-xl py-1 min-w-[160px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => {
+              handleArchive(contextMenu.convId);
+              setContextMenu(null);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-800 transition-colors"
+          >
+            <Archive className="w-4 h-4 text-green-400" />
+            Archive
+          </button>
+          <button
+            onClick={() => {
+              handleDelete(contextMenu.convId);
+              setContextMenu(null);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-gray-800 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+        </div>
+      )}
 
       {/* Delete confirmation modal */}
       {confirmDelete && (
