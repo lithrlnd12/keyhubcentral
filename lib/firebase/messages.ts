@@ -96,19 +96,24 @@ export async function sendMessage(
   senderId: string,
   senderName: string,
   text: string,
-  participants: string[]
+  participants: string[],
+  imageUrl?: string | null
 ): Promise<void> {
   const trimmed = text.trim();
-  if (!trimmed) return;
+  if (!trimmed && !imageUrl) return;
 
   // Add message to subcollection
-  await addDoc(collection(db, CONVERSATIONS, conversationId, MESSAGES), {
+  const messageData: Record<string, unknown> = {
     senderId,
     senderName,
     text: trimmed,
     timestamp: serverTimestamp(),
     readBy: [senderId],
-  });
+  };
+  if (imageUrl) {
+    messageData.imageUrl = imageUrl;
+  }
+  await addDoc(collection(db, CONVERSATIONS, conversationId, MESSAGES), messageData);
 
   // Build unread increment for all participants except sender
   const unreadUpdates: Record<string, ReturnType<typeof increment>> = {};
@@ -119,9 +124,12 @@ export async function sendMessage(
   }
 
   // Update conversation metadata
+  const previewText = imageUrl
+    ? (trimmed ? trimmed : 'Sent a photo')
+    : trimmed;
   await updateDoc(doc(db, CONVERSATIONS, conversationId), {
     lastMessage: {
-      text: trimmed.length > 100 ? trimmed.slice(0, 100) + '...' : trimmed,
+      text: previewText.length > 100 ? previewText.slice(0, 100) + '...' : previewText,
       senderId,
       senderName,
       timestamp: serverTimestamp(),

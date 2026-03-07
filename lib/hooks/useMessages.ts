@@ -76,11 +76,11 @@ export function useChat(conversationId: string | null) {
 
   // Send message
   const sendMessage = useCallback(
-    async (text: string, participants: string[]) => {
+    async (text: string, participants: string[], imageUrl?: string | null) => {
       if (!conversationId || !user?.uid || !user?.displayName) return;
       setSending(true);
       try {
-        await sendMessageFn(conversationId, user.uid, user.displayName, text, participants);
+        await sendMessageFn(conversationId, user.uid, user.displayName, text, participants, imageUrl);
       } finally {
         setSending(false);
       }

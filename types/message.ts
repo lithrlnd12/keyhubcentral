@@ -5,6 +5,7 @@ export interface Message {
   senderId: string;
   senderName: string;
   text: string;
+  imageUrl?: string | null;
   timestamp: Timestamp;
   readBy: string[];
   reactions?: Record<string, string[]>; // emoji -> array of userIds

@@ -146,6 +146,15 @@ service firebase.storage {
         isUnderSizeLimit(request.resource.size);
     }
 
+    // Chat images (any authenticated user who is a conversation participant)
+    match /conversations/{conversationId}/images/{fileName} {
+      allow read: if isAuthenticated();
+
+      allow write: if isAuthenticated() &&
+        request.resource.contentType.matches('image/.*') &&
+        isUnderSizeLimit(request.resource.size);
+    }
+
     // Labor request work order PDFs
     match /laborRequests/{userId}/workorders/{fileName} {
       allow read: if isAuthenticated() &&

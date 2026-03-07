@@ -2,10 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Send, Users, Loader2, ChevronUp, Check, CheckCheck, UserPlus } from 'lucide-react';
+import {
+  ArrowLeft, Send, Users, Loader2, ChevronUp, Check, CheckCheck,
+  UserPlus, Camera, ImageIcon, X,
+} from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
 import { useChat } from '@/lib/hooks/useMessages';
 import { toggleReaction } from '@/lib/firebase/messages';
+import { uploadChatImage } from '@/lib/firebase/storage';
 import { cn } from '@/lib/utils';
 import type { Conversation, Message } from '@/types/message';
 import { AddPeopleSheet } from './AddPeopleSheet';
@@ -115,6 +119,7 @@ function MessageBubble({
   isLastMine: boolean;
 }) {
   const [showPicker, setShowPicker] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const time = message.timestamp?.toDate?.()
@@ -128,12 +133,10 @@ function MessageBubble({
     await toggleReaction(conversationId, message.id, emoji, userId);
   };
 
-  // Double-tap to react (mobile-friendly)
   const lastTap = useRef(0);
   const handleTap = () => {
     const now = Date.now();
     if (now - lastTap.current < 300) {
-      // Double tap — quick react with thumbs up
       handleReaction('👍');
       lastTap.current = 0;
     } else {
@@ -141,7 +144,6 @@ function MessageBubble({
     }
   };
 
-  // Long press to open picker
   const handleTouchStart = () => {
     longPressTimer.current = setTimeout(() => {
       setShowPicker(true);
@@ -156,6 +158,8 @@ function MessageBubble({
   };
 
   const reactions = message.reactions || {};
+  const hasImage = !!message.imageUrl;
+  const hasText = !!message.text;
 
   return (
     <div className={cn('flex flex-col mb-1.5', isMine ? 'items-end' : 'items-start')}>
@@ -173,13 +177,39 @@ function MessageBubble({
             setShowPicker(true);
           }}
           className={cn(
-            'px-3 py-2 rounded-2xl text-sm break-words cursor-pointer select-none',
+            'rounded-2xl cursor-pointer select-none overflow-hidden',
             isMine
               ? 'bg-brand-gold text-brand-black rounded-br-md'
-              : 'bg-gray-800 text-gray-100 rounded-bl-md'
+              : 'bg-gray-800 text-gray-100 rounded-bl-md',
+            hasText && 'px-3 py-2',
+            hasImage && !hasText && 'p-1',
+            hasImage && hasText && 'pt-1 px-1 pb-2'
           )}
         >
-          {message.text}
+          {hasImage && (
+            <div className="relative">
+              {!imageLoaded && (
+                <div className="w-48 h-36 bg-gray-700/50 rounded-xl flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                </div>
+              )}
+              {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic chat image */}
+              <img
+                src={message.imageUrl!}
+                alt="Shared image"
+                className={cn(
+                  'max-w-[280px] max-h-[300px] rounded-xl object-cover',
+                  !imageLoaded && 'hidden'
+                )}
+                onLoad={() => setImageLoaded(true)}
+              />
+            </div>
+          )}
+          {hasText && (
+            <p className={cn('text-sm break-words', hasImage && 'px-2 pt-1.5')}>
+              {message.text}
+            </p>
+          )}
         </div>
 
         {showPicker && (
@@ -221,16 +251,56 @@ function DateDivider({ date }: { date: string }) {
   );
 }
 
+// Image preview before sending
+function ImagePreview({
+  file,
+  onRemove,
+}: {
+  file: File;
+  onRemove: () => void;
+}) {
+  const [preview, setPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  if (!preview) return null;
+
+  return (
+    <div className="relative inline-block">
+      {/* eslint-disable-next-line @next/next/no-img-element -- Preview of local file */}
+      <img
+        src={preview}
+        alt="Preview"
+        className="h-20 w-20 object-cover rounded-lg border border-gray-700"
+      />
+      <button
+        onClick={onRemove}
+        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    </div>
+  );
+}
+
 export function ChatView({ conversation }: { conversation: Conversation }) {
   const router = useRouter();
   const { user } = useAuth();
   const { messages, loading, sending, sendMessage, loadOlder, loadingOlder, hasOlder } =
     useChat(conversation.id);
   const [text, setText] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [showAddPeople, setShowAddPeople] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Display name
   const displayName =
@@ -261,13 +331,46 @@ export function ChatView({ conversation }: { conversation: Conversation }) {
     setAutoScroll(isNearBottom);
   }, []);
 
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate image type and size
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image must be under 10MB');
+      return;
+    }
+
+    setImageFile(file);
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+  };
+
   // Send handler
   const handleSend = async () => {
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
-    setText('');
+    if ((!trimmed && !imageFile) || sending || uploading) return;
+
     setAutoScroll(true);
-    await sendMessage(trimmed, conversation.participants);
+    let imageUrl: string | null = null;
+
+    if (imageFile) {
+      setUploading(true);
+      try {
+        imageUrl = await uploadChatImage(conversation.id, imageFile);
+      } catch (err) {
+        console.error('Failed to upload image:', err);
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+      setImageFile(null);
+    }
+
+    setText('');
+    await sendMessage(trimmed, conversation.participants, imageUrl);
   };
 
   // Handle Enter key
@@ -295,6 +398,9 @@ export function ChatView({ conversation }: { conversation: Conversation }) {
     }
     groupedMessages[groupedMessages.length - 1].messages.push(msg);
   }
+
+  const isBusy = sending || uploading;
+  const canSend = text.trim() || imageFile;
 
   return (
     <div className="flex flex-col h-full">
@@ -373,7 +479,6 @@ export function ChatView({ conversation }: { conversation: Conversation }) {
           </div>
         ) : (
           (() => {
-            // Find the last message sent by current user (for read receipt)
             const lastMineId = [...messages].reverse().find((m) => m.senderId === user?.uid)?.id;
 
             return groupedMessages.map((group) => (
@@ -405,9 +510,51 @@ export function ChatView({ conversation }: { conversation: Conversation }) {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Image preview */}
+      {imageFile && (
+        <div className="px-4 py-2 border-t border-gray-800 bg-gray-900/50">
+          <ImagePreview file={imageFile} onRemove={() => setImageFile(null)} />
+        </div>
+      )}
+
       {/* Input */}
       <div className="px-4 py-3 border-t border-gray-800 bg-brand-black safe-area-bottom">
         <div className="flex items-end gap-2">
+          {/* Camera button (mobile) */}
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-gray-400 hover:text-brand-gold hover:bg-gray-800 transition-colors md:hidden"
+            title="Take photo"
+          >
+            <Camera className="w-5 h-5" />
+          </button>
+
+          {/* Gallery/upload button */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-gray-400 hover:text-brand-gold hover:bg-gray-800 transition-colors"
+            title="Upload image"
+          >
+            <ImageIcon className="w-5 h-5" />
+          </button>
+
+          {/* Hidden file inputs */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -419,15 +566,15 @@ export function ChatView({ conversation }: { conversation: Conversation }) {
           />
           <button
             onClick={handleSend}
-            disabled={!text.trim() || sending}
+            disabled={!canSend || isBusy}
             className={cn(
               'w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0',
-              text.trim()
+              canSend
                 ? 'bg-brand-gold text-brand-black hover:bg-brand-gold-light active:scale-95 shadow-md shadow-brand-gold/20'
                 : 'bg-gray-700 text-gray-400'
             )}
           >
-            {sending ? (
+            {isBusy ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <Send className="w-5 h-5" />
