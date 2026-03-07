@@ -212,12 +212,13 @@ export async function assignTechToTicket(
     const techProfile = await getUserProfile(techId);
     participantNames[techId] = techProfile?.displayName || 'Technician';
 
+    // Use submittedBy as createdBy so the query array-contains matches a participant
     await findOrCreateRequestChat(
       id,
       'service',
       participants,
       participantNames,
-      assignedBy,
+      ticket.submittedBy,
       `${ticket.ticketNumber} - ${ticket.issueType}`
     );
   } catch (chatError) {

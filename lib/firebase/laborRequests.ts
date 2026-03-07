@@ -211,12 +211,13 @@ export async function assignContractorsToRequest(
       }
     }
 
+    // Use submittedBy as createdBy so the query array-contains matches a participant
     await findOrCreateRequestChat(
       id,
       'labor',
       participants,
       participantNames,
-      assignedBy,
+      request.submittedBy,
       `${request.requestNumber} - ${request.workType}`
     );
   } catch (chatError) {
