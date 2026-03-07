@@ -21,6 +21,8 @@ import {
   PartnerTicketFilters,
   PartnerStatusChange,
 } from '@/types/partner';
+import { findOrCreateRequestChat, deleteRequestChat } from './messages';
+import { getUserProfile } from './auth';
 
 const COLLECTION = 'partnerServiceTickets';
 
@@ -152,6 +154,15 @@ export async function updatePartnerTicketStatus(
 
   const docRef = doc(db, COLLECTION, id);
   await updateDoc(docRef, updateData);
+
+  // Delete request chat on complete
+  if (status === 'complete') {
+    try {
+      await deleteRequestChat(id, changedBy);
+    } catch (chatError) {
+      console.error('Failed to delete request chat:', chatError);
+    }
+  }
 }
 
 export async function assignTechToTicket(
@@ -189,6 +200,29 @@ export async function assignTechToTicket(
 
   const docRef = doc(db, COLLECTION, id);
   await updateDoc(docRef, updateData);
+
+  // Auto-create chat between partner (submitter) and assigned tech
+  try {
+    const participants = [ticket.submittedBy, techId];
+    const participantNames: Record<string, string> = {};
+
+    const partnerProfile = await getUserProfile(ticket.submittedBy);
+    participantNames[ticket.submittedBy] = partnerProfile?.displayName || ticket.partnerCompany;
+
+    const techProfile = await getUserProfile(techId);
+    participantNames[techId] = techProfile?.displayName || 'Technician';
+
+    await findOrCreateRequestChat(
+      id,
+      'service',
+      participants,
+      participantNames,
+      assignedBy,
+      `${ticket.ticketNumber} - ${ticket.issueType}`
+    );
+  } catch (chatError) {
+    console.error('Failed to create request chat:', chatError);
+  }
 }
 
 export async function resolvePartnerTicket(

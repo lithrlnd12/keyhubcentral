@@ -21,6 +21,9 @@ import {
   LaborRequestFilters,
   StatusChange,
 } from '@/types/partner';
+import { findOrCreateRequestChat, deleteRequestChat } from './messages';
+import { getUserProfile } from './auth';
+import { getContractorByUserId } from './contractors';
 
 const COLLECTION = 'laborRequests';
 
@@ -152,6 +155,15 @@ export async function updateLaborRequestStatus(
 
   const docRef = doc(db, COLLECTION, id);
   await updateDoc(docRef, updateData);
+
+  // Delete request chat on complete
+  if (status === 'complete') {
+    try {
+      await deleteRequestChat(id, changedBy);
+    } catch (chatError) {
+      console.error('Failed to delete request chat:', chatError);
+    }
+  }
 }
 
 export async function assignContractorsToRequest(
@@ -178,6 +190,38 @@ export async function assignContractorsToRequest(
     statusHistory: [...request.statusHistory, statusChange],
     updatedAt: serverTimestamp(),
   });
+
+  // Auto-create chat between partner (submitter) and assigned contractors
+  try {
+    const participants = [request.submittedBy, ...contractorIds];
+    const participantNames: Record<string, string> = {};
+
+    // Get partner name
+    const partnerProfile = await getUserProfile(request.submittedBy);
+    participantNames[request.submittedBy] = partnerProfile?.displayName || request.partnerCompany;
+
+    // Get contractor names
+    for (const cid of contractorIds) {
+      const contractor = await getContractorByUserId(cid);
+      if (contractor) {
+        participantNames[cid] = contractor.businessName || 'Contractor';
+      } else {
+        const profile = await getUserProfile(cid);
+        participantNames[cid] = profile?.displayName || 'Contractor';
+      }
+    }
+
+    await findOrCreateRequestChat(
+      id,
+      'labor',
+      participants,
+      participantNames,
+      assignedBy,
+      `${request.requestNumber} - ${request.workType}`
+    );
+  } catch (chatError) {
+    console.error('Failed to create request chat:', chatError);
+  }
 }
 
 export async function deleteLaborRequest(id: string): Promise<void> {

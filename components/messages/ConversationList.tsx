@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Pencil, Users, User, MessageSquarePlus, Briefcase } from 'lucide-react';
+import { Pencil, Users, User, MessageSquarePlus, Briefcase, Wrench } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
 import { useConversations } from '@/lib/hooks/useMessages';
 import { cn } from '@/lib/utils';
@@ -57,10 +57,14 @@ function ConversationItem({
       {/* Avatar */}
       <div className={cn(
         'flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center',
-        conversation.jobId ? 'bg-blue-500/20' : conversation.type === 'group' ? 'bg-brand-gold/20' : 'bg-gray-700'
+        conversation.jobId ? 'bg-blue-500/20' :
+        conversation.requestId ? 'bg-orange-500/20' :
+        conversation.type === 'group' ? 'bg-brand-gold/20' : 'bg-gray-700'
       )}>
         {conversation.jobId ? (
           <Briefcase className="w-5 h-5 text-blue-400" />
+        ) : conversation.requestId ? (
+          <Wrench className="w-5 h-5 text-orange-400" />
         ) : conversation.type === 'group' ? (
           <Users className="w-5 h-5 text-brand-gold" />
         ) : (

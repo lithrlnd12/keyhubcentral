@@ -17,6 +17,8 @@ export interface Conversation {
   participantNames: Record<string, string>;
   groupName?: string;
   jobId?: string | null;
+  requestId?: string | null;
+  requestType?: 'labor' | 'service' | null;
   lastMessage: {
     text: string;
     senderId: string;

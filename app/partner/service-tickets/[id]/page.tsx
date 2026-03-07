@@ -1,9 +1,12 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Phone, Mail, AlertTriangle, Calendar, CheckCircle, User, ImageIcon } from 'lucide-react';
-import { usePartnerTicket } from '@/lib/hooks';
+import { ArrowLeft, MapPin, Phone, Mail, AlertTriangle, Calendar, CheckCircle, User, ImageIcon, MessageCircle, Loader2 } from 'lucide-react';
+import { usePartnerTicket, useAuth } from '@/lib/hooks';
+import { findOrCreateRequestChat } from '@/lib/firebase/messages';
+import { getUserProfile } from '@/lib/firebase/auth';
 import { getPartnerTicketStatusLabel, PARTNER_TICKET_STATUS_ORDER, PartnerTicketStatus, URGENCY_OPTIONS } from '@/types/partner';
 import { Spinner } from '@/components/ui/Spinner';
 
@@ -18,8 +21,39 @@ const STATUS_COLORS: Record<PartnerTicketStatus, string> = {
 
 export default function ServiceTicketDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
+  const { user } = useAuth();
   const { ticket, loading, error } = usePartnerTicket(id, true);
+  const [startingChat, setStartingChat] = useState(false);
+
+  const handleChat = async () => {
+    if (!ticket || !user?.uid || !ticket.assignedTechId) return;
+    setStartingChat(true);
+    try {
+      const participants = [ticket.submittedBy, ticket.assignedTechId];
+      const participantNames: Record<string, string> = {};
+
+      for (const uid of participants) {
+        const profile = await getUserProfile(uid);
+        participantNames[uid] = profile?.displayName || 'Unknown';
+      }
+
+      const convId = await findOrCreateRequestChat(
+        id,
+        'service',
+        participants,
+        participantNames,
+        user.uid,
+        `${ticket.ticketNumber} - ${ticket.issueType}`
+      );
+      router.push(`/messages/${convId}`);
+    } catch (err) {
+      console.error('Failed to open chat:', err);
+    } finally {
+      setStartingChat(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -57,13 +91,29 @@ export default function ServiceTicketDetailPage() {
           <p className="text-gold font-mono text-sm">{ticket.ticketNumber}</p>
           <h1 className="text-2xl font-bold text-white capitalize">{ticket.issueType} Issue</h1>
         </div>
-        <span className={`text-sm px-3 py-1 rounded-full ${
-          ticket.status === 'complete'
-            ? 'bg-green-500/20 text-green-400'
-            : 'bg-blue-500/20 text-blue-400'
-        }`}>
-          {getPartnerTicketStatusLabel(ticket.status)}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`text-sm px-3 py-1 rounded-full ${
+            ticket.status === 'complete'
+              ? 'bg-green-500/20 text-green-400'
+              : 'bg-blue-500/20 text-blue-400'
+          }`}>
+            {getPartnerTicketStatusLabel(ticket.status)}
+          </span>
+          {['assigned', 'scheduled', 'in_progress'].includes(ticket.status) && ticket.assignedTechId && (
+            <button
+              onClick={handleChat}
+              disabled={startingChat}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-gold text-brand-black text-sm font-medium rounded-lg hover:bg-brand-gold-light transition-colors disabled:opacity-50"
+            >
+              {startingChat ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <MessageCircle className="w-4 h-4" />
+              )}
+              Chat with Tech
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Status Timeline */}

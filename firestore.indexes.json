@@ -450,6 +450,14 @@
         { "fieldPath": "type", "order": "ASCENDING" },
         { "fieldPath": "participants", "arrayConfig": "CONTAINS" }
       ]
+    },
+    {
+      "collectionGroup": "conversations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "requestId", "order": "ASCENDING" },
+        { "fieldPath": "participants", "arrayConfig": "CONTAINS" }
+      ]
     }
   ],
   "fieldOverrides": []

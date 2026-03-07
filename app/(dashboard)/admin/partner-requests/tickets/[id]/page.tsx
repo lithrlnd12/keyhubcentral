@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Building2,
@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   FileText,
   Image,
+  MessageCircle,
+  Loader2 as Loader2Icon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePartnerTicket } from '@/lib/hooks/usePartnerTickets';
@@ -25,6 +27,8 @@ import {
   assignTechToTicket,
   resolvePartnerTicket,
 } from '@/lib/firebase/partnerTickets';
+import { findOrCreateRequestChat } from '@/lib/firebase/messages';
+import { getUserProfile } from '@/lib/firebase/auth';
 import {
   PartnerTicketStatus,
   PARTNER_TICKET_STATUS_ORDER,
@@ -66,6 +70,7 @@ export default function ServiceTicketDetailPage() {
     initialFilters: { status: 'active' },
   });
 
+  const router = useRouter();
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedTech, setSelectedTech] = useState<string>('');
   const [scheduledDate, setScheduledDate] = useState<string>('');
@@ -73,6 +78,29 @@ export default function ServiceTicketDetailPage() {
   const [notes, setNotes] = useState('');
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [startingChat, setStartingChat] = useState(false);
+
+  const handleChat = async () => {
+    if (!ticket || !user?.uid || !ticket.assignedTechId) return;
+    setStartingChat(true);
+    try {
+      const participants = [ticket.submittedBy, ticket.assignedTechId];
+      const participantNames: Record<string, string> = {};
+      for (const uid of participants) {
+        const profile = await getUserProfile(uid);
+        participantNames[uid] = profile?.displayName || 'Unknown';
+      }
+      const convId = await findOrCreateRequestChat(
+        id, 'service', participants, participantNames, user.uid,
+        `${ticket.ticketNumber} - ${ticket.issueType}`
+      );
+      router.push(`/messages/${convId}`);
+    } catch (err) {
+      console.error('Failed to open chat:', err);
+    } finally {
+      setStartingChat(false);
+    }
+  };
 
   // Initialize form state when ticket loads
   useEffect(() => {
@@ -290,7 +318,23 @@ export default function ServiceTicketDetailPage() {
 
               {assignedTechName && (
                 <div>
-                  <p className="text-sm text-gray-400 mb-1">Assigned Technician</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm text-gray-400">Assigned Technician</p>
+                    {['assigned', 'scheduled', 'in_progress'].includes(ticket.status) && (
+                      <button
+                        onClick={handleChat}
+                        disabled={startingChat}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-gold text-brand-black text-sm font-medium rounded-lg hover:bg-brand-gold-light transition-colors disabled:opacity-50"
+                      >
+                        {startingChat ? (
+                          <Loader2Icon className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <MessageCircle className="w-4 h-4" />
+                        )}
+                        Open Chat
+                      </button>
+                    )}
+                  </div>
                   <p className="text-white flex items-center gap-2">
                     <User className="w-4 h-4 text-gold" />
                     {assignedTechName}

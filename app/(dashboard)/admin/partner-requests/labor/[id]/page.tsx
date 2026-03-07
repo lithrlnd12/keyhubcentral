@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Building2,
@@ -13,6 +13,8 @@ import {
   FileText,
   CheckCircle2,
   ImageIcon,
+  MessageCircle,
+  Loader2 as Loader2Icon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLaborRequest } from '@/lib/hooks/useLaborRequests';
@@ -22,6 +24,8 @@ import {
   updateLaborRequestStatus,
   assignContractorsToRequest,
 } from '@/lib/firebase/laborRequests';
+import { findOrCreateRequestChat } from '@/lib/firebase/messages';
+import { getUserProfile } from '@/lib/firebase/auth';
 import {
   LaborRequestStatus,
   LABOR_REQUEST_STATUS_ORDER,
@@ -55,11 +59,35 @@ export default function LaborRequestDetailPage() {
     initialFilters: { status: 'active' },
   });
 
+  const router = useRouter();
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [startingChat, setStartingChat] = useState(false);
+
+  const handleChat = async () => {
+    if (!request || !user?.uid) return;
+    setStartingChat(true);
+    try {
+      const participants = [request.submittedBy, ...request.assignedContractorIds];
+      const participantNames: Record<string, string> = {};
+      for (const uid of participants) {
+        const profile = await getUserProfile(uid);
+        participantNames[uid] = profile?.displayName || 'Unknown';
+      }
+      const convId = await findOrCreateRequestChat(
+        id, 'labor', participants, participantNames, user.uid,
+        `${request.requestNumber} - ${request.workType}`
+      );
+      router.push(`/messages/${convId}`);
+    } catch (err) {
+      console.error('Failed to open chat:', err);
+    } finally {
+      setStartingChat(false);
+    }
+  };
 
   // Initialize form state when request loads
   useState(() => {
@@ -256,7 +284,23 @@ export default function LaborRequestDetailPage() {
 
               {assignedContractorNames.length > 0 && (
                 <div>
-                  <p className="text-sm text-gray-400 mb-1">Assigned Contractors</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm text-gray-400">Assigned Contractors</p>
+                    {['assigned', 'in_progress'].includes(request.status) && (
+                      <button
+                        onClick={handleChat}
+                        disabled={startingChat}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-gold text-brand-black text-sm font-medium rounded-lg hover:bg-brand-gold-light transition-colors disabled:opacity-50"
+                      >
+                        {startingChat ? (
+                          <Loader2Icon className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <MessageCircle className="w-4 h-4" />
+                        )}
+                        Open Chat
+                      </button>
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {assignedContractorNames.map((name, i) => (
                       <span

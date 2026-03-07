@@ -1,9 +1,12 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Users, Calendar, Clock, CheckCircle, ImageIcon, FileText } from 'lucide-react';
-import { useLaborRequest } from '@/lib/hooks';
+import { ArrowLeft, MapPin, Users, Calendar, Clock, CheckCircle, ImageIcon, FileText, MessageCircle, Loader2 } from 'lucide-react';
+import { useLaborRequest, useAuth } from '@/lib/hooks';
+import { findOrCreateRequestChat } from '@/lib/firebase/messages';
+import { getUserProfile } from '@/lib/firebase/auth';
 import { getLaborRequestStatusLabel, LABOR_REQUEST_STATUS_ORDER, LaborRequestStatus } from '@/types/partner';
 import { Spinner } from '@/components/ui/Spinner';
 
@@ -19,8 +22,39 @@ const STATUS_COLORS: Record<LaborRequestStatus, string> = {
 
 export default function LaborRequestDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
+  const { user } = useAuth();
   const { request, loading, error } = useLaborRequest(id, true);
+  const [startingChat, setStartingChat] = useState(false);
+
+  const handleChat = async () => {
+    if (!request || !user?.uid) return;
+    setStartingChat(true);
+    try {
+      const participants = [request.submittedBy, ...request.assignedContractorIds];
+      const participantNames: Record<string, string> = {};
+
+      for (const uid of participants) {
+        const profile = await getUserProfile(uid);
+        participantNames[uid] = profile?.displayName || 'Unknown';
+      }
+
+      const convId = await findOrCreateRequestChat(
+        id,
+        'labor',
+        participants,
+        participantNames,
+        user.uid,
+        `${request.requestNumber} - ${request.workType}`
+      );
+      router.push(`/messages/${convId}`);
+    } catch (err) {
+      console.error('Failed to open chat:', err);
+    } finally {
+      setStartingChat(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -57,15 +91,31 @@ export default function LaborRequestDetailPage() {
           <p className="text-gold font-mono text-sm">{request.requestNumber}</p>
           <h1 className="text-2xl font-bold text-white capitalize">{request.workType} Request</h1>
         </div>
-        <span className={`text-sm px-3 py-1 rounded-full ${
-          request.status === 'complete'
-            ? 'bg-green-500/20 text-green-400'
-            : request.status === 'cancelled'
-            ? 'bg-red-500/20 text-red-400'
-            : 'bg-blue-500/20 text-blue-400'
-        }`}>
-          {getLaborRequestStatusLabel(request.status)}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`text-sm px-3 py-1 rounded-full ${
+            request.status === 'complete'
+              ? 'bg-green-500/20 text-green-400'
+              : request.status === 'cancelled'
+              ? 'bg-red-500/20 text-red-400'
+              : 'bg-blue-500/20 text-blue-400'
+          }`}>
+            {getLaborRequestStatusLabel(request.status)}
+          </span>
+          {['assigned', 'in_progress'].includes(request.status) && request.assignedContractorIds.length > 0 && (
+            <button
+              onClick={handleChat}
+              disabled={startingChat}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-gold text-brand-black text-sm font-medium rounded-lg hover:bg-brand-gold-light transition-colors disabled:opacity-50"
+            >
+              {startingChat ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <MessageCircle className="w-4 h-4" />
+              )}
+              Chat with Crew
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Status Timeline */}

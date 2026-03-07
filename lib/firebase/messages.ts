@@ -348,6 +348,96 @@ export async function updateGroupName(
   await updateDoc(doc(db, CONVERSATIONS, conversationId), { groupName });
 }
 
+// ---------- Find or create request-linked chat ----------
+
+export async function findOrCreateRequestChat(
+  requestId: string,
+  requestType: 'labor' | 'service',
+  participants: string[],
+  participantNames: Record<string, string>,
+  createdBy: string,
+  groupName: string
+): Promise<string> {
+  // Look for existing conversation linked to this request
+  const q = query(
+    collection(db, CONVERSATIONS),
+    where('requestId', '==', requestId),
+    where('participants', 'array-contains', createdBy)
+  );
+  const snapshot = await getDocs(q);
+
+  if (!snapshot.empty) {
+    const existing = snapshot.docs[0];
+    const data = existing.data();
+    const existingParticipants = data.participants as string[];
+
+    // Sync participants — add any new members
+    const newMembers = participants.filter((p) => !existingParticipants.includes(p));
+    if (newMembers.length > 0) {
+      const updates: Record<string, unknown> = {
+        participants: [...existingParticipants, ...newMembers],
+      };
+      for (const uid of newMembers) {
+        updates[`participantNames.${uid}`] = participantNames[uid] || 'Unknown';
+        updates[`unreadCount.${uid}`] = 0;
+      }
+      await updateDoc(existing.ref, updates);
+    }
+
+    return existing.id;
+  }
+
+  // Create new request-linked group conversation
+  const unreadCount: Record<string, number> = {};
+  for (const uid of participants) {
+    unreadCount[uid] = 0;
+  }
+
+  const docRef = await addDoc(collection(db, CONVERSATIONS), {
+    type: participants.length > 2 ? 'group' : '1:1',
+    participants,
+    participantNames,
+    groupName: participants.length > 2 ? groupName : null,
+    requestId,
+    requestType,
+    lastMessage: null,
+    unreadCount,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    createdBy,
+  });
+
+  return docRef.id;
+}
+
+// ---------- Delete request-linked chat ----------
+
+export async function deleteRequestChat(
+  requestId: string,
+  userId: string
+): Promise<void> {
+  const q = query(
+    collection(db, CONVERSATIONS),
+    where('requestId', '==', requestId),
+    where('participants', 'array-contains', userId)
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) return;
+
+  for (const convDoc of snapshot.docs) {
+    const messagesSnap = await getDocs(
+      collection(db, CONVERSATIONS, convDoc.id, MESSAGES)
+    );
+    const batch = writeBatch(db);
+    messagesSnap.docs.forEach((msgDoc) => batch.delete(msgDoc.ref));
+    if (messagesSnap.docs.length > 0) {
+      await batch.commit();
+    }
+    await deleteDoc(convDoc.ref);
+  }
+}
+
 // ---------- Delete job-linked chat ----------
 
 export async function deleteJobChat(
