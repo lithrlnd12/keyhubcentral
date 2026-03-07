@@ -125,8 +125,8 @@ function ConversationItem({
 
   return (
     <div ref={itemRef} className="relative overflow-hidden">
-      {/* Action buttons behind (revealed on swipe) */}
-      <div className="absolute inset-y-0 right-0 flex">
+      {/* Action buttons behind (revealed on swipe) - mobile only */}
+      <div className="absolute inset-y-0 right-0 flex md:hidden">
         <button
           onClick={(e) => { e.stopPropagation(); onArchive(); }}
           className="w-20 flex flex-col items-center justify-center bg-green-600 text-white text-xs font-medium gap-1"
