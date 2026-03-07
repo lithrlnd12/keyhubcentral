@@ -470,6 +470,48 @@ export async function deleteJobChat(
   }
 }
 
+// ---------- Delete conversation ----------
+
+export async function deleteConversation(
+  conversationId: string
+): Promise<void> {
+  // Delete all messages in the subcollection first
+  const messagesSnap = await getDocs(
+    collection(db, CONVERSATIONS, conversationId, MESSAGES)
+  );
+
+  // Batch delete in chunks of 500 (Firestore limit)
+  const docs = messagesSnap.docs;
+  for (let i = 0; i < docs.length; i += 500) {
+    const batch = writeBatch(db);
+    docs.slice(i, i + 500).forEach((msgDoc) => batch.delete(msgDoc.ref));
+    await batch.commit();
+  }
+
+  // Delete the conversation document
+  await deleteDoc(doc(db, CONVERSATIONS, conversationId));
+}
+
+// ---------- Archive conversation ----------
+
+export async function archiveConversation(
+  conversationId: string,
+  userId: string
+): Promise<void> {
+  await updateDoc(doc(db, CONVERSATIONS, conversationId), {
+    archivedBy: arrayUnion(userId),
+  });
+}
+
+export async function unarchiveConversation(
+  conversationId: string,
+  userId: string
+): Promise<void> {
+  await updateDoc(doc(db, CONVERSATIONS, conversationId), {
+    archivedBy: arrayRemove(userId),
+  });
+}
+
 // ---------- Reactions ----------
 
 export async function toggleReaction(

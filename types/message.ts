@@ -29,4 +29,5 @@ export interface Conversation {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   createdBy: string;
+  archivedBy?: string[];
 }

@@ -1,9 +1,11 @@
 'use client';
 
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Users, User, MessageSquarePlus, Briefcase, Wrench } from 'lucide-react';
+import { Pencil, Users, User, MessageSquarePlus, Briefcase, Wrench, Archive, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
 import { useConversations } from '@/lib/hooks/useMessages';
+import { deleteConversation, archiveConversation } from '@/lib/firebase/messages';
 import { cn } from '@/lib/utils';
 import type { Conversation } from '@/types/message';
 
@@ -20,19 +22,39 @@ function timeAgo(timestamp: { toDate: () => Date } | null): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// Swipe threshold in pixels
+const SWIPE_THRESHOLD = 80;
+const ACTION_WIDTH = 160; // total width of both action buttons
+
 function ConversationItem({
   conversation,
   currentUserId,
   isActive,
   onClick,
+  onArchive,
+  onDelete,
 }: {
   conversation: Conversation;
   currentUserId: string;
   isActive: boolean;
   onClick: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
 }) {
   const unread = conversation.unreadCount?.[currentUserId] || 0;
   const lastMsg = conversation.lastMessage;
+
+  // Swipe state
+  const [offsetX, setOffsetX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isHorizontalSwipe = useRef<boolean | null>(null);
+  const itemRef = useRef<HTMLDivElement>(null);
+
+  // Context menu state (desktop)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   // Display name: group name, or the other person's name for 1:1
   const displayName =
@@ -45,66 +67,211 @@ function ConversationItem({
 
   const participantCount = conversation.participants.length;
 
+  // --- Touch handlers for swipe ---
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isHorizontalSwipe.current = null;
+    setSwiping(true);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!swiping) return;
+
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+
+    // Determine swipe direction on first significant movement
+    if (isHorizontalSwipe.current === null) {
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        isHorizontalSwipe.current = Math.abs(dx) > Math.abs(dy);
+      }
+      return;
+    }
+
+    if (!isHorizontalSwipe.current) return;
+
+    e.preventDefault();
+
+    // Only allow swiping left (negative offset)
+    const startOffset = revealed ? -ACTION_WIDTH : 0;
+    const raw = startOffset + dx;
+    const clamped = Math.max(-ACTION_WIDTH, Math.min(0, raw));
+    setOffsetX(clamped);
+  }, [swiping, revealed]);
+
+  const handleTouchEnd = useCallback(() => {
+    setSwiping(false);
+    isHorizontalSwipe.current = null;
+
+    if (offsetX < -SWIPE_THRESHOLD) {
+      // Reveal actions
+      setOffsetX(-ACTION_WIDTH);
+      setRevealed(true);
+    } else {
+      // Snap back
+      setOffsetX(0);
+      setRevealed(false);
+    }
+  }, [offsetX]);
+
+  // Close swipe on outside tap
+  useEffect(() => {
+    if (!revealed) return;
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (itemRef.current && !itemRef.current.contains(e.target as Node)) {
+        setOffsetX(0);
+        setRevealed(false);
+      }
+    };
+    document.addEventListener('touchstart', handleOutsideClick);
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('touchstart', handleOutsideClick);
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [revealed]);
+
+  // --- Right-click handler (desktop) ---
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  // Close context menu
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    window.addEventListener('click', close);
+    window.addEventListener('contextmenu', close);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('contextmenu', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [contextMenu]);
+
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
-        isActive ? 'bg-gray-800' : 'hover:bg-gray-800/50',
-        unread > 0 && 'bg-gray-800/30'
-      )}
-    >
-      {/* Avatar */}
-      <div className={cn(
-        'flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center',
-        conversation.jobId ? 'bg-blue-500/20' :
-        conversation.requestId ? 'bg-orange-500/20' :
-        conversation.type === 'group' ? 'bg-brand-gold/20' : 'bg-gray-700'
-      )}>
-        {conversation.jobId ? (
-          <Briefcase className="w-5 h-5 text-blue-400" />
-        ) : conversation.requestId ? (
-          <Wrench className="w-5 h-5 text-orange-400" />
-        ) : conversation.type === 'group' ? (
-          <Users className="w-5 h-5 text-brand-gold" />
-        ) : (
-          <User className="w-5 h-5 text-gray-400" />
-        )}
+    <div ref={itemRef} className="relative overflow-hidden">
+      {/* Action buttons behind the item (revealed on swipe) */}
+      <div className="absolute inset-y-0 right-0 flex">
+        <button
+          onClick={(e) => { e.stopPropagation(); onArchive(); }}
+          className="w-20 flex flex-col items-center justify-center bg-green-600 text-white text-xs font-medium gap-1"
+        >
+          <Archive className="w-5 h-5" />
+          Archive
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="w-20 flex flex-col items-center justify-center bg-red-600 text-white text-xs font-medium gap-1"
+        >
+          <Trash2 className="w-5 h-5" />
+          Delete
+        </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <span className={cn(
-            'text-sm truncate',
-            unread > 0 ? 'text-white font-semibold' : 'text-gray-200 font-medium'
-          )}>
-            {displayName}
-          </span>
-          <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
-            {timeAgo(lastMsg?.timestamp as any)}
-          </span>
-        </div>
-        <div className="flex items-center justify-between mt-0.5">
-          <p className={cn(
-            'text-sm truncate',
-            unread > 0 ? 'text-gray-300' : 'text-gray-500'
-          )}>
-            {lastMsg
-              ? `${lastMsg.senderId === currentUserId ? 'You: ' : ''}${lastMsg.text}`
-              : 'No messages yet'}
-          </p>
-          {unread > 0 && (
-            <span className="flex-shrink-0 ml-2 bg-brand-gold text-brand-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-              {unread > 9 ? '9+' : unread}
-            </span>
+      {/* Swipeable content */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onContextMenu={handleContextMenu}
+        onClick={() => {
+          if (revealed) {
+            setOffsetX(0);
+            setRevealed(false);
+          } else {
+            onClick();
+          }
+        }}
+        style={{
+          transform: `translateX(${offsetX}px)`,
+          transition: swiping ? 'none' : 'transform 0.25s ease-out',
+        }}
+        className={cn(
+          'relative flex items-center gap-3 px-4 py-3 text-left cursor-pointer bg-brand-black',
+          isActive ? 'bg-gray-800' : 'hover:bg-gray-800/50',
+          unread > 0 && 'bg-gray-800/30'
+        )}
+      >
+        {/* Avatar */}
+        <div className={cn(
+          'flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center',
+          conversation.jobId ? 'bg-blue-500/20' :
+          conversation.requestId ? 'bg-orange-500/20' :
+          conversation.type === 'group' ? 'bg-brand-gold/20' : 'bg-gray-700'
+        )}>
+          {conversation.jobId ? (
+            <Briefcase className="w-5 h-5 text-blue-400" />
+          ) : conversation.requestId ? (
+            <Wrench className="w-5 h-5 text-orange-400" />
+          ) : conversation.type === 'group' ? (
+            <Users className="w-5 h-5 text-brand-gold" />
+          ) : (
+            <User className="w-5 h-5 text-gray-400" />
           )}
         </div>
-        {conversation.type === 'group' && (
-          <p className="text-xs text-gray-600 mt-0.5">{participantCount} members</p>
-        )}
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <span className={cn(
+              'text-sm truncate',
+              unread > 0 ? 'text-white font-semibold' : 'text-gray-200 font-medium'
+            )}>
+              {displayName}
+            </span>
+            <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
+              {timeAgo(lastMsg?.timestamp as any)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className={cn(
+              'text-sm truncate',
+              unread > 0 ? 'text-gray-300' : 'text-gray-500'
+            )}>
+              {lastMsg
+                ? `${lastMsg.senderId === currentUserId ? 'You: ' : ''}${lastMsg.text}`
+                : 'No messages yet'}
+            </p>
+            {unread > 0 && (
+              <span className="flex-shrink-0 ml-2 bg-brand-gold text-brand-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </div>
+          {conversation.type === 'group' && (
+            <p className="text-xs text-gray-600 mt-0.5">{participantCount} members</p>
+          )}
+        </div>
       </div>
-    </button>
+
+      {/* Desktop context menu */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-gray-900 border border-gray-700 rounded-lg shadow-xl py-1 min-w-[160px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => { setContextMenu(null); onArchive(); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-800 transition-colors"
+          >
+            <Archive className="w-4 h-4 text-green-400" />
+            Archive
+          </button>
+          <button
+            onClick={() => { setContextMenu(null); onDelete(); }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-gray-800 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -112,6 +279,26 @@ export function ConversationList({ activeId }: { activeId?: string }) {
   const router = useRouter();
   const { user } = useAuth();
   const { conversations, loading } = useConversations();
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const handleArchive = async (convId: string) => {
+    if (!user?.uid) return;
+    await archiveConversation(convId, user.uid);
+  };
+
+  const handleDelete = (convId: string) => {
+    setConfirmDelete(convId);
+  };
+
+  const confirmDeleteAction = async () => {
+    if (!confirmDelete) return;
+    await deleteConversation(confirmDelete);
+    setConfirmDelete(null);
+    // Navigate away if we deleted the active conversation
+    if (confirmDelete === activeId) {
+      router.push('/messages');
+    }
+  };
 
   if (loading) {
     return (
@@ -156,6 +343,8 @@ export function ConversationList({ activeId }: { activeId?: string }) {
               currentUserId={user?.uid || ''}
               isActive={conv.id === activeId}
               onClick={() => router.push(`/messages/${conv.id}`)}
+              onArchive={() => handleArchive(conv.id)}
+              onDelete={() => handleDelete(conv.id)}
             />
           ))
         )}
@@ -169,6 +358,32 @@ export function ConversationList({ activeId }: { activeId?: string }) {
       >
         <Pencil className="w-6 h-6" />
       </button>
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-semibold text-white mb-2">Delete conversation?</h3>
+            <p className="text-sm text-gray-400 mb-6">
+              This will permanently delete this conversation and all its messages. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-gray-800 text-gray-300 text-sm font-medium hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteAction}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-500 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

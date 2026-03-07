@@ -30,7 +30,8 @@ export function useConversations() {
 
     setLoading(true);
     const unsubscribe = subscribeToConversations(user.uid, (data) => {
-      setConversations(data);
+      // Filter out conversations archived by this user
+      setConversations(data.filter((c) => !c.archivedBy?.includes(user.uid)));
       setLoading(false);
     });
 
