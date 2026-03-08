@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { Invoice, InvoiceStatus, InvoiceEntity, LineItem, NET_TERMS_DAYS } from '@/types/invoice';
+import { tenant } from '@/lib/config/tenant';
 
 const COLLECTION = 'invoices';
 
@@ -305,8 +306,8 @@ export async function generateLaborInvoice(
 
   return createInvoice({
     invoiceNumber,
-    from: { entity: 'kts', name: 'Key Trade Solutions' },
-    to: { entity: 'kr', name: 'Key Renovations' },
+    from: { entity: 'kts', name: tenant.entities.kts.label },
+    to: { entity: 'kr', name: tenant.entities.kr.label },
     lineItems,
     subtotal,
     discount: 0,
@@ -339,8 +340,8 @@ export async function generateLeadFeeInvoice(
 
   return createInvoice({
     invoiceNumber,
-    from: { entity: 'kd', name: 'Keynote Digital' },
-    to: { entity: 'kr', name: 'Key Renovations' },
+    from: { entity: 'kd', name: tenant.entities.kd.label },
+    to: { entity: 'kr', name: tenant.entities.kr.label },
     lineItems,
     subtotal,
     discount: 0,
@@ -381,7 +382,7 @@ export async function generateSubscriptionInvoice(
 
   return createInvoice({
     invoiceNumber,
-    from: { entity: 'kd', name: 'Keynote Digital' },
+    from: { entity: 'kd', name: tenant.entities.kd.label },
     to: { entity: 'subscriber', name: subscriberName, email: subscriberEmail },
     lineItems,
     subtotal,
@@ -540,9 +541,10 @@ export async function createContractorInvoice(
   contractorEmail: string | undefined,
   toEntity: InvoiceEntity,
   lineItems: LineItem[],
-  discount: number = 0
+  discount: number = 0,
+  customInvoiceNumber?: string
 ): Promise<string> {
-  const invoiceNumber = await generateContractorInvoiceNumber(contractorId);
+  const invoiceNumber = customInvoiceNumber || await generateContractorInvoiceNumber(contractorId);
   const { subtotal, total } = calculateInvoiceTotals(lineItems, discount);
 
   return createInvoice({

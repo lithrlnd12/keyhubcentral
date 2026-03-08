@@ -2,20 +2,23 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Timestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import {
   createInvoice,
   updateInvoice,
+  getInvoice,
   generateInvoiceNumber,
   calculateDueDate,
   calculateInvoiceTotals,
 } from '@/lib/firebase/invoices';
 import { Invoice, InvoiceEntity, LineItem, NET_TERMS_DAYS } from '@/types/invoice';
 import { formatCurrency } from '@/lib/utils/formatters';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Plus, Trash2, Save, Download, Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { tenant } from '@/lib/config/tenant';
+import { pdf } from '@react-pdf/renderer';
+import { InvoicePDFDocument } from '@/components/pdf/InvoicePDFDocument';
 
 interface InvoiceFormProps {
   invoice?: Invoice;
@@ -23,9 +26,9 @@ interface InvoiceFormProps {
 }
 
 const fromEntityOptions: { value: InvoiceEntity['entity']; label: string }[] = [
-  { value: 'kd', label: 'Keynote Digital' },
-  { value: 'kts', label: 'Key Trade Solutions' },
-  { value: 'kr', label: 'Key Renovations' },
+  { value: 'kd', label: tenant.entities.kd.label },
+  { value: 'kts', label: tenant.entities.kts.label },
+  { value: 'kr', label: tenant.entities.kr.label },
 ];
 
 const toEntityOptions: { value: InvoiceEntity['entity']; label: string }[] = [
@@ -43,9 +46,11 @@ const defaultLineItem: LineItem = {
 export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Form state
+  const [customInvoiceNumber, setCustomInvoiceNumber] = useState('');
   const [fromEntity, setFromEntity] = useState<InvoiceEntity['entity']>(
     invoice?.from.entity || 'kd'
   );
@@ -64,11 +69,11 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
   const getDefaultEntityName = (entity: InvoiceEntity['entity']): string => {
     switch (entity) {
       case 'kd':
-        return 'Keynote Digital';
+        return tenant.entities.kd.label;
       case 'kts':
-        return 'Key Trade Solutions';
+        return tenant.entities.kts.label;
       case 'kr':
-        return 'Key Renovations';
+        return tenant.entities.kr.label;
       default:
         return '';
     }
@@ -104,10 +109,28 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
   // Calculate totals
   const { subtotal, total } = calculateInvoiceTotals(lineItems, discount);
 
+  // Download PDF for an invoice
+  const downloadInvoicePdf = async (inv: Invoice) => {
+    const doc = <InvoicePDFDocument invoice={inv} />;
+    const blob = await pdf(doc).toBlob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Invoice-${inv.invoiceNumber}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Handle submit
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, downloadPdf = false) => {
     e.preventDefault();
-    setLoading(true);
+    if (downloadPdf) {
+      setDownloadingPdf(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -128,7 +151,7 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
       };
 
       if (mode === 'create') {
-        const invoiceNumber = await generateInvoiceNumber(
+        const invoiceNumber = customInvoiceNumber.trim() || await generateInvoiceNumber(
           fromEntity === 'kd' ? 'KD' : fromEntity === 'kts' ? 'KTS' : 'KR'
         );
 
@@ -146,6 +169,11 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
           paidAt: null,
         });
 
+        if (downloadPdf) {
+          const created = await getInvoice(id);
+          if (created) await downloadInvoicePdf(created);
+        }
+
         router.push(`/financials/invoices/${id}`);
       } else if (invoice) {
         await updateInvoice(invoice.id, {
@@ -157,12 +185,18 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
           total,
         });
 
+        if (downloadPdf) {
+          const updated = await getInvoice(invoice.id);
+          if (updated) await downloadInvoicePdf(updated);
+        }
+
         router.push(`/financials/invoices/${invoice.id}`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save invoice');
     } finally {
       setLoading(false);
+      setDownloadingPdf(false);
     }
   };
 
@@ -172,6 +206,30 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
           <p className="text-red-400">{error}</p>
         </div>
+      )}
+
+      {/* Custom Invoice Number */}
+      {mode === 'create' && (
+        <Card>
+          <CardContent className="pt-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                <Hash className="w-3.5 h-3.5 inline mr-1" />
+                Invoice Number
+              </label>
+              <input
+                type="text"
+                value={customInvoiceNumber}
+                onChange={(e) => setCustomInvoiceNumber(e.target.value)}
+                placeholder="Leave blank to auto-generate (e.g. INV-2026-0001)"
+                className="w-full bg-brand-black border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-brand-gold"
+              />
+              <p className="text-xs text-gray-500 mt-1.5">
+                Enter a custom invoice number or leave blank for auto-numbering
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* From / To */}
@@ -396,16 +454,26 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center justify-end gap-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
         <Button
           type="button"
           variant="secondary"
           onClick={() => router.back()}
-          disabled={loading}
+          disabled={loading || downloadingPdf}
         >
           Cancel
         </Button>
-        <Button type="submit" loading={loading}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={(e) => handleSubmit(e as unknown as React.FormEvent, true)}
+          loading={downloadingPdf}
+          disabled={loading}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          {mode === 'create' ? 'Create & Download PDF' : 'Save & Download PDF'}
+        </Button>
+        <Button type="submit" loading={loading} disabled={downloadingPdf}>
           <Save className="w-4 h-4 mr-2" />
           {mode === 'create' ? 'Create Invoice' : 'Save Changes'}
         </Button>

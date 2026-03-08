@@ -3,21 +3,24 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Trash2, Send, Save } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Send, Save, Download, Hash } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useAuth, useContractorJobs } from '@/lib/hooks';
 import { findAndLinkContractor } from '@/lib/firebase/contractors';
-import { createContractorInvoice, markInvoiceAsSent } from '@/lib/firebase/invoices';
+import { createContractorInvoice, markInvoiceAsSent, getInvoice } from '@/lib/firebase/invoices';
 import { Contractor } from '@/types/contractor';
 import { Job } from '@/types/job';
-import { LineItem, InvoiceEntity } from '@/types/invoice';
+import { LineItem, InvoiceEntity, Invoice } from '@/types/invoice';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { tenant } from '@/lib/config/tenant';
+import { pdf } from '@react-pdf/renderer';
+import { InvoicePDFDocument } from '@/components/pdf/InvoicePDFDocument';
 
 const BILL_TO_OPTIONS = [
-  { value: 'kts', label: 'Key Trade Solutions (KTS)' },
+  { value: 'kts', label: `${tenant.entities.kts.label} (${tenant.entities.kts.shortLabel})` },
   { value: 'customer', label: 'Customer (from a job)' },
 ];
 
@@ -30,6 +33,7 @@ export default function NewContractorInvoicePage() {
   const [error, setError] = useState<string | null>(null);
 
   // Form state
+  const [customInvoiceNumber, setCustomInvoiceNumber] = useState('');
   const [billToType, setBillToType] = useState<'kts' | 'customer'>('kts');
   const [selectedJobId, setSelectedJobId] = useState<string>('');
   const [lineItems, setLineItems] = useState<LineItem[]>([
@@ -103,7 +107,7 @@ export default function NewContractorInvoicePage() {
   // Build toEntity
   const getToEntity = (): InvoiceEntity => {
     if (billToType === 'kts') {
-      return { entity: 'kts', name: 'Key Trade Solutions' };
+      return { entity: 'kts', name: tenant.entities.kts.label };
     }
 
     if (selectedJob) {
@@ -117,8 +121,22 @@ export default function NewContractorInvoicePage() {
     return { entity: 'customer', name: 'Unknown Customer' };
   };
 
+  // Download PDF for an invoice
+  const downloadInvoicePdf = async (inv: Invoice) => {
+    const doc = <InvoicePDFDocument invoice={inv} />;
+    const blob = await pdf(doc).toBlob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Invoice-${inv.invoiceNumber}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Submit invoice
-  const handleSubmit = async (sendImmediately: boolean) => {
+  const handleSubmit = async (sendImmediately: boolean, downloadPdf = false) => {
     if (!user?.uid || !contractor) return;
 
     // Validation
@@ -141,17 +159,29 @@ export default function NewContractorInvoicePage() {
       setSubmitting(true);
       setError(null);
 
+      const contractorName = contractor.businessName || user.displayName || 'Contractor';
+      const toEntity = getToEntity();
+      const trimmedCustomNumber = customInvoiceNumber.trim() || undefined;
+
       const invoiceId = await createContractorInvoice(
         user.uid,
-        contractor.businessName || user.displayName || 'Contractor',
+        contractorName,
         user.email || undefined,
-        getToEntity(),
+        toEntity,
         lineItems,
-        discount
+        discount,
+        trimmedCustomNumber
       );
 
       if (sendImmediately) {
         await markInvoiceAsSent(invoiceId);
+      }
+
+      if (downloadPdf) {
+        const created = await getInvoice(invoiceId);
+        if (created) {
+          await downloadInvoicePdf(created);
+        }
       }
 
       router.push(`/portal/financials/invoices/${invoiceId}`);
@@ -192,6 +222,22 @@ export default function NewContractorInvoicePage() {
           <p className="text-red-400">{error}</p>
         </Card>
       )}
+
+      {/* Custom Invoice Number */}
+      <Card className="p-4">
+        <label className="block text-sm font-medium text-gray-400 mb-2">
+          <Hash className="w-3.5 h-3.5 inline mr-1" />
+          Invoice Number
+        </label>
+        <Input
+          value={customInvoiceNumber}
+          onChange={(e) => setCustomInvoiceNumber(e.target.value)}
+          placeholder="Leave blank to auto-generate"
+        />
+        <p className="text-xs text-gray-500 mt-1.5">
+          Enter a custom invoice number or leave blank for auto-numbering
+        </p>
+      </Card>
 
       {/* From Section */}
       <Card className="p-4">
@@ -252,7 +298,7 @@ export default function NewContractorInvoicePage() {
 
           {billToType === 'kts' && (
             <div className="bg-gray-800/50 p-3 rounded-lg">
-              <p className="text-white font-medium">Key Trade Solutions</p>
+              <p className="text-white font-medium">{tenant.entities.kts.label}</p>
               <p className="text-sm text-gray-400">Labor & Services Invoice</p>
             </div>
           )}
@@ -353,7 +399,7 @@ export default function NewContractorInvoicePage() {
       </Card>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-3">
         <Button
           variant="outline"
           onClick={() => handleSubmit(false)}
@@ -362,6 +408,15 @@ export default function NewContractorInvoicePage() {
         >
           <Save className="h-4 w-4 mr-2" />
           Save as Draft
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => handleSubmit(false, true)}
+          disabled={submitting}
+          className="flex-1"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Save & Download PDF
         </Button>
         <Button
           onClick={() => handleSubmit(true)}
