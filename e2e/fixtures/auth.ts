@@ -75,7 +75,7 @@ export async function loginAs(page: Page, role: TestUserRole): Promise<void> {
 
   // Fill in credentials
   const emailInput = page.getByLabel(/email/i);
-  const passwordInput = page.getByLabel(/password/i);
+  const passwordInput = page.locator('input[type="password"]');
 
   await emailInput.click();
   await emailInput.fill(user.email);
