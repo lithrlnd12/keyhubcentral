@@ -162,19 +162,48 @@ export function JobCrew({ job, canEdit, onUpdate }: JobCrewProps) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <Users className="w-5 h-5 text-brand-gold" />
-          Assigned Crew ({crew.length})
-        </CardTitle>
-        <div className="flex gap-2 w-full sm:w-auto">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-brand-gold" />
+            Assigned Crew ({crew.length})
+          </CardTitle>
+          {/* Desktop: inline buttons */}
+          <div className="hidden sm:flex gap-2">
+            {crew.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleChatWithCrew}
+                disabled={startingChat}
+              >
+                {startingChat ? (
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <MessageCircle className="w-4 h-4 mr-1" />
+                )}
+                Chat with Crew
+              </Button>
+            )}
+            {canEdit && (
+              <Link href={`/kr/${job.id}/edit?tab=crew`}>
+                <Button variant="outline" size="sm">
+                  <UserPlus className="w-4 h-4 mr-1" />
+                  Manage Crew
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+        {/* Mobile: full-width buttons below title */}
+        <div className="flex gap-2 mt-3 sm:hidden">
           {crew.length > 0 && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleChatWithCrew}
               disabled={startingChat}
-              className="flex-1 sm:flex-none"
+              className="flex-1"
             >
               {startingChat ? (
                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -185,7 +214,7 @@ export function JobCrew({ job, canEdit, onUpdate }: JobCrewProps) {
             </Button>
           )}
           {canEdit && (
-            <Link href={`/kr/${job.id}/edit?tab=crew`} className="flex-1 sm:flex-none">
+            <Link href={`/kr/${job.id}/edit?tab=crew`} className="flex-1">
               <Button variant="outline" size="sm" className="w-full">
                 <UserPlus className="w-4 h-4 mr-1" />
                 Manage
