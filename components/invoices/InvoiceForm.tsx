@@ -50,7 +50,7 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Form state
-  const [customInvoiceNumber, setCustomInvoiceNumber] = useState('');
+  const [customInvoiceNumber, setCustomInvoiceNumber] = useState(invoice?.invoiceNumber || '');
   const [fromEntity, setFromEntity] = useState<InvoiceEntity['entity']>(
     invoice?.from.entity || 'kd'
   );
@@ -177,6 +177,9 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
         router.push(`/financials/invoices/${id}`);
       } else if (invoice) {
         await updateInvoice(invoice.id, {
+          ...(customInvoiceNumber.trim() && customInvoiceNumber.trim() !== invoice.invoiceNumber
+            ? { invoiceNumber: customInvoiceNumber.trim() }
+            : {}),
           from: fromEntityData,
           to: toEntityData,
           lineItems,
@@ -209,28 +212,28 @@ export function InvoiceForm({ invoice, mode }: InvoiceFormProps) {
       )}
 
       {/* Custom Invoice Number */}
-      {mode === 'create' && (
-        <Card>
-          <CardContent className="pt-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                <Hash className="w-3.5 h-3.5 inline mr-1" />
-                Invoice Number
-              </label>
-              <input
-                type="text"
-                value={customInvoiceNumber}
-                onChange={(e) => setCustomInvoiceNumber(e.target.value)}
-                placeholder="Leave blank to auto-generate (e.g. INV-2026-0001)"
-                className="w-full bg-brand-black border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-brand-gold"
-              />
+      <Card>
+        <CardContent className="pt-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-400 mb-2">
+              <Hash className="w-3.5 h-3.5 inline mr-1" />
+              Invoice Number
+            </label>
+            <input
+              type="text"
+              value={customInvoiceNumber}
+              onChange={(e) => setCustomInvoiceNumber(e.target.value)}
+              placeholder={mode === 'create' ? 'Leave blank to auto-generate (e.g. INV-2026-0001)' : 'Invoice number'}
+              className="w-full bg-brand-black border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:border-brand-gold"
+            />
+            {mode === 'create' && (
               <p className="text-xs text-gray-500 mt-1.5">
                 Enter a custom invoice number or leave blank for auto-numbering
               </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* From / To */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
