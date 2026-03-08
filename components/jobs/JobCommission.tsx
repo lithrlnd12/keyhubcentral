@@ -30,11 +30,13 @@ const STATUS_LABELS: Record<CommissionStatus, string> = {
   paid: 'Paid',
 };
 
-// Default commission rates per PRD
+import { tenant, formatCommissionLabel } from '@/lib/config/tenant';
+
+// Default commission rates from tenant config
 const DEFAULT_COMMISSION_RATES = [
-  { label: 'Standard (8%)', value: 0.08 },
-  { label: 'Pro (9%)', value: 0.09 },
-  { label: 'Elite (10%)', value: 0.10 },
+  { label: formatCommissionLabel('standard'), value: tenant.commissionRates.standard },
+  { label: formatCommissionLabel('pro'), value: tenant.commissionRates.pro },
+  { label: formatCommissionLabel('elite'), value: tenant.commissionRates.elite },
 ];
 
 export function JobCommission({ job, canEdit, canApprove, userId, onUpdate }: JobCommissionProps) {
@@ -44,20 +46,34 @@ export function JobCommission({ job, canEdit, canApprove, userId, onUpdate }: Jo
     job.commission?.contractValue?.toString() || ''
   );
   const [rate, setRate] = useState(job.commission?.rate || 0.08);
+  const [useManualAmount, setUseManualAmount] = useState(false);
+  const [manualAmount, setManualAmount] = useState(
+    job.commission?.amount?.toString() || ''
+  );
   const [notes, setNotes] = useState(job.commission?.notes || '');
 
   const commission = job.commission;
-  const calculatedAmount = parseFloat(contractValue || '0') * rate;
+  const calculatedAmount = useManualAmount
+    ? parseFloat(manualAmount || '0')
+    : parseFloat(contractValue || '0') * rate;
 
   const handleSave = async () => {
-    if (!contractValue || parseFloat(contractValue) <= 0) return;
+    if (useManualAmount) {
+      if (!manualAmount || parseFloat(manualAmount) <= 0) return;
+    } else {
+      if (!contractValue || parseFloat(contractValue) <= 0) return;
+    }
 
     setSaving(true);
     try {
+      const finalAmount = useManualAmount
+        ? parseFloat(manualAmount)
+        : parseFloat(contractValue) * rate;
+
       const newCommission: JobCommissionType = {
-        contractValue: parseFloat(contractValue),
-        rate,
-        amount: parseFloat(contractValue) * rate,
+        contractValue: parseFloat(contractValue || '0'),
+        rate: useManualAmount ? 0 : rate,
+        amount: finalAmount,
         status: commission?.status || 'pending',
         approvedAt: commission?.approvedAt || null,
         approvedBy: commission?.approvedBy || null,
@@ -157,40 +173,89 @@ export function JobCommission({ job, canEdit, canApprove, userId, onUpdate }: Jo
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Commission mode toggle */}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Contract Value</label>
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={contractValue}
-              onChange={(e) => setContractValue(e.target.value)}
-              min="0"
-              step="0.01"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Commission Rate</label>
-            <div className="grid grid-cols-3 gap-2">
-              {DEFAULT_COMMISSION_RATES.map((r) => (
-                <button
-                  key={r.value}
-                  onClick={() => setRate(r.value)}
-                  className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                    rate === r.value
-                      ? 'bg-brand-gold text-black font-medium'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  {r.label}
-                </button>
-              ))}
+            <label className="block text-sm text-gray-400 mb-2">Commission Type</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setUseManualAmount(false)}
+                className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                  !useManualAmount
+                    ? 'bg-brand-gold text-black font-medium'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <Percent className="w-3.5 h-3.5 inline mr-1" />
+                Percentage
+              </button>
+              <button
+                onClick={() => setUseManualAmount(true)}
+                className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                  useManualAmount
+                    ? 'bg-brand-gold text-black font-medium'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <DollarSign className="w-3.5 h-3.5 inline mr-1" />
+                Flat Amount
+              </button>
             </div>
           </div>
 
+          {useManualAmount ? (
+            /* Flat amount mode */
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Commission Amount</label>
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={manualAmount}
+                onChange={(e) => setManualAmount(e.target.value)}
+                min="0"
+                step="0.01"
+              />
+            </div>
+          ) : (
+            /* Percentage mode */
+            <>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Contract Value</label>
+                <Input
+                  type="number"
+                  placeholder="0.00"
+                  value={contractValue}
+                  onChange={(e) => setContractValue(e.target.value)}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Commission Rate</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {DEFAULT_COMMISSION_RATES.map((r) => (
+                    <button
+                      key={r.value}
+                      onClick={() => setRate(r.value)}
+                      className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                        rate === r.value
+                          ? 'bg-brand-gold text-black font-medium'
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
           <div className="bg-gray-800 rounded-lg p-4">
             <div className="flex justify-between items-center">
-              <span className="text-gray-400">Calculated Commission</span>
+              <span className="text-gray-400">
+                {useManualAmount ? 'Commission Amount' : 'Calculated Commission'}
+              </span>
               <span className="text-2xl font-bold text-brand-gold">
                 {formatCurrency(calculatedAmount)}
               </span>
@@ -207,7 +272,7 @@ export function JobCommission({ job, canEdit, canApprove, userId, onUpdate }: Jo
           </div>
 
           <div className="flex gap-2 pt-2">
-            <Button onClick={handleSave} disabled={saving || !contractValue}>
+            <Button onClick={handleSave} disabled={saving || (useManualAmount ? !manualAmount : !contractValue)}>
               {saving ? <Spinner size="sm" /> : 'Save Commission'}
             </Button>
             <Button
@@ -216,6 +281,8 @@ export function JobCommission({ job, canEdit, canApprove, userId, onUpdate }: Jo
                 setEditing(false);
                 setContractValue(commission?.contractValue?.toString() || '');
                 setRate(commission?.rate || 0.08);
+                setUseManualAmount(false);
+                setManualAmount(commission?.amount?.toString() || '');
                 setNotes(commission?.notes || '');
               }}
             >
@@ -262,8 +329,14 @@ export function JobCommission({ job, canEdit, canApprove, userId, onUpdate }: Jo
           <div>
             <p className="text-sm text-gray-500">Rate</p>
             <p className="text-lg font-medium text-white flex items-center gap-1">
-              <Percent className="w-4 h-4" />
-              {(commission!.rate * 100).toFixed(0)}%
+              {commission!.rate > 0 ? (
+                <>
+                  <Percent className="w-4 h-4" />
+                  {(commission!.rate * 100).toFixed(0)}%
+                </>
+              ) : (
+                <span className="text-gray-400">Flat</span>
+              )}
             </p>
           </div>
           <div>
