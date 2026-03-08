@@ -162,32 +162,33 @@ export function JobCrew({ job, canEdit, onUpdate }: JobCrewProps) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="flex items-center gap-2">
           <Users className="w-5 h-5 text-brand-gold" />
           Assigned Crew ({crew.length})
         </CardTitle>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           {crew.length > 0 && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleChatWithCrew}
               disabled={startingChat}
+              className="flex-1 sm:flex-none"
             >
               {startingChat ? (
                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
               ) : (
                 <MessageCircle className="w-4 h-4 mr-1" />
               )}
-              Chat with Crew
+              Chat
             </Button>
           )}
           {canEdit && (
-            <Link href={`/kr/${job.id}/edit?tab=crew`}>
-              <Button variant="outline" size="sm">
+            <Link href={`/kr/${job.id}/edit?tab=crew`} className="flex-1 sm:flex-none">
+              <Button variant="outline" size="sm" className="w-full">
                 <UserPlus className="w-4 h-4 mr-1" />
-                Manage Crew
+                Manage
               </Button>
             </Link>
           )}
