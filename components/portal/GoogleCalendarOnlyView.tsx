@@ -13,7 +13,7 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-export function GoogleCalendarOnlyView() {
+export function GoogleCalendarOnlyView({ settingsHref = '/portal/settings' }: { settingsHref?: string } = {}) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -108,7 +108,7 @@ export function GoogleCalendarOnlyView() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/portal/settings">
+            <Link href={settingsHref}>
               <Button variant="ghost" size="sm" title="Calendar Settings">
                 <Settings className="h-4 w-4" />
               </Button>
@@ -234,7 +234,7 @@ export function GoogleCalendarOnlyView() {
             <p className="text-gray-400 mb-4">
               Connect your Google Calendar to see your events here
             </p>
-            <Link href="/portal/settings">
+            <Link href={settingsHref}>
               <Button>
                 <Settings className="w-4 h-4 mr-2" />
                 Go to Settings

@@ -16,6 +16,7 @@ const ALLOWED_RETURN_URLS = [
   '/portal/settings',
   '/settings',
   '/kts',
+  '/calendar',
 ];
 
 function getOAuth2Client() {

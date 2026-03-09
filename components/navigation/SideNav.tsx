@@ -67,6 +67,7 @@ const navItems: NavItem[] = [
   { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work' },
   { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff, section: 'work' },
   { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: canManageCampaigns, section: 'work' },
+  { label: 'Calendar', href: '/calendar', icon: Calendar, permission: isInternalStaff, section: 'work' },
   // Contractor work
   { label: 'Available Jobs', href: '/portal/leads', icon: Target, permission: isContractor, section: 'work' },
   { label: 'Calendar', href: '/portal/calendar', icon: Calendar, permission: isContractor, section: 'work' },
