@@ -105,50 +105,59 @@ export default function CustomerFindPage() {
   ).length;
 
   // Initialize map
+  const initMap = useCallback(async () => {
+    if (!mapRef.current || mapInstanceRef.current) return;
+
+    try {
+      const { Map } = await google.maps.importLibrary('maps') as google.maps.MapsLibrary;
+      await google.maps.importLibrary('marker');
+
+      const center = customerLat && customerLng
+        ? { lat: customerLat, lng: customerLng }
+        : { lat: 32.7767, lng: -96.7970 }; // Dallas default
+
+      const map = new Map(mapRef.current!, {
+        center,
+        zoom: 10,
+        styles: MAP_STYLES,
+        mapId: 'find-pros-map',
+        disableDefaultUI: true,
+        zoomControl: true,
+        fullscreenControl: true,
+      });
+
+      mapInstanceRef.current = map;
+      infoWindowRef.current = new google.maps.InfoWindow();
+      setMapLoading(false);
+    } catch (err) {
+      console.error('Error initializing map:', err);
+      setMapLoading(false);
+    }
+  }, [customerLat, customerLng]);
+
+  // Load Google Maps script + initialize
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    const initMap = async () => {
-      try {
-        const { Map } = await google.maps.importLibrary('maps') as google.maps.MapsLibrary;
-        await google.maps.importLibrary('marker');
-
-        const center = customerLat && customerLng
-          ? { lat: customerLat, lng: customerLng }
-          : { lat: 32.7767, lng: -96.7970 }; // Dallas default
-
-        const map = new Map(mapRef.current!, {
-          center,
-          zoom: 10,
-          styles: MAP_STYLES,
-          mapId: 'find-pros-map',
-          disableDefaultUI: true,
-          zoomControl: true,
-          fullscreenControl: true,
-        });
-
-        mapInstanceRef.current = map;
-        infoWindowRef.current = new google.maps.InfoWindow();
-        setMapLoading(false);
-      } catch (err) {
-        console.error('Error initializing map:', err);
-        setMapLoading(false);
-      }
-    };
-
-    // Wait for Google Maps API
-    if (typeof google !== 'undefined' && google.maps) {
-      initMap();
-    } else {
-      const checkInterval = setInterval(() => {
-        if (typeof google !== 'undefined' && google.maps) {
-          clearInterval(checkInterval);
-          initMap();
-        }
-      }, 200);
-      return () => clearInterval(checkInterval);
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      setMapLoading(false);
+      return;
     }
-  }, [customerLat, customerLng]);
+
+    if (window.google) {
+      initMap();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => initMap();
+    script.onerror = () => setMapLoading(false);
+    document.head.appendChild(script);
+  }, [initMap]);
 
   // Update markers when filtered data changes
   const updateMarkers = useCallback(() => {
