@@ -172,13 +172,28 @@ service cloud.firestore {
     // Leads collection
     match /leads/{leadId} {
       // Internal users can read leads (UI filters by assignment)
-      allow read: if isInternalUser();
+      // Customers can read their own leads (for Projects page)
+      // Contractors can read available customer_portal leads (for lead feed)
+      allow read: if isInternalUser() ||
+        (isActiveUser() &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'customer' &&
+         resource.data.customerId == request.auth.uid) ||
+        (isContractor() && isActiveUser() &&
+         resource.data.source == 'customer_portal' &&
+         resource.data.status == 'new');
 
       // Internal users can create leads (from inbound calls, manual entry, etc.)
       // Also allow public lead creation (for event QR code capture)
       // Public creates are field-whitelisted to prevent injection of privileged fields
       allow create: if isAdmin() ||
         (isInternalUser() && isActiveUser()) ||
+        // Customers can create leads from the customer portal
+        (isActiveUser() &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'customer' &&
+         request.resource.data.source == 'customer_portal' &&
+         request.resource.data.status == 'new' &&
+         request.resource.data.customerId == request.auth.uid &&
+         !request.resource.data.keys().hasAny(['assignedTo', 'salesRepId', 'linkedJobId', 'convertedBy'])) ||
         (request.resource.data.source == 'event' &&
          request.resource.data.status == 'new' &&
          request.resource.data.customer.name != null &&
@@ -199,6 +214,13 @@ service cloud.firestore {
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'sales_rep' &&
           resource.data.assignedTo == null &&
           resource.data.status == 'new' &&
+          request.resource.data.assignedTo == request.auth.uid &&
+          request.resource.data.status == 'assigned') ||
+        // Contractors can accept customer_portal leads (first-to-accept)
+        (isContractor() && isActiveUser() &&
+          resource.data.source == 'customer_portal' &&
+          resource.data.status == 'new' &&
+          resource.data.assignedTo == null &&
           request.resource.data.assignedTo == request.auth.uid &&
           request.resource.data.status == 'assigned');
       allow delete: if isOwner();
