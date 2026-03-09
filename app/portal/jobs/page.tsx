@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowLeft, Search, Briefcase, MapPin, Calendar, Navigation } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Search, Briefcase, MapPin, Calendar, Navigation, UserCheck, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -11,6 +13,7 @@ import { Badge } from '@/components/ui/Badge';
 import { useAuth, useContractorJobs } from '@/lib/hooks';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { Job, JobStatus } from '@/types/job';
+import { Lead } from '@/types/lead';
 
 const statusOptions = [
   { value: '', label: 'All Status' },
@@ -60,6 +63,35 @@ export default function MyJobsPage() {
     realtime: true,
   });
 
+  // Fetch accepted customer leads assigned to this contractor
+  const [acceptedLeads, setAcceptedLeads] = useState<Lead[]>([]);
+  const [leadsLoading, setLeadsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setLeadsLoading(false);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'leads'),
+      where('assignedTo', '==', user.uid),
+      where('source', '==', 'customer_portal'),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      const leads = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Lead));
+      setAcceptedLeads(leads);
+      setLeadsLoading(false);
+    }, (err) => {
+      console.error('Error loading accepted leads:', err);
+      setLeadsLoading(false);
+    });
+
+    return unsub;
+  }, [user?.uid]);
+
   // Filter jobs
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
@@ -92,7 +124,7 @@ export default function MyJobsPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <Card className="p-4 text-center">
-          <p className="text-2xl font-bold text-blue-400">{activeJobs.length}</p>
+          <p className="text-2xl font-bold text-blue-400">{activeJobs.length + acceptedLeads.filter((l) => ['assigned', 'contacted', 'qualified'].includes(l.status)).length}</p>
           <p className="text-sm text-gray-500">Active</p>
         </Card>
         <Card className="p-4 text-center">
@@ -134,8 +166,83 @@ export default function MyJobsPage() {
         </Card>
       )}
 
+      {/* Accepted Customer Leads */}
+      {acceptedLeads.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <UserCheck className="w-5 h-5 text-green-400" />
+            Accepted Customer Requests
+          </h2>
+          {acceptedLeads.map((lead) => {
+            const createdAt = lead.createdAt?.toDate?.();
+            const isActive = ['assigned', 'contacted', 'qualified'].includes(lead.status);
+
+            return (
+              <Card key={lead.id} className={`p-4 ${isActive ? 'border-green-500/20' : ''}`}>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant={isActive ? 'success' : lead.status === 'converted' ? 'success' : 'default'}>
+                        {lead.status === 'assigned' ? 'Accepted' :
+                         lead.status === 'contacted' ? 'In Contact' :
+                         lead.status === 'qualified' ? 'Quote Sent' :
+                         lead.status === 'converted' ? 'Converted' :
+                         lead.status}
+                      </Badge>
+                      {lead.specialties && lead.specialties.map((s) => (
+                        <Badge key={s} variant="info">{s}</Badge>
+                      ))}
+                    </div>
+
+                    <h3 className="font-medium text-white mb-1">{lead.customer?.name || 'Customer'}</h3>
+
+                    {lead.customer?.notes && (
+                      <p className="text-sm text-gray-400 mb-2 line-clamp-2">{lead.customer.notes}</p>
+                    )}
+
+                    {lead.customer?.address && (
+                      <div className="flex items-center gap-2 text-sm text-gray-400 mb-1">
+                        <MapPin className="w-4 h-4" />
+                        <span>
+                          {lead.customer.address.city}, {lead.customer.address.state}
+                        </span>
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                            `${lead.customer.address.street}, ${lead.customer.address.city}, ${lead.customer.address.state} ${lead.customer.address.zip}`
+                          )}&travelmode=driving`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-brand-gold bg-brand-gold/10 hover:bg-brand-gold/20 rounded transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Navigation className="w-3 h-3" />
+                          Navigate
+                        </a>
+                      </div>
+                    )}
+
+                    {lead.customer?.phone && (
+                      <a href={`tel:${lead.customer.phone}`} className="text-sm text-brand-gold hover:underline">
+                        {lead.customer.phone}
+                      </a>
+                    )}
+
+                    {createdAt && (
+                      <p className="text-xs text-gray-600 mt-2">
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        Accepted {createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
       {/* Jobs List */}
-      {filteredJobs.length === 0 ? (
+      {filteredJobs.length === 0 && acceptedLeads.length === 0 ? (
         <Card className="p-8 text-center">
           <Briefcase className="h-12 w-12 text-gray-600 mx-auto mb-3" />
           <p className="text-gray-400">

@@ -180,7 +180,10 @@ service cloud.firestore {
          resource.data.customerId == request.auth.uid) ||
         (isContractor() && isActiveUser() &&
          resource.data.source == 'customer_portal' &&
-         resource.data.status == 'new');
+         resource.data.status == 'new') ||
+        // Contractors can read leads assigned to them
+        (isContractor() && isActiveUser() &&
+         resource.data.assignedTo == request.auth.uid);
 
       // Internal users can create leads (from inbound calls, manual entry, etc.)
       // Also allow public lead creation (for event QR code capture)
