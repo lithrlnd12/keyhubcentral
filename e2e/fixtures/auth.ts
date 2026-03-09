@@ -38,6 +38,11 @@ export const TEST_USERS = {
     password: 'TestPassword123!',
     role: 'partner',
   },
+  customer: {
+    email: 'customer@keyhub.test',
+    password: 'TestPassword123!',
+    role: 'customer',
+  },
   pending: {
     email: 'pending@keyhub.test',
     password: 'TestPassword123!',

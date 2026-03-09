@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Package,
@@ -11,6 +12,8 @@ import {
   ArrowRight,
   Warehouse,
   Truck,
+  ShoppingCart,
+  Sparkles,
 } from 'lucide-react';
 import {
   useInventoryItems,
@@ -18,16 +21,25 @@ import {
   useInventoryCounts,
   usePendingReceiptsCount,
   useInventoryLocations,
+  useAuth,
 } from '@/lib/hooks';
 import { Spinner } from '@/components/ui/Spinner';
-import { LowStockAlertBanner, LowStockAlertList } from '@/components/inventory';
+import { LowStockAlertBanner, LowStockAlertList, ShoppingListModal } from '@/components/inventory';
+import type { ShoppingListData } from '@/components/inventory';
 
 export default function InventoryDashboardPage() {
+  const { getIdToken } = useAuth();
   const { items, loading: itemsLoading } = useInventoryItems({ realtime: true });
   const { alerts, loading: alertsLoading } = useLowStockAlerts({ realtime: true });
   const { counts, loading: countsLoading } = useInventoryCounts({ limit: 5 });
   const { count: pendingReceipts, loading: receiptsLoading } = usePendingReceiptsCount();
   const { locations, loading: locationsLoading } = useInventoryLocations({ realtime: true });
+
+  // Shopping list state
+  const [shoppingListOpen, setShoppingListOpen] = useState(false);
+  const [shoppingListData, setShoppingListData] = useState<ShoppingListData | null>(null);
+  const [shoppingListLoading, setShoppingListLoading] = useState(false);
+  const [shoppingListError, setShoppingListError] = useState<string | null>(null);
 
   const loading = itemsLoading || alertsLoading || countsLoading || receiptsLoading || locationsLoading;
 
@@ -35,6 +47,49 @@ export default function InventoryDashboardPage() {
   const toolCount = items.filter((i) => i.category === 'tool').length;
   const warehouseCount = locations.filter((l) => l.type === 'warehouse').length;
   const truckCount = locations.filter((l) => l.type === 'truck').length;
+
+  const generateShoppingList = useCallback(async () => {
+    if (alerts.length === 0) return;
+
+    setShoppingListOpen(true);
+    setShoppingListLoading(true);
+    setShoppingListError(null);
+
+    try {
+      const token = await getIdToken();
+      const res = await fetch('/api/inventory/shopping-list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          alerts,
+          items: items.map((i) => ({
+            id: i.id,
+            name: i.name,
+            sku: i.sku,
+            cost: i.cost,
+            unitOfMeasure: i.unitOfMeasure,
+            manufacturer: i.manufacturer,
+            partNumber: i.partNumber,
+          })),
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to generate shopping list');
+      }
+
+      const data = await res.json();
+      setShoppingListData(data);
+    } catch (err) {
+      setShoppingListError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setShoppingListLoading(false);
+    }
+  }, [alerts, items]);
 
   return (
     <div className="space-y-6">
@@ -46,13 +101,33 @@ export default function InventoryDashboardPage() {
             Track materials, tools, and stock levels
           </p>
         </div>
-        <Link
-          href="/kts/inventory/items/new"
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Add Item
-        </Link>
+        <div className="flex items-center gap-2">
+          {alerts.length > 0 && (
+            <button
+              onClick={shoppingListData ? () => setShoppingListOpen(true) : generateShoppingList}
+              className="flex items-center gap-2 px-4 py-2 bg-brand-gold/10 text-brand-gold border border-brand-gold/30 rounded-lg font-medium hover:bg-brand-gold/20 transition-colors"
+            >
+              {shoppingListData ? (
+                <>
+                  <ShoppingCart className="h-4 w-4" />
+                  <span className="hidden sm:inline">View</span> Shopping List
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">Generate</span> Shopping List
+                </>
+              )}
+            </button>
+          )}
+          <Link
+            href="/kts/inventory/items/new"
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Add Item
+          </Link>
+        </div>
       </div>
 
       {/* Low Stock Alert */}
@@ -127,7 +202,7 @@ export default function InventoryDashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid md:grid-cols-3 gap-4">
         <Link
           href="/kts/inventory/count"
           className="flex items-center justify-between p-4 bg-brand-charcoal border border-gray-800 rounded-xl hover:border-gold/50 transition-colors"
@@ -163,6 +238,33 @@ export default function InventoryDashboardPage() {
           </div>
           <ArrowRight className="h-5 w-5 text-gray-400" />
         </Link>
+
+        <button
+          onClick={alerts.length > 0 ? (shoppingListData ? () => setShoppingListOpen(true) : generateShoppingList) : undefined}
+          disabled={alerts.length === 0}
+          className={`flex items-center justify-between p-4 bg-brand-charcoal border rounded-xl transition-colors text-left ${
+            alerts.length > 0
+              ? 'border-gray-800 hover:border-brand-gold/50 cursor-pointer'
+              : 'border-gray-800/50 opacity-50 cursor-not-allowed'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-brand-gold/10 rounded-lg">
+              <ShoppingCart className="h-5 w-5 text-brand-gold" />
+            </div>
+            <div>
+              <p className="text-white font-medium">
+                {shoppingListData ? 'View Shopping List' : 'AI Shopping List'}
+              </p>
+              <p className="text-gray-400 text-sm">
+                {alerts.length > 0
+                  ? `${alerts.length} items need restocking`
+                  : 'All items at par'}
+              </p>
+            </div>
+          </div>
+          <Sparkles className="h-5 w-5 text-brand-gold" />
+        </button>
       </div>
 
       {/* Two Column Layout */}
@@ -297,6 +399,16 @@ export default function InventoryDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* AI Shopping List Modal */}
+      <ShoppingListModal
+        isOpen={shoppingListOpen}
+        onClose={() => setShoppingListOpen(false)}
+        data={shoppingListData}
+        loading={shoppingListLoading}
+        error={shoppingListError}
+        onRegenerate={generateShoppingList}
+      />
     </div>
   );
 }

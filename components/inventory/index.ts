@@ -7,3 +7,5 @@ export {
   LowStockAlertList,
 } from './LowStockAlert';
 export { ReceiptUploader } from './ReceiptUploader';
+export { ShoppingListModal } from './ShoppingListModal';
+export type { ShoppingListData, ShoppingListItem } from './ShoppingListModal';

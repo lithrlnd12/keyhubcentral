@@ -281,6 +281,66 @@ test.describe('Role-Based Access Control', () => {
     });
   });
 
+  test.describe('Customer Role', () => {
+    test.beforeEach(async ({ page }) => {
+      await loginAs(page, 'customer');
+    });
+
+    test('redirects to customer dashboard after login', async ({ page }) => {
+      await expect(page).toHaveURL(/\/customer\/dashboard/);
+    });
+
+    test('can access customer dashboard', async ({ page }) => {
+      await page.goto('/customer/dashboard');
+      await expect(page).toHaveURL(/\/customer\/dashboard/);
+    });
+
+    test('can access find pros page', async ({ page }) => {
+      await page.goto('/customer/find');
+      await expect(page).toHaveURL(/\/customer\/find/);
+    });
+
+    test('can access book a pro page', async ({ page }) => {
+      await page.goto('/customer/book');
+      await expect(page).toHaveURL(/\/customer\/book/);
+    });
+
+    test('can access my projects page', async ({ page }) => {
+      await page.goto('/customer/projects');
+      await expect(page).toHaveURL(/\/customer\/projects/);
+    });
+
+    test('can access messages', async ({ page }) => {
+      await page.goto('/messages');
+      await expect(page.getByText(/messages/i).first()).toBeVisible({ timeout: 10000 });
+    });
+
+    test('cannot access main dashboard', async ({ page }) => {
+      await page.goto('/overview');
+      await expectAccessDenied(page);
+    });
+
+    test('cannot access admin panel', async ({ page }) => {
+      await page.goto('/admin');
+      await expectAccessDenied(page);
+    });
+
+    test('cannot access contractor portal', async ({ page }) => {
+      await page.goto('/portal');
+      await expectAccessDenied(page);
+    });
+
+    test('cannot access KR jobs', async ({ page }) => {
+      await page.goto('/kr');
+      await expectAccessDenied(page);
+    });
+
+    test('cannot access financials', async ({ page }) => {
+      await page.goto('/financials');
+      await expectAccessDenied(page);
+    });
+  });
+
   test.describe('Pending Role', () => {
     test.beforeEach(async ({ page }) => {
       await loginAs(page, 'pending');
