@@ -68,6 +68,7 @@ export default function InventoryDashboardPage() {
           items: items.map((i) => ({
             id: i.id,
             name: i.name,
+            category: i.category,
             sku: i.sku,
             cost: i.cost,
             unitOfMeasure: i.unitOfMeasure,

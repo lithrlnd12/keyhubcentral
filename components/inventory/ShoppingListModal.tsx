@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 
 export interface ShoppingListItem {
   itemName: string;
+  category: 'material' | 'tool';
   sku: string;
   currentQuantity: number;
   parLevel: number;
@@ -70,6 +71,7 @@ const PRIORITY_CONFIG = {
 function exportToCSV(data: ShoppingListData) {
   const headers = [
     'Priority',
+    'Type',
     'Item Name',
     'SKU',
     'Location',
@@ -83,6 +85,7 @@ function exportToCSV(data: ShoppingListData) {
 
   const rows = data.items.map((item) => [
     item.priority.toUpperCase(),
+    item.category === 'tool' ? 'Tool' : 'Material',
     item.itemName,
     item.sku || '',
     item.locationName,
@@ -96,7 +99,7 @@ function exportToCSV(data: ShoppingListData) {
 
   // Add total row
   if (data.totalEstimatedCost != null) {
-    rows.push(['', '', '', '', '', '', '', '', `$${data.totalEstimatedCost.toFixed(2)}`, 'TOTAL']);
+    rows.push(['', '', '', '', '', '', '', '', '', `$${data.totalEstimatedCost.toFixed(2)}`, 'TOTAL']);
   }
 
   const csvContent = [
@@ -135,7 +138,8 @@ function copyToClipboard(data: ShoppingListData): string {
     lines.push(`--- ${priority.toUpperCase()} ---`);
     for (const item of items) {
       const cost = item.estimatedCost != null ? ` (~$${item.estimatedCost.toFixed(2)})` : '';
-      lines.push(`[ ] ${item.orderQuantity} ${item.unitOfMeasure} - ${item.itemName}${item.sku ? ` (${item.sku})` : ''} @ ${item.locationName}${cost}`);
+      const type = item.category === 'tool' ? '[Tool]' : '[Mat]';
+      lines.push(`[ ] ${item.orderQuantity} ${item.unitOfMeasure} - ${type} ${item.itemName}${item.sku ? ` (${item.sku})` : ''} @ ${item.locationName}${cost}`);
     }
     lines.push('');
   }
@@ -329,6 +333,13 @@ export function ShoppingListModal({
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 ${
+                                  item.category === 'tool'
+                                    ? 'bg-blue-500/20 text-blue-400'
+                                    : 'bg-amber-500/20 text-amber-400'
+                                }`}>
+                                  {item.category === 'tool' ? 'TOOL' : 'MAT'}
+                                </span>
                                 <p className="text-white text-sm font-medium truncate">
                                   {item.itemName}
                                 </p>

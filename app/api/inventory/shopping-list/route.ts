@@ -9,6 +9,7 @@ const anthropic = new Anthropic({
 
 export interface ShoppingListItem {
   itemName: string;
+  category: 'material' | 'tool';
   sku: string;
   currentQuantity: number;
   parLevel: number;
@@ -55,11 +56,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build a cost lookup from items
-    const costMap: Record<string, { cost: number | null; sku: string; unitOfMeasure: string; manufacturer: string; partNumber: string }> = {};
+    // Build a lookup from items (includes category, cost, etc.)
+    const itemMap: Record<string, { category: string; cost: number | null; sku: string; unitOfMeasure: string; manufacturer: string; partNumber: string }> = {};
     if (Array.isArray(items)) {
       for (const item of items) {
-        costMap[item.id] = {
+        itemMap[item.id] = {
+          category: item.category || 'material',
           cost: item.cost || null,
           sku: item.sku || '',
           unitOfMeasure: item.unitOfMeasure || 'each',
@@ -79,10 +81,10 @@ export async function POST(request: NextRequest) {
       shortage: number;
     }) => ({
       ...alert,
-      ...(costMap[alert.itemId] || {}),
+      ...(itemMap[alert.itemId] || {}),
     }));
 
-    const prompt = `You are an inventory management assistant for ${tenant.appName}. Analyze the following low stock items and generate an optimized shopping/order list.
+    const prompt = `You are an inventory management assistant for ${tenant.appName}. Analyze the following low stock items (materials and tools) and generate an optimized shopping/order list.
 
 LOW STOCK ITEMS:
 ${JSON.stringify(enrichedAlerts, null, 2)}
@@ -92,6 +94,7 @@ Generate a JSON response with this exact structure (no markdown, just raw JSON):
   "items": [
     {
       "itemName": "Item Name",
+      "category": "material",
       "sku": "SKU or empty string",
       "currentQuantity": 0,
       "parLevel": 10,
@@ -108,6 +111,7 @@ Generate a JSON response with this exact structure (no markdown, just raw JSON):
 }
 
 RULES:
+- Each item has a "category" field: "material" or "tool" — preserve from input data
 - Order quantity should bring stock to par level PLUS a 20% buffer (round up to whole numbers)
 - Priority levels: "critical" = at 0 or has 25% or less of par, "low" = has 26-50% of par, "restock" = has 51-99% of par
 - If cost per unit is known, calculate estimatedCost = orderQuantity * cost. If cost is null, set estimatedCost to null
