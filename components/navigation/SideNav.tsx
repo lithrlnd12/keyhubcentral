@@ -61,7 +61,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/customer/dashboard', icon: LayoutDashboard, permission: isCustomerRole, section: 'main' },
 
   // ── WORK ──
-  { label: 'KTS', href: '/kts', icon: Wrench, permission: isInternalStaff, section: 'work' },
+  { label: tenant.entities.kts.label, href: '/kts', icon: Wrench, permission: isInternalStaff, section: 'work' },
   { label: 'Calls', href: '/kts/calls', icon: Phone, permission: isInternalStaff, badgeKey: 'newCalls', section: 'work' },
   { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work' },
   { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work' },

@@ -102,9 +102,9 @@ export const tenant: TenantConfig = {
 
   // Business entities
   entities: {
-    kd: { label: 'Keynote Digital', shortLabel: 'KD' },
-    kts: { label: 'Key Trade Solutions', shortLabel: 'KTS' },
-    kr: { label: 'Key Renovations', shortLabel: 'KR' },
+    kd: { label: 'Leads', shortLabel: 'KD' },
+    kts: { label: 'My Team', shortLabel: 'KTS' },
+    kr: { label: 'Jobs', shortLabel: 'KR' },
   },
 
   // Commission rates
