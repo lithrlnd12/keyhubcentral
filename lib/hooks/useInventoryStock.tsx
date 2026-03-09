@@ -128,13 +128,6 @@ export function useLowStockAlerts(
   }, [options.locationId]);
 
   useEffect(() => {
-    // Don't query all stock if no locationId - wait for it to be set
-    if (!options.locationId) {
-      setAlerts([]);
-      setLoading(false);
-      return;
-    }
-
     if (options.realtime) {
       const unsubscribe = subscribeToLowStockAlerts((data) => {
         setAlerts(data);
