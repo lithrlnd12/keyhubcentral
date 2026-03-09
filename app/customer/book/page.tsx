@@ -52,14 +52,10 @@ export default function CustomerBookPage() {
         },
         quality: 'hot',
         status: 'new',
-        assignedTo: null,
-        assignedType: null,
-        returnReason: null,
-        returnedAt: null,
         specialties: selectedSpecialties,
         customerId: user.uid,
         ...(preferredDate ? { preferredDate } : {}),
-      });
+      } as Parameters<typeof createLead>[0]);
 
       // Notify admins about new customer request
       try {
