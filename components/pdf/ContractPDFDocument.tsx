@@ -3,6 +3,7 @@
 import React from 'react';
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 import { ContractFormData } from '@/types/contract';
+import { tenant } from '@/lib/config/tenant';
 
 // Contract-specific styles
 const styles = StyleSheet.create({
@@ -265,7 +266,7 @@ export function ContractPDFDocument({
       {/* Page 1: Contract Header and Details */}
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.companyName}>Key Renovations</Text>
+          <Text style={styles.companyName}>{tenant.entities.kr.label}</Text>
           <Text style={{ fontSize: 9, color: '#666666' }}>
             Professional Home Remodeling Services
           </Text>
@@ -495,9 +496,9 @@ export function ContractPDFDocument({
           </Text>
 
           <View style={{ marginVertical: 10, paddingLeft: 20 }}>
-            <Text style={{ fontFamily: 'Helvetica-Bold' }}>Key Renovations</Text>
+            <Text style={{ fontFamily: 'Helvetica-Bold' }}>{tenant.entities.kr.label}</Text>
             <Text>Attn: Customer Service</Text>
-            <Text>support@keyrenovations.com</Text>
+            <Text>{tenant.supportEmail}</Text>
           </View>
 
           <Text style={styles.noticeText}>NOT LATER THAN MIDNIGHT OF _________________</Text>
@@ -721,7 +722,7 @@ export function ContractPDFDocument({
         </View>
 
         <Text style={styles.footer}>
-          Key Renovations | Professional Home Remodeling Services | Licensed and Insured
+          {tenant.entities.kr.label} | Professional Home Remodeling Services | Licensed and Insured
         </Text>
         <Text style={styles.pageNumber}>Page 5 of 5</Text>
       </Page>

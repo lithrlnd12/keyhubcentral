@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { verifyFirebaseAuth } from '@/lib/auth/verifyRequest';
+import { tenant } from '@/lib/config/tenant';
 
 export async function GET(request: NextRequest) {
   try {
@@ -113,7 +114,7 @@ export async function GET(request: NextRequest) {
       end: event.end?.dateTime || event.end?.date,
       isAllDay: !!event.start?.date,
       isBusy: event.transparency !== 'transparent',
-      isKeyHubEvent: event.description?.includes('Synced from KeyHub Central') || false,
+      isKeyHubEvent: event.description?.includes(`Synced from ${tenant.appName}`) || false,
       htmlLink: event.htmlLink,
       location: event.location,
     }));

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button, Input, Select } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
 import { UserRole } from '@/types/user';
+import { tenant } from '@/lib/config/tenant';
 
 // Roles available for self-signup
 const SIGNUP_ROLES = [
@@ -102,7 +103,7 @@ export default function SignUpPage() {
     <div className="bg-brand-charcoal rounded-xl p-6 shadow-xl border border-gray-800">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-white">Create an account</h1>
-        <p className="text-gray-400 mt-1">Join KeyHub Central</p>
+        <p className="text-gray-400 mt-1">Join {tenant.appName}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">

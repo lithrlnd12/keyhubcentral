@@ -27,6 +27,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
+import { tenant } from '@/lib/config/tenant';
 
 export default function PayoutsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -269,8 +270,8 @@ export default function PayoutsPage() {
               className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm"
             >
               <option value="">All Recipients</option>
-              <option value="kd">Keynote Digital (KD)</option>
-              <option value="kts">Key Trade Solutions (KTS)</option>
+              <option value="kd">{tenant.entities.kd.label} ({tenant.entities.kd.shortLabel})</option>
+              <option value="kts">{tenant.entities.kts.label} ({tenant.entities.kts.shortLabel})</option>
             </select>
           </div>
         </CardContent>

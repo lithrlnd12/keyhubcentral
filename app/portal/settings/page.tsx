@@ -6,6 +6,7 @@ import { Card, CardTitle } from '@/components/ui/Card';
 import { BackButton } from '@/components/ui';
 import { GoogleCalendarConnect } from '@/components/integrations';
 import { useToast } from '@/components/ui/Toast';
+import { tenant } from '@/lib/config/tenant';
 
 export default function PortalSettingsPage() {
   const searchParams = useSearchParams();
@@ -71,7 +72,7 @@ export default function PortalSettingsPage() {
             <div>
               <p className="text-white font-medium">App to Google Calendar</p>
               <p>
-                When you set your availability (busy, unavailable, on leave) in KeyHub,
+                When you set your availability (busy, unavailable, on leave) in {tenant.shortName},
                 it automatically creates events in your Google Calendar.
               </p>
             </div>
@@ -85,7 +86,7 @@ export default function PortalSettingsPage() {
               <p className="text-white font-medium">Google Calendar to App</p>
               <p>
                 Events on your Google Calendar that show as &quot;busy&quot; will automatically
-                mark those days as busy in KeyHub. Syncs every 15 minutes.
+                mark those days as busy in {tenant.shortName}. Syncs every 15 minutes.
               </p>
             </div>
           </div>
@@ -97,7 +98,7 @@ export default function PortalSettingsPage() {
             <div>
               <p className="text-white font-medium">Two-Way Sync</p>
               <p>
-                Your availability stays in sync between KeyHub and Google Calendar
+                Your availability stays in sync between {tenant.shortName} and Google Calendar
                 automatically, so you never double-book.
               </p>
             </div>

@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { ArrowRight, ArrowDown, Users, Target, Building2, Wrench, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { tenant } from '@/lib/config/tenant';
 
 interface FlowNodeProps {
   title: string;
@@ -161,7 +162,7 @@ export function BusinessFlowDiagram({ stats, compact = false }: BusinessFlowDiag
         {/* Top row: Lead generation flow */}
         <div className="flex items-center gap-4 flex-wrap justify-center">
           <FlowNode
-            title="Keynote Digital"
+            title={tenant.entities.kd.label}
             subtitle="Lead Generation"
             icon={<Target className="w-5 h-5" />}
             color="purple"
@@ -169,7 +170,7 @@ export function BusinessFlowDiagram({ stats, compact = false }: BusinessFlowDiag
           />
           <FlowArrow direction="right" label="Leads" />
           <FlowNode
-            title="Key Renovations"
+            title={tenant.entities.kr.label}
             subtitle="D2C Sales"
             icon={<Building2 className="w-5 h-5" />}
             color="green"
@@ -193,7 +194,7 @@ export function BusinessFlowDiagram({ stats, compact = false }: BusinessFlowDiag
           <div className="flex flex-col items-center">
             <div className="h-8 border-l border-dashed border-gray-600" />
             <FlowNode
-              title="Key Trade Solutions"
+              title={tenant.entities.kts.label}
               subtitle="Contractor Network"
               icon={<Wrench className="w-5 h-5" />}
               color="blue"

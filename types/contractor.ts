@@ -3,6 +3,32 @@ import { Timestamp } from 'firebase/firestore';
 export type Trade = 'installer' | 'sales_rep' | 'service_tech' | 'pm';
 export type ContractorStatus = 'pending' | 'active' | 'inactive' | 'suspended';
 
+// Standardized specialties — shared between contractors and customers for exact matching
+export const SPECIALTIES = [
+  'Kitchen Remodel',
+  'Bathroom Remodel',
+  'Flooring',
+  'Painting',
+  'Roofing',
+  'Siding',
+  'Windows & Doors',
+  'Plumbing',
+  'Electrical',
+  'HVAC',
+  'Fencing',
+  'Concrete & Masonry',
+  'Drywall',
+  'Framing',
+  'Gutters',
+  'Insulation',
+  'Landscaping',
+  'Decks & Patios',
+  'General Repair',
+  'Demolition',
+] as const;
+
+export type Specialty = (typeof SPECIALTIES)[number];
+
 export interface Address {
   street: string;
   city: string;
@@ -50,6 +76,7 @@ export interface Contractor {
   shippingAddress?: Address;
   shippingSameAsAddress?: boolean;
   trades: Trade[];
+  specialties: string[];
   skills: string[];
   licenses: License[];
   insurance: Insurance | null;
@@ -65,21 +92,25 @@ export interface Contractor {
 // Rating tier helpers
 export type RatingTier = 'elite' | 'pro' | 'standard' | 'needs_improvement' | 'probation';
 
+import { tenant } from '@/lib/config/tenant';
+
 export function getRatingTier(overall: number): RatingTier {
-  if (overall >= 4.5) return 'elite';
-  if (overall >= 3.5) return 'pro';
-  if (overall >= 2.5) return 'standard';
-  if (overall >= 1.5) return 'needs_improvement';
+  const t = tenant.ratingThresholds;
+  if (overall >= t.elite) return 'elite';
+  if (overall >= t.pro) return 'pro';
+  if (overall >= t.standard) return 'standard';
+  if (overall >= t.needsImprovement) return 'needs_improvement';
   return 'probation';
 }
 
 export function getCommissionRate(tier: RatingTier): number {
+  const r = tenant.commissionRates;
   switch (tier) {
     case 'elite':
-      return 0.1; // 10%
+      return r.elite;
     case 'pro':
-      return 0.09; // 9%
+      return r.pro;
     default:
-      return 0.08; // 8%
+      return r.standard;
   }
 }

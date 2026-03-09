@@ -11,6 +11,8 @@ import {
   MessageSquare,
   Bell,
   Menu,
+  MapPin,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks';
@@ -26,9 +28,9 @@ function getTabConfig(role: string) {
     case 'contractor':
       return {
         homeHref: '/portal',
-        workHref: '/portal/jobs',
+        workHref: '/portal/leads',
         workLabel: 'Jobs',
-        workIcon: Briefcase,
+        workIcon: Target,
       };
     case 'partner':
       return {
@@ -43,6 +45,13 @@ function getTabConfig(role: string) {
         workHref: '/subscriber/leads',
         workLabel: 'Leads',
         workIcon: Users,
+      };
+    case 'customer':
+      return {
+        homeHref: '/customer/dashboard',
+        workHref: '/customer/find',
+        workLabel: 'Find Pros',
+        workIcon: MapPin,
       };
     default:
       return {

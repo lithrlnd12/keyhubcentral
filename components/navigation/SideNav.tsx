@@ -38,7 +38,8 @@ import { tenant } from '@/lib/config/tenant';
 // Role helpers
 const isContractor = (role: UserRole): boolean => role === 'contractor';
 const isSubscriber = (role: UserRole): boolean => role === 'subscriber';
-const isInternalStaff = (role: UserRole): boolean => !['contractor', 'subscriber', 'partner'].includes(role);
+const isCustomerRole = (role: UserRole): boolean => role === 'customer';
+const isInternalStaff = (role: UserRole): boolean => !['contractor', 'subscriber', 'partner', 'customer'].includes(role);
 const canAccessSettings = (role: UserRole): boolean =>
   ['owner', 'admin', 'pm', 'sales_rep'].includes(role);
 
@@ -57,6 +58,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/portal', icon: LayoutDashboard, permission: isContractor, section: 'main' },
   { label: 'Dashboard', href: '/partner', icon: LayoutDashboard, permission: isPartner, section: 'main' },
   { label: 'My Leads', href: '/subscriber', icon: Users, permission: isSubscriber, section: 'main' },
+  { label: 'Dashboard', href: '/customer/dashboard', icon: LayoutDashboard, permission: isCustomerRole, section: 'main' },
 
   // ── WORK ──
   { label: 'KTS', href: '/kts', icon: Wrench, permission: isInternalStaff, section: 'work' },
@@ -66,6 +68,7 @@ const navItems: NavItem[] = [
   { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff, section: 'work' },
   { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: canManageCampaigns, section: 'work' },
   // Contractor work
+  { label: 'Available Jobs', href: '/portal/leads', icon: Target, permission: isContractor, section: 'work' },
   { label: 'Calendar', href: '/portal/calendar', icon: Calendar, permission: isContractor, section: 'work' },
   { label: 'My Jobs', href: '/portal/jobs', icon: Briefcase, permission: isContractor, section: 'work' },
   { label: 'Inventory', href: '/portal/inventory', icon: Package, permission: isContractor, section: 'work' },
@@ -75,6 +78,10 @@ const navItems: NavItem[] = [
   { label: 'History', href: '/partner/history', icon: History, permission: isPartner, section: 'work' },
   // Subscriber work
   { label: 'Subscription', href: '/subscriber/subscription', icon: CreditCard, permission: isSubscriber, section: 'work' },
+  // Customer work
+  { label: 'Find Pros', href: '/customer/find', icon: Target, permission: isCustomerRole, section: 'work' },
+  { label: 'My Projects', href: '/customer/projects', icon: Briefcase, permission: isCustomerRole, section: 'work' },
+  { label: 'Book a Pro', href: '/customer/book', icon: ClipboardList, permission: isCustomerRole, section: 'work' },
 
   // ── COMMUNICATE ──
   { label: 'Messages', href: '/messages', icon: MessageSquare, badgeKey: 'unreadMessages', section: 'communicate' },
@@ -106,7 +113,7 @@ interface FooterItem {
 }
 
 const footerItems: FooterItem[] = [
-  { label: 'Profile', href: '/profile', icon: User, permission: (r) => isInternalStaff(r) || isSubscriber(r) },
+  { label: 'Profile', href: '/profile', icon: User, permission: (r) => isInternalStaff(r) || isSubscriber(r) || isCustomerRole(r) },
   { label: 'Profile', href: '/portal/my-profile', icon: User, permission: isContractor },
   { label: 'Settings', href: '/settings', icon: Cog, permission: (r) => canAccessSettings(r) && !isContractor(r) },
   { label: 'Settings', href: '/portal/settings', icon: Cog, permission: isContractor },
@@ -143,7 +150,8 @@ export function SideNav() {
     .filter((section) => section.items.length > 0);
 
   // Get home href for logo link
-  const homeHref = user?.role === 'contractor' ? '/portal'
+  const homeHref = user?.role === 'customer' ? '/customer/dashboard'
+    : user?.role === 'contractor' ? '/portal'
     : user?.role === 'partner' ? '/partner'
     : user?.role === 'subscriber' ? '/subscriber'
     : '/overview';

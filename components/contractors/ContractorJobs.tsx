@@ -1,5 +1,6 @@
 import { Briefcase } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
+import { tenant } from '@/lib/config/tenant';
 
 interface ContractorJobsProps {
   contractorId: string;
@@ -14,7 +15,7 @@ export function ContractorJobs({ contractorId }: ContractorJobsProps) {
           <Briefcase className="w-12 h-12 text-gray-600 mx-auto mb-3" />
           <h3 className="text-lg font-medium text-white mb-1">Jobs Coming Soon</h3>
           <p className="text-gray-400 text-sm max-w-md mx-auto">
-            Job assignments and history will be available in Phase 3: Key Renovations.
+            Job assignments and history will be available in Phase 3: {tenant.entities.kr.label}.
           </p>
         </div>
       </CardContent>

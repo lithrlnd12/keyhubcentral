@@ -7,6 +7,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase/config';
 import { LeadAttachment, ContactPreference } from '@/types/lead';
+import { tenant } from '@/lib/config/tenant';
 
 // ===========================================
 // FEATURE FLAGS - Set to true to re-enable
@@ -280,7 +281,7 @@ export default function LeadCapturePage() {
           <div className="flex justify-center mb-4">
             <Image
               src="/logo.png"
-              alt="KeyHub Central"
+              alt={tenant.appName}
               width={100}
               height={100}
               className="rounded-xl"
@@ -442,7 +443,7 @@ export default function LeadCapturePage() {
                   />
                   <label htmlFor="smsCallOptIn" className="text-sm text-gray-300 cursor-pointer">
                     By checking this box, I consent to receive automated text messages and phone calls
-                    from KeyHub Central at the phone number provided above regarding:
+                    from {tenant.appName} at the phone number provided above regarding:
                     <ul className="list-disc list-inside mt-1 mb-2 ml-2 text-gray-400 text-xs">
                       <li>Quote requests and follow-ups</li>
                       <li>Appointment confirmations and reminders</li>
@@ -658,17 +659,17 @@ export default function LeadCapturePage() {
           </p>
         </form>
 
-        {/* Call Key Renovations */}
+        {/* Call for quote */}
         <div className="mt-6 pt-6 border-t border-gray-700 text-center">
           <p className="text-sm text-gray-400 mb-2">Or give us a call directly</p>
           <a
-            href="tel:8127766215"
+            href={`tel:${tenant.phone}`}
             className="inline-flex items-center gap-2 text-brand-gold hover:text-brand-gold-light font-semibold text-lg transition-colors"
           >
             <Phone className="w-5 h-5" />
-            (812) 776-6215
+            {tenant.phone.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3')}
           </a>
-          <p className="text-xs text-gray-500 mt-1">Key Renovations</p>
+          <p className="text-xs text-gray-500 mt-1">{tenant.entities.kr.label}</p>
         </div>
       </div>
     </div>

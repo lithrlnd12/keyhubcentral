@@ -25,6 +25,7 @@ import {
 import { formatCurrency } from '@/lib/utils/formatters';
 import { cn } from '@/lib/utils';
 import { EXPENSE_CATEGORIES } from '@/types/expense';
+import { tenant } from '@/lib/config/tenant';
 
 export default function PnLPage() {
   const { invoices, loading: invoicesLoading } = useInvoices({ realtime: true });
@@ -84,9 +85,9 @@ export default function PnLPage() {
 
   const entityNameMap: Record<string, string> = {
     all: 'Combined',
-    kd: 'Keynote Digital',
-    kts: 'Key Trade Solutions',
-    kr: 'Key Renovations',
+    kd: tenant.entities.kd.label,
+    kts: tenant.entities.kts.label,
+    kr: tenant.entities.kr.label,
   };
 
   return (
@@ -142,9 +143,9 @@ export default function PnLPage() {
       <div className="flex items-center gap-2 border-b border-gray-800 pb-4">
         {[
           { value: 'all', label: 'Combined' },
-          { value: 'kd', label: 'Keynote Digital' },
-          { value: 'kts', label: 'Key Trade Solutions' },
-          { value: 'kr', label: 'Key Renovations' },
+          { value: 'kd', label: tenant.entities.kd.label },
+          { value: 'kts', label: tenant.entities.kts.label },
+          { value: 'kr', label: tenant.entities.kr.label },
         ].map((tab) => (
           <button
             key={tab.value}

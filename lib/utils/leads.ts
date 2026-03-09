@@ -30,6 +30,7 @@ export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
   tiktok: 'TikTok',
   event: 'Event',
   referral: 'Referral',
+  customer_portal: 'Customer Portal',
   other: 'Other',
 };
 
@@ -40,6 +41,7 @@ export const LEAD_SOURCE_COLORS: Record<LeadSource, { bg: string; text: string }
   tiktok: { bg: 'bg-pink-500/20', text: 'text-pink-400' },
   event: { bg: 'bg-green-500/20', text: 'text-green-400' },
   referral: { bg: 'bg-purple-500/20', text: 'text-purple-400' },
+  customer_portal: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
   other: { bg: 'bg-gray-500/20', text: 'text-gray-400' },
 };
 
@@ -143,6 +145,7 @@ export function groupLeadsBySource(leads: Lead[]): Record<LeadSource, Lead[]> {
     tiktok: [],
     event: [],
     referral: [],
+    customer_portal: [],
     other: [],
   };
 

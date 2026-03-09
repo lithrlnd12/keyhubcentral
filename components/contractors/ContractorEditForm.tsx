@@ -11,7 +11,7 @@ import { MultiSelect } from '@/components/ui/MultiSelect';
 import { TagInput } from '@/components/ui/TagInput';
 import { Slider } from '@/components/ui/Slider';
 import { TerritoryMap } from '@/components/maps/TerritoryMap';
-import { Contractor, Trade, ContractorStatus } from '@/types/contractor';
+import { Contractor, Trade, ContractorStatus, SPECIALTIES } from '@/types/contractor';
 import { updateContractor, deleteContractor } from '@/lib/firebase/contractors';
 import { deleteField } from 'firebase/firestore';
 import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
@@ -60,6 +60,7 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
     state: contractor.address.state,
     zip: contractor.address.zip,
     trades: contractor.trades,
+    specialties: contractor.specialties || [],
     skills: contractor.skills,
     serviceRadius: contractor.serviceRadius,
     shippingSameAsAddress: contractor.shippingSameAsAddress !== false,
@@ -121,6 +122,7 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
           lng: mapCenter?.lng ?? null,
         },
         trades: formData.trades,
+        specialties: formData.specialties,
         skills: formData.skills,
         serviceRadius: formData.serviceRadius,
         shippingSameAsAddress: formData.shippingSameAsAddress,
@@ -150,6 +152,7 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
           lng: mapCenter?.lng ?? null,
         },
         trades: formData.trades,
+        specialties: formData.specialties,
         skills: formData.skills,
         serviceRadius: formData.serviceRadius,
         shippingSameAsAddress: formData.shippingSameAsAddress,
@@ -297,6 +300,14 @@ export function ContractorEditForm({ contractor, onUpdate }: ContractorEditFormP
               value={formData.trades}
               onChange={(trades) => updateField('trades', trades as Trade[])}
               placeholder="Select trades..."
+            />
+
+            <MultiSelect
+              label="Specialties"
+              options={SPECIALTIES.map((s) => ({ value: s, label: s }))}
+              value={formData.specialties}
+              onChange={(specialties) => updateField('specialties', specialties)}
+              placeholder="Select specialties..."
             />
 
             <TagInput

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { InvoiceStatus, InvoiceEntity } from '@/types/invoice';
 import { InvoiceFilters as IInvoiceFilters } from '@/lib/firebase/invoices';
 import { cn } from '@/lib/utils';
+import { tenant } from '@/lib/config/tenant';
 
 interface InvoiceFiltersProps {
   filters: IInvoiceFilters;
@@ -25,9 +26,9 @@ const statuses: { value: InvoiceStatus | 'all'; label: string }[] = [
 
 const entities: { value: InvoiceEntity['entity'] | 'all'; label: string }[] = [
   { value: 'all', label: 'All Sources' },
-  { value: 'kd', label: 'Keynote Digital' },
-  { value: 'kts', label: 'Key Trade Solutions' },
-  { value: 'kr', label: 'Key Renovations' },
+  { value: 'kd', label: tenant.entities.kd.label },
+  { value: 'kts', label: tenant.entities.kts.label },
+  { value: 'kr', label: tenant.entities.kr.label },
 ];
 
 export function InvoiceFilters({

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 import { ContractFormData } from '@/types/contract';
+import { tenant } from '@/lib/config/tenant';
 
 // Disclosure-specific styles
 const styles = StyleSheet.create({
@@ -602,7 +603,7 @@ export function DisclosurePDFDocument({
         </View>
 
         <Text style={styles.footer}>
-          Key Renovations | Professional Home Remodeling Services | Licensed and Insured
+          {tenant.entities.kr.label} | Professional Home Remodeling Services | Licensed and Insured
         </Text>
         <Text style={styles.pageNumber}>Page 4 of 4</Text>
       </Page>

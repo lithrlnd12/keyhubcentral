@@ -18,6 +18,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   pm: 'Project Manager',
   subscriber: 'Subscriber',
   partner: 'Partner',
+  customer: 'Customer',
   pending: 'Pending',
 };
 
@@ -29,6 +30,7 @@ const ROLE_COLORS: Record<UserRole, string> = {
   pm: 'bg-yellow-500/20 text-yellow-400',
   subscriber: 'bg-gray-500/20 text-gray-400',
   partner: 'bg-orange-500/20 text-orange-400',
+  customer: 'bg-teal-500/20 text-teal-400',
   pending: 'bg-gray-500/20 text-gray-400',
 };
 

@@ -7,6 +7,7 @@ import { Loader2, AlertCircle, Clock } from 'lucide-react';
 import { getRatingRequestByToken } from '@/lib/firebase/ratingRequests';
 import { RatingRequest, isRatingRequestExpired, getDaysUntilExpiry } from '@/types/ratingRequest';
 import PublicRatingForm from '@/components/ratings/PublicRatingForm';
+import { tenant } from '@/lib/config/tenant';
 
 export default function PublicRatingPage() {
   const params = useParams();
@@ -103,7 +104,7 @@ export default function PublicRatingPage() {
           <div className="flex justify-center mb-4">
             <Image
               src="/icon-512x512.png"
-              alt="KeyHub Central"
+              alt={tenant.appName}
               width={64}
               height={64}
               className="rounded-xl"
@@ -129,7 +130,7 @@ export default function PublicRatingPage() {
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-gray-700">
           <p className="text-xs text-gray-500 text-center">
-            KeyHub Central - Quality Service, Guaranteed
+            {tenant.appName} - {tenant.tagline}
           </p>
         </div>
       </div>

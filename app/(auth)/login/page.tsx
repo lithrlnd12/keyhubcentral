@@ -20,6 +20,8 @@ export default function LoginPage() {
     if (user && !loading) {
       if (user.status === 'pending') {
         router.push('/pending');
+      } else if (user.role === 'customer') {
+        router.push('/customer/dashboard');
       } else if (user.role === 'contractor') {
         router.push('/portal');
       } else if (user.role === 'subscriber') {
@@ -96,6 +98,12 @@ export default function LoginPage() {
           Don&apos;t have an account?{' '}
           <Link href="/signup" className="text-brand-gold hover:text-brand-gold-light">
             Sign up
+          </Link>
+        </p>
+        <p className="text-gray-500 text-xs">
+          Need home services?{' '}
+          <Link href="/signup/customer" className="text-brand-gold hover:text-brand-gold-light">
+            Book a Pro
           </Link>
         </p>
       </div>

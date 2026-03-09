@@ -4,6 +4,7 @@ import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Invoice } from '@/types/invoice';
 import { generateCSV, downloadCSV, generateCSVFilename } from '@/lib/utils/csv';
+import { tenant } from '@/lib/config/tenant';
 
 interface InvoiceExportCSVProps {
   invoices: Invoice[];
@@ -23,11 +24,11 @@ export function InvoiceExportCSV({ invoices }: InvoiceExportCSVProps) {
     const formatEntityName = (entity: string): string => {
       switch (entity) {
         case 'kd':
-          return 'Keynote Digital';
+          return tenant.entities.kd.label;
         case 'kts':
-          return 'Key Trade Solutions';
+          return tenant.entities.kts.label;
         case 'kr':
-          return 'Key Renovations';
+          return tenant.entities.kr.label;
         case 'customer':
           return 'Customer';
         case 'subscriber':

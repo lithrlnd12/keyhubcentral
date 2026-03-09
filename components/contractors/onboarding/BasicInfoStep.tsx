@@ -3,7 +3,7 @@
 import { Input } from '@/components/ui/Input';
 import { MultiSelect } from '@/components/ui/MultiSelect';
 import { TagInput } from '@/components/ui/TagInput';
-import { Trade } from '@/types/contractor';
+import { Trade, SPECIALTIES } from '@/types/contractor';
 
 export interface BasicInfoData {
   businessName: string;
@@ -14,6 +14,7 @@ export interface BasicInfoData {
   state: string;
   zip: string;
   trades: Trade[];
+  specialties: string[];
   skills: string[];
 }
 
@@ -161,6 +162,15 @@ export function BasicInfoStep({ data, onChange, errors, parsedFromDocuments }: B
             onChange={(trades) => updateField('trades', trades as Trade[])}
             placeholder="Select trades..."
             error={errors?.trades}
+          />
+
+          <MultiSelect
+            label="Specialties"
+            options={SPECIALTIES.map((s) => ({ value: s, label: s }))}
+            value={data.specialties}
+            onChange={(specialties) => updateField('specialties', specialties)}
+            placeholder="Select specialties..."
+            error={errors?.specialties}
           />
 
           <TagInput

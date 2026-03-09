@@ -15,6 +15,7 @@ import {
 } from '@/lib/utils/leads';
 import { User, MapPin, Wrench, Save, ArrowLeft, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
+import { tenant } from '@/lib/config/tenant';
 
 interface LeadFormProps {
   lead?: Lead;
@@ -401,7 +402,7 @@ export function LeadForm({ lead, mode }: LeadFormProps) {
               />
               <label htmlFor="smsCallOptIn" className="text-sm text-gray-300 cursor-pointer">
                 By checking this box, the customer consents to receive automated text messages and phone calls
-                from KeyHub Central at the phone number provided regarding:
+                from {tenant.appName} at the phone number provided regarding:
                 <ul className="list-disc list-inside mt-1 mb-2 ml-2 text-gray-400 text-xs">
                   <li>Quote requests and follow-ups</li>
                   <li>Appointment confirmations and reminders</li>

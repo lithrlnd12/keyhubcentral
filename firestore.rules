@@ -53,9 +53,17 @@ service cloud.firestore {
       // Enforce: must be pending status, no self-assigned privileged role,
       // and cannot set admin-only fields
       allow create: if isAuthenticated() && request.auth.uid == userId &&
-        request.resource.data.status == 'pending' &&
-        request.resource.data.role == 'pending' &&
-        !request.resource.data.keys().hasAny(['approvedAt', 'approvedBy']);
+        (
+          // Standard signup: pending status, no privileged fields
+          (request.resource.data.status == 'pending' &&
+           request.resource.data.role == 'pending' &&
+           !request.resource.data.keys().hasAny(['approvedAt', 'approvedBy']))
+          ||
+          // Customer self-signup: auto-activated
+          (request.resource.data.status == 'active' &&
+           request.resource.data.role == 'customer' &&
+           request.resource.data.requestedRole == 'customer')
+        );
 
       // Active users can read user profiles (needed for messaging contacts, user lookups)
       allow read: if isOwnDocument(userId) || isActiveUser();

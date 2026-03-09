@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { tenant } from '@/lib/config/tenant';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -31,7 +32,7 @@ export function Logo({ size = 'md', showText = false, variant = 'full', classNam
         style={{ width: iconSizes[size].width, height: iconSizes[size].height }}
       >
         <span className={size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-xl' : 'text-base'}>
-          KH
+          {tenant.logoIconText}
         </span>
       </div>
     );
@@ -39,8 +40,8 @@ export function Logo({ size = 'md', showText = false, variant = 'full', classNam
 
   return (
     <Image
-      src="/logo.png"
-      alt="KeyHub Central"
+      src={tenant.logoPath}
+      alt={tenant.appName}
       width={sizes[size].width}
       height={sizes[size].height}
       priority

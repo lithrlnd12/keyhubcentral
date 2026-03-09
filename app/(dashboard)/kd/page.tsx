@@ -12,6 +12,7 @@ import { Plus, LayoutDashboard, Users, MapPin, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils/cn';
 import { calculateDistanceMiles } from '@/lib/utils/distance';
+import { tenant } from '@/lib/config/tenant';
 
 const MAX_CLAIM_DISTANCE_MILES = 50;
 
@@ -94,7 +95,7 @@ export default function KDPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Keynote Digital</h1>
+          <h1 className="text-2xl font-bold text-white">{tenant.entities.kd.label}</h1>
           <p className="text-gray-400 mt-1">Lead generation, campaigns, and subscriber management</p>
         </div>
         <div className="flex gap-2">

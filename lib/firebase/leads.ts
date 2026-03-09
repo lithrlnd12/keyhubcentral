@@ -13,12 +13,14 @@ import {
   serverTimestamp,
   Timestamp,
   QueryConstraint,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from './config';
 import { Lead, LeadStatus, LeadSource, LeadQuality, AssignedType } from '@/types/lead';
 import { JobType, JobStatus } from '@/types/job';
 import { createJob, generateJobNumber } from './jobs';
 import { Contractor } from '@/types/contractor';
+import { createNotification } from './notifications';
 import {
   calculateAddressDistance,
   calculateDistanceMiles,
@@ -613,6 +615,114 @@ export async function claimLead(
     status: 'assigned',
     claimedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Accept a customer portal lead — first-to-accept wins via Firestore transaction.
+ * Verifies: status=new, assignedTo=null, specialty overlap, distance within radius.
+ */
+export async function acceptLead(
+  leadId: string,
+  contractorUserId: string,
+  contractorAddress: { lat?: number | null; lng?: number | null },
+  contractorServiceRadius: number,
+  contractorSpecialties: string[]
+): Promise<void> {
+  const leadRef = doc(db, COLLECTION, leadId);
+
+  await runTransaction(db, async (transaction) => {
+    const leadSnap = await transaction.get(leadRef);
+    if (!leadSnap.exists()) {
+      throw new Error('Lead not found');
+    }
+
+    const lead = leadSnap.data();
+
+    // Must be new and unassigned
+    if (lead.status !== 'new') {
+      throw new Error('This job has already been taken');
+    }
+    if (lead.assignedTo) {
+      throw new Error('This job has already been taken');
+    }
+
+    // Check specialty overlap
+    const leadSpecialties: string[] = lead.specialties || [];
+    if (leadSpecialties.length > 0 && contractorSpecialties.length > 0) {
+      const hasOverlap = leadSpecialties.some((s: string) => contractorSpecialties.includes(s));
+      if (!hasOverlap) {
+        throw new Error('Your specialties do not match this job');
+      }
+    }
+
+    // Check distance if coordinates available
+    if (
+      contractorAddress.lat && contractorAddress.lng &&
+      lead.customer?.address?.lat && lead.customer?.address?.lng
+    ) {
+      const distance = calculateDistanceMiles(
+        contractorAddress.lat,
+        contractorAddress.lng,
+        lead.customer.address.lat,
+        lead.customer.address.lng
+      );
+      if (distance > contractorServiceRadius) {
+        throw new Error('This job is outside your service area');
+      }
+    }
+
+    // Accept the lead
+    transaction.update(leadRef, {
+      status: 'assigned',
+      assignedTo: contractorUserId,
+      assignedType: 'internal',
+      acceptedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+
+  // Send notification to customer after successful transaction
+  const lead = await getLead(leadId);
+  if (lead?.customerId) {
+    // Get contractor name for notification
+    const contractorQuery = query(
+      collection(db, 'contractors'),
+      where('userId', '==', contractorUserId)
+    );
+    const contractorSnap = await getDocs(contractorQuery);
+    const contractorName = contractorSnap.docs[0]?.data()?.businessName || 'A contractor';
+
+    createNotification(lead.customerId, 'lead_accepted', {
+      contractorName,
+      specialties: (lead.specialties || []).join(', '),
+      entityType: 'lead',
+      entityId: leadId,
+    }).catch((err) => console.error('Failed to send lead_accepted notification:', err));
+  }
+}
+
+/**
+ * Subscribe to available customer portal leads in realtime.
+ * Returns new leads (status=new, source=customer_portal).
+ * Client should filter by distance and specialty overlap.
+ */
+export function subscribeToAvailableLeads(
+  callback: (leads: Lead[]) => void
+): () => void {
+  const q = query(
+    collection(db, COLLECTION),
+    where('status', '==', 'new'),
+    where('source', '==', 'customer_portal'),
+    orderBy('createdAt', 'desc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const leads = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Lead[];
+    callback(leads);
   });
 }
 

@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { formatCurrency, formatDate } from '@/lib/utils/formatters';
 import { getExpenseCategoryLabel, EXPENSE_CATEGORIES, ExpenseCategory, ExpenseEntity } from '@/types/expense';
 import { cn } from '@/lib/utils';
+import { tenant } from '@/lib/config/tenant';
 
 export default function ExpensesPage() {
   const searchParams = useSearchParams();
@@ -199,9 +200,9 @@ export default function ExpensesPage() {
                 className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm"
               >
                 <option value="all">All Entities</option>
-                <option value="kd">Keynote Digital</option>
-                <option value="kts">Key Trade Solutions</option>
-                <option value="kr">Key Renovations</option>
+                <option value="kd">{tenant.entities.kd.label}</option>
+                <option value="kts">{tenant.entities.kts.label}</option>
+                <option value="kr">{tenant.entities.kr.label}</option>
               </select>
             </div>
 
@@ -352,10 +353,10 @@ export default function ExpensesPage() {
                       <p className="text-xs text-gray-400">Entity</p>
                       <p className="text-white">
                         {selectedExpenseData.entity === 'kd'
-                          ? 'Keynote Digital'
+                          ? tenant.entities.kd.label
                           : selectedExpenseData.entity === 'kts'
-                          ? 'Key Trade Solutions'
-                          : 'Key Renovations'}
+                          ? tenant.entities.kts.label
+                          : tenant.entities.kr.label}
                       </p>
                     </div>
                     <div>

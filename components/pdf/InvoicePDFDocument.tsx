@@ -4,6 +4,7 @@ import React from 'react';
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { Invoice, NET_TERMS_DAYS } from '@/types/invoice';
 import { formatPdfCurrency } from '@/lib/utils/pdf';
+import { tenant } from '@/lib/config/tenant';
 
 // Invoice-specific styles
 const styles = StyleSheet.create({
@@ -227,11 +228,11 @@ export function InvoicePDFDocument({ invoice }: InvoicePDFDocumentProps) {
   const formatEntityName = (entity: string): string => {
     switch (entity) {
       case 'kd':
-        return 'Keynote Digital';
+        return tenant.entities.kd.label;
       case 'kts':
-        return 'Key Trade Solutions';
+        return tenant.entities.kts.label;
       case 'kr':
-        return 'Key Renovations';
+        return tenant.entities.kr.label;
       case 'customer':
         return 'Customer';
       case 'subscriber':
@@ -264,7 +265,7 @@ export function InvoicePDFDocument({ invoice }: InvoicePDFDocumentProps) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.companyInfo}>
-            <Text style={styles.companyName}>KeyHub Central</Text>
+            <Text style={styles.companyName}>{tenant.appName}</Text>
             <Text style={styles.companyTagline}>Business Management Platform</Text>
           </View>
           <View style={styles.invoiceTitle}>
@@ -360,7 +361,7 @@ export function InvoicePDFDocument({ invoice }: InvoicePDFDocumentProps) {
             Payment Terms: Net {NET_TERMS_DAYS} days. Please include invoice number with payment.
           </Text>
           <Text style={styles.footerNote}>
-            Thank you for your business. Questions? Contact us at billing@keyhubcentral.com
+            Thank you for your business. Questions? Contact us at {tenant.billingEmail}
           </Text>
         </View>
       </Page>

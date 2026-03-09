@@ -23,11 +23,11 @@ export type UnitOfMeasure =
 // Company allocation
 export type Company = 'kts' | 'kr' | 'kd';
 
-export const COMPANY_OPTIONS: { value: Company; label: string }[] = [
-  { value: 'kts', label: 'Key Trade Solutions' },
-  { value: 'kr', label: 'Key Renovations' },
-  { value: 'kd', label: 'Keynote Digital' },
-];
+import { tenant, EntityKey } from '@/lib/config/tenant';
+
+export const COMPANY_OPTIONS: { value: Company; label: string }[] = (
+  ['kts', 'kr', 'kd'] as EntityKey[]
+).map((key) => ({ value: key as Company, label: tenant.entities[key].label }));
 
 // Inventory item (material or tool)
 export interface InventoryItem {

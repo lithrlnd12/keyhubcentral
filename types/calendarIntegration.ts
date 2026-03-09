@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
+import { tenant } from '@/lib/config/tenant';
 
 export type SyncStatus = 'success' | 'error' | 'pending' | 'syncing';
 export type SyncSource = 'app' | 'google';
@@ -29,10 +30,10 @@ export interface GoogleCalendarIntegrationInput {
 
 // Status mapping for sync events
 export const CALENDAR_EVENT_TITLES: Record<string, string> = {
-  busy: 'Busy - KeyHub',
-  unavailable: 'Unavailable - KeyHub',
-  on_leave: 'On Leave - KeyHub',
+  busy: `Busy - ${tenant.shortName}`,
+  unavailable: `Unavailable - ${tenant.shortName}`,
+  on_leave: `On Leave - ${tenant.shortName}`,
 };
 
 // Identify events created by our app
-export const KEYHUB_EVENT_MARKER = 'Synced from KeyHub Central';
+export const KEYHUB_EVENT_MARKER = `Synced from ${tenant.appName}`;

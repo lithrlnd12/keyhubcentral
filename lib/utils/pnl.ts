@@ -2,6 +2,7 @@ import { Invoice, InvoiceEntity } from '@/types/invoice';
 import { Job } from '@/types/job';
 import { Expense } from '@/types/expense';
 import { Timestamp } from 'firebase/firestore';
+import { getEntityFullName as getTenantEntityName } from '@/lib/config/tenant';
 
 export interface PnLEntry {
   category: string;
@@ -29,20 +30,7 @@ export interface CombinedPnL {
 
 // Get entity full name
 export function getEntityFullName(entity: InvoiceEntity['entity']): string {
-  switch (entity) {
-    case 'kd':
-      return 'Keynote Digital';
-    case 'kts':
-      return 'Key Trade Solutions';
-    case 'kr':
-      return 'Key Renovations';
-    case 'customer':
-      return 'Customers';
-    case 'subscriber':
-      return 'Subscribers';
-    default:
-      return entity;
-  }
+  return getTenantEntityName(entity);
 }
 
 // Calculate P&L for a single entity

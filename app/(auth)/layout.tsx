@@ -1,4 +1,5 @@
 import { Logo } from '@/components/ui';
+import { tenant } from '@/lib/config/tenant';
 
 export default function AuthLayout({
   children,
@@ -21,7 +22,7 @@ export default function AuthLayout({
 
       {/* Footer */}
       <footer className="py-4 text-center text-gray-500 text-sm">
-        &copy; {new Date().getFullYear()} KeyHub Central. All rights reserved.
+        &copy; {new Date().getFullYear()} {tenant.copyright}. All rights reserved.
       </footer>
     </div>
   );

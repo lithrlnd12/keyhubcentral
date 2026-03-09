@@ -31,6 +31,8 @@ export type NotificationType =
   | 'service_ticket_created'
   // Leads
   | 'lead_assigned'
+  | 'lead_accepted'
+  | 'lead_submitted'
   | 'lead_hot'
   | 'lead_not_contacted'
   | 'lead_replacement_ready'
@@ -72,6 +74,8 @@ export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCateg
   service_ticket_created: 'jobs',
   // Leads
   lead_assigned: 'leads',
+  lead_accepted: 'leads',
+  lead_submitted: 'leads',
   lead_hot: 'leads',
   lead_not_contacted: 'leads',
   lead_replacement_ready: 'leads',
@@ -114,6 +118,8 @@ export const NOTIFICATION_PRIORITIES: Record<NotificationType, NotificationPrior
   service_ticket_created: 'high',
   // Leads
   lead_assigned: 'high',
+  lead_accepted: 'high',
+  lead_submitted: 'medium',
   lead_hot: 'urgent',
   lead_not_contacted: 'medium',
   lead_replacement_ready: 'medium',
@@ -363,6 +369,42 @@ export function getDefaultPreferences(role: string): NotificationPreferences {
         },
       };
 
+    case 'customer':
+      return {
+        ...basePreferences,
+        pushEnabled: true,
+        compliance: {
+          insuranceExpiring: false,
+          licenseExpiring: false,
+          w9Reminders: false,
+          backgroundCheckUpdates: false,
+        },
+        jobs: {
+          newAssignments: false,
+          scheduleChanges: false,
+          dayBeforeReminders: false,
+          statusUpdates: true,
+        },
+        leads: {
+          newLeads: true, // For lead_accepted notifications
+          hotLeadsOnly: false,
+          inactivityReminders: false,
+          leadReplacements: false,
+        },
+        financial: {
+          paymentsReceived: false,
+          commissionsEarned: false,
+          invoiceOverdue: false,
+          subscriptionReminders: false,
+        },
+        admin: {
+          userApprovals: false,
+          newApplicants: false,
+          systemAlerts: false,
+          partnerRequests: false,
+        },
+      };
+
     case 'partner':
       return {
         ...basePreferences,
@@ -477,6 +519,16 @@ export function getNotificationTemplate(
     lead_assigned: {
       title: `New Lead: ${data.customerName}`,
       body: `${data.tradeType} lead in ${data.city}. Quality: ${data.quality}. Contact within 1 hour.`,
+      actionUrl: data.leadId ? `/kd/leads/${data.leadId}` : '/kd',
+    },
+    lead_accepted: {
+      title: 'A pro accepted your project!',
+      body: `${data.contractorName} is ready to work on your ${data.specialties || 'project'}. They'll be in touch soon.`,
+      actionUrl: '/customer/projects',
+    },
+    lead_submitted: {
+      title: 'New Customer Request',
+      body: `${data.customerName} submitted a request for ${data.specialties || 'service'} in ${data.city}.`,
       actionUrl: data.leadId ? `/kd/leads/${data.leadId}` : '/kd',
     },
     lead_hot: {
@@ -622,6 +674,9 @@ export function isNotificationEnabled(
       switch (type) {
         case 'lead_assigned':
           return preferences.leads.hotLeadsOnly ? false : preferences.leads.newLeads;
+        case 'lead_accepted':
+        case 'lead_submitted':
+          return preferences.leads.newLeads;
         case 'lead_hot':
           return preferences.leads.newLeads || preferences.leads.hotLeadsOnly;
         case 'lead_not_contacted':

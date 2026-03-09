@@ -101,6 +101,21 @@ export function ContractorInfo({ contractor }: ContractorInfoProps) {
             label="Service Radius"
             value={getServiceRadiusLabel(contractor.serviceRadius)}
           />
+          {contractor.specialties?.length > 0 && (
+            <div className="py-3 border-b border-gray-800">
+              <p className="text-sm text-gray-500 mb-2">Specialties</p>
+              <div className="flex flex-wrap gap-2">
+                {contractor.specialties.map((specialty) => (
+                  <span
+                    key={specialty}
+                    className="px-2 py-1 bg-brand-gold/10 text-brand-gold rounded text-sm"
+                  >
+                    {specialty}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           {contractor.skills.length > 0 && (
             <div className="py-3">
               <p className="text-sm text-gray-500 mb-2">Skills</p>

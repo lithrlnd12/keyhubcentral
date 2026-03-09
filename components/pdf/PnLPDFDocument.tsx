@@ -10,6 +10,7 @@ import {
   groupEntriesByCategory,
 } from '@/lib/utils/pnl';
 import { formatPdfCurrency } from '@/lib/utils/pdf';
+import { tenant } from '@/lib/config/tenant';
 
 interface PnLPDFDocumentProps {
   data: {
@@ -49,7 +50,7 @@ export function PnLPDFDocument({
       <Page size="A4" style={pdfStyles.page}>
         {/* Header */}
         <View style={pdfStyles.header}>
-          <Text style={pdfStyles.companyName}>KeyHub Central</Text>
+          <Text style={pdfStyles.companyName}>{tenant.appName}</Text>
           <Text style={pdfStyles.reportTitle}>Profit & Loss Statement</Text>
           <Text style={pdfStyles.reportMeta}>Entity: {entityName}</Text>
           <Text style={pdfStyles.reportMeta}>Period: {dateRange}</Text>
@@ -208,7 +209,7 @@ export function PnLPDFDocument({
 
         {/* Footer */}
         <Text style={pdfStyles.footer}>
-          KeyHub Central - Confidential Financial Document
+          {tenant.appName} - Confidential Financial Document
         </Text>
       </Page>
     </Document>

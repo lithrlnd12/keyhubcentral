@@ -5,31 +5,32 @@ import { getChatContextForUser } from '@/lib/firebase/chatContext';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { UserRole } from '@/types/user';
 import { ChatContext } from '@/types/chat';
+import { tenant } from '@/lib/config/tenant';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-const BASE_SYSTEM_PROMPT = `You are an AI assistant for KeyHub Central, a business management platform that manages three interconnected companies:
+const BASE_SYSTEM_PROMPT = `You are an AI assistant for ${tenant.appName}, a business management platform that manages three interconnected companies:
 
-1. **Keynote Digital (KD)** - Lead generation & marketing subscriptions
+1. **${tenant.entities.kd.label} (${tenant.entities.kd.shortLabel})** - Lead generation & marketing subscriptions
    - Generates leads via Google Ads, Meta, TikTok campaigns
-   - Offers subscription tiers: Starter ($399), Growth ($899), Pro ($1,499+)
+   - Offers subscription tiers: Starter ($${tenant.subscriptionTiers.starter.monthlyFee}), Growth ($${tenant.subscriptionTiers.growth.monthlyFee}), Pro ($${tenant.subscriptionTiers.pro.monthlyFee}+)
    - Tracks cost per lead (CPL) and campaign performance
 
-2. **Key Trade Solutions (KTS)** - 1099 contractor network
+2. **${tenant.entities.kts.label} (${tenant.entities.kts.shortLabel})** - 1099 contractor network
    - Manages installers, sales reps, project managers, service techs
-   - Rating tiers: Elite (10% commission), Pro (9%), Standard (8%)
+   - Rating tiers: Elite (${Math.round(tenant.commissionRates.elite * 100)}% commission), Pro (${Math.round(tenant.commissionRates.pro * 100)}%), Standard (${Math.round(tenant.commissionRates.standard * 100)}%)
    - Handles onboarding, W-9, insurance, ACH payments
 
-3. **Key Renovations (KR)** - D2C home renovation sales
+3. **${tenant.entities.kr.label} (${tenant.entities.kr.shortLabel})** - D2C home renovation sales
    - Job types: bathroom, kitchen, exterior renovations
    - Job stages: Lead → Sold → Front End Hold → Production → Scheduled → Started → Complete → Paid in Full
    - Tracks costs (material, labor) and margins
 
 **Business Flow:**
-- KD generates leads → sent to KR for sales
-- KR sells jobs → KTS provides contractors to execute
+- ${tenant.entities.kd.shortLabel} generates leads → sent to ${tenant.entities.kr.shortLabel} for sales
+- ${tenant.entities.kr.shortLabel} sells jobs → ${tenant.entities.kts.shortLabel} provides contractors to execute
 - Revenue flows back through all three entities`;
 
 function buildSystemPrompt(context: ChatContext): string {

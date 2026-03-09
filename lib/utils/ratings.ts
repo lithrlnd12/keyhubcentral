@@ -1,4 +1,5 @@
 import { Rating, RatingTier } from '@/types/contractor';
+import { tenant } from '@/lib/config/tenant';
 
 // Rating weights for overall calculation
 export const RATING_WEIGHTS = {
@@ -63,21 +64,21 @@ export function getTierInfo(tier: RatingTier): {
         label: 'Elite',
         color: 'text-yellow-400',
         bgColor: 'bg-yellow-500/20',
-        description: 'Top performer with 10% commission rate',
+        description: `Top performer with ${Math.round(tenant.commissionRates.elite * 100)}% commission rate`,
       };
     case 'pro':
       return {
         label: 'Pro',
         color: 'text-blue-400',
         bgColor: 'bg-blue-500/20',
-        description: 'High performer with 9% commission rate',
+        description: `High performer with ${Math.round(tenant.commissionRates.pro * 100)}% commission rate`,
       };
     case 'standard':
       return {
         label: 'Standard',
         color: 'text-gray-400',
         bgColor: 'bg-gray-500/20',
-        description: 'Standard performer with 8% commission rate',
+        description: `Standard performer with ${Math.round(tenant.commissionRates.standard * 100)}% commission rate`,
       };
     case 'needs_improvement':
       return {

@@ -67,6 +67,8 @@ function canAccessRoute(role: UserRole, pathname: string): boolean {
 // Get the appropriate redirect for a role
 function getRedirectForRole(role: UserRole): string {
   switch (role) {
+    case 'customer':
+      return '/customer/dashboard';
     case 'contractor':
       return '/portal';
     case 'subscriber':
@@ -96,8 +98,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Contractors and partners have separate layouts - redirect them
+      // Contractors, partners, and customers have separate layouts - redirect them
       // (except /messages which is shared across all roles)
+      if (user.role === 'customer' && !pathname.startsWith('/messages')) {
+        router.push('/customer/dashboard');
+        return;
+      }
       if (user.role === 'contractor' && !pathname.startsWith('/messages')) {
         router.push('/portal');
         return;
@@ -160,7 +166,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   // Don't render for roles that have their own separate layouts
   // (except /messages which is shared)
-  if (['contractor', 'partner'].includes(user.role) && !pathname.startsWith('/messages')) {
+  if (['contractor', 'partner', 'customer'].includes(user.role) && !pathname.startsWith('/messages')) {
     return null;
   }
 

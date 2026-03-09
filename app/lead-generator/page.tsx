@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import Image from 'next/image';
+import { tenant } from '@/lib/config/tenant';
 
 export default function LeadGeneratorFullscreenPage() {
   const [captureUrl, setCaptureUrl] = useState('');
@@ -19,12 +20,12 @@ export default function LeadGeneratorFullscreenPage() {
       <div className="flex items-center gap-6 mb-8">
         <Image
           src="/logo.png"
-          alt="Key Renovations"
+          alt={tenant.entities.kr.label}
           width={100}
           height={100}
           className="rounded-2xl"
         />
-        <h1 className="text-5xl font-bold text-white">Key Renovations</h1>
+        <h1 className="text-5xl font-bold text-white">{tenant.entities.kr.label}</h1>
       </div>
 
       {/* Call to Action */}

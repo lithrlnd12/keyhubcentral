@@ -87,6 +87,18 @@ export function ReviewStep({
               ))}
             </div>
           </div>
+          {basicInfo.specialties.length > 0 && (
+            <div className="py-2 border-b border-gray-800">
+              <span className="text-sm text-gray-400 block mb-2">Specialties</span>
+              <div className="flex flex-wrap gap-1">
+                {basicInfo.specialties.map((specialty) => (
+                  <Badge key={specialty} variant="info">
+                    {specialty}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
           {basicInfo.skills.length > 0 && (
             <div className="py-2">
               <span className="text-sm text-gray-400 block mb-2">Skills</span>

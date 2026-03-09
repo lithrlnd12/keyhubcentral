@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { RevenueDataPoint } from '@/lib/utils/dashboard';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { tenant } from '@/lib/config/tenant';
 
 interface RevenueChartProps {
   data: RevenueDataPoint[];
@@ -99,7 +100,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
         <Area
           type="monotone"
           dataKey="kd"
-          name="Keynote Digital"
+          name={tenant.entities.kd.label}
           stroke="#8B5CF6"
           fillOpacity={1}
           fill="url(#colorKD)"
@@ -108,7 +109,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
         <Area
           type="monotone"
           dataKey="kts"
-          name="Key Trade Solutions"
+          name={tenant.entities.kts.label}
           stroke="#3B82F6"
           fillOpacity={1}
           fill="url(#colorKTS)"
@@ -117,7 +118,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
         <Area
           type="monotone"
           dataKey="kr"
-          name="Key Renovations"
+          name={tenant.entities.kr.label}
           stroke="#10B981"
           fillOpacity={1}
           fill="url(#colorKR)"

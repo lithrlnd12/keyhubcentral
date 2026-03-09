@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Loader2, CheckCircle, XCircle, Users, Briefcase, Target, Megaphone, CreditCard, DollarSign, Trash2, Database, UserPlus, FlaskConical } from 'lucide-react';
+import { tenant } from '@/lib/config/tenant';
 
 // Helper to create dates relative to now
 const daysAgo = (days: number) => Timestamp.fromDate(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
@@ -21,6 +22,7 @@ const contractors = [
     businessName: "ABC Installations LLC",
     address: { street: "123 Main Street", city: "Dallas", state: "TX", zip: "75201", lat: 32.7767, lng: -96.7970 },
     trades: ["installer"],
+    specialties: ["Windows & Doors", "Siding", "Gutters"],
     skills: ["Windows", "Doors", "Siding"],
     licenses: [],
     insurance: null,
@@ -35,6 +37,7 @@ const contractors = [
     businessName: "Pro Home Services",
     address: { street: "456 Oak Avenue", city: "Fort Worth", state: "TX", zip: "76102", lat: 32.7555, lng: -97.3308 },
     trades: ["installer", "service_tech"],
+    specialties: ["Roofing", "Gutters", "Siding", "General Repair"],
     skills: ["Roofing", "Gutters", "Exteriors"],
     licenses: [],
     insurance: null,
@@ -49,6 +52,7 @@ const contractors = [
     businessName: "Mike's Renovation Crew",
     address: { street: "789 Elm Boulevard", city: "Arlington", state: "TX", zip: "76010", lat: 32.7357, lng: -97.1081 },
     trades: ["installer"],
+    specialties: ["Bathroom Remodel", "Kitchen Remodel", "Flooring", "Drywall"],
     skills: ["Bathroom", "Kitchen", "Flooring"],
     licenses: [],
     insurance: null,
@@ -63,6 +67,7 @@ const contractors = [
     businessName: "Elite Window & Door",
     address: { street: "321 Cedar Lane", city: "Plano", state: "TX", zip: "75074", lat: 33.0198, lng: -96.6989 },
     trades: ["installer", "pm"],
+    specialties: ["Windows & Doors", "Framing", "Insulation"],
     skills: ["Windows", "Doors", "Project Management"],
     licenses: [],
     insurance: null,
@@ -77,6 +82,7 @@ const contractors = [
     businessName: "DFW Sales Pro",
     address: { street: "555 Maple Drive", city: "Irving", state: "TX", zip: "75039", lat: 32.8140, lng: -96.9489 },
     trades: ["sales_rep"],
+    specialties: ["Kitchen Remodel", "Bathroom Remodel", "Painting"],
     skills: ["Sales", "Customer Relations", "Estimates"],
     licenses: [],
     insurance: null,
@@ -91,6 +97,7 @@ const contractors = [
     businessName: "Texas Tech Services",
     address: { street: "777 Pine Street", city: "McKinney", state: "TX", zip: "75070", lat: 33.1972, lng: -96.6397 },
     trades: ["service_tech"],
+    specialties: ["Plumbing", "Electrical", "HVAC", "General Repair"],
     skills: ["Repairs", "Maintenance", "Warranty Work"],
     licenses: [],
     insurance: null,
@@ -105,6 +112,7 @@ const contractors = [
     businessName: "New Contractor LLC",
     address: { street: "999 Birch Road", city: "Frisco", state: "TX", zip: "75034", lat: 33.1507, lng: -96.8236 },
     trades: ["installer"],
+    specialties: ["Landscaping", "Fencing", "Decks & Patios"],
     skills: ["General"],
     licenses: [],
     insurance: null,
@@ -521,7 +529,7 @@ const invoices = [
   // KR invoices (to customers)
   {
     invoiceNumber: "INV-KR-001",
-    from: { entity: "kr" as const, name: "Key Renovations" },
+    from: { entity: "kr" as const, name: tenant.entities.kr.label },
     to: { type: "customer" as const, name: "John & Mary Smith", email: "smithfamily@email.com" },
     lineItems: [
       { description: "Master Bathroom Renovation", qty: 1, rate: 25000, total: 25000 },
@@ -536,7 +544,7 @@ const invoices = [
   },
   {
     invoiceNumber: "INV-KR-002",
-    from: { entity: "kr" as const, name: "Key Renovations" },
+    from: { entity: "kr" as const, name: tenant.entities.kr.label },
     to: { type: "customer" as const, name: "Sarah Johnson", email: "sarah.j@email.com" },
     lineItems: [
       { description: "Kitchen Remodel - Deposit", qty: 1, rate: 15000, total: 15000 },
@@ -551,7 +559,7 @@ const invoices = [
   },
   {
     invoiceNumber: "INV-KR-003",
-    from: { entity: "kr" as const, name: "Key Renovations" },
+    from: { entity: "kr" as const, name: tenant.entities.kr.label },
     to: { type: "customer" as const, name: "Sarah Johnson", email: "sarah.j@email.com" },
     lineItems: [
       { description: "Kitchen Remodel - Final Balance", qty: 1, rate: 23000, total: 23000 },
@@ -566,7 +574,7 @@ const invoices = [
   },
   {
     invoiceNumber: "INV-KR-004",
-    from: { entity: "kr" as const, name: "Key Renovations" },
+    from: { entity: "kr" as const, name: tenant.entities.kr.label },
     to: { type: "customer" as const, name: "Mike Williams", email: "mike.w@email.com" },
     lineItems: [
       { description: "Exterior Siding - Deposit (50%)", qty: 1, rate: 24000, total: 24000 },
@@ -582,7 +590,7 @@ const invoices = [
   // KTS invoices (to contractors for labor)
   {
     invoiceNumber: "INV-KTS-001",
-    from: { entity: "kts" as const, name: "Key Trade Solutions" },
+    from: { entity: "kts" as const, name: tenant.entities.kts.label },
     to: { type: "contractor" as const, id: "contractor-003", name: "Mike's Renovation Crew", email: "mike@renovationcrew.com" },
     lineItems: [
       { description: "Labor - Smith Bathroom (Job KR-2024-001)", qty: 1, rate: 4200, total: 4200 },
@@ -598,7 +606,7 @@ const invoices = [
   },
   {
     invoiceNumber: "INV-KTS-002",
-    from: { entity: "kts" as const, name: "Key Trade Solutions" },
+    from: { entity: "kts" as const, name: tenant.entities.kts.label },
     to: { type: "contractor" as const, id: "contractor-003", name: "Mike's Renovation Crew", email: "mike@renovationcrew.com" },
     lineItems: [
       { description: "Labor - Johnson Kitchen (Job KR-2024-002)", qty: 1, rate: 8200, total: 8200 },
@@ -615,7 +623,7 @@ const invoices = [
   // KD invoices (lead fees and subscriptions)
   {
     invoiceNumber: "INV-KD-001",
-    from: { entity: "kd" as const, name: "Keynote Digital" },
+    from: { entity: "kd" as const, name: tenant.entities.kd.label },
     to: { type: "subscriber" as const, id: "subscriber-003", name: "Premier Home Solutions", email: "leads@premierhome.com" },
     lineItems: [
       { description: "Monthly Subscription - Pro Tier", qty: 1, rate: 1499, total: 1499 },
@@ -631,7 +639,7 @@ const invoices = [
   },
   {
     invoiceNumber: "INV-KD-002",
-    from: { entity: "kd" as const, name: "Keynote Digital" },
+    from: { entity: "kd" as const, name: tenant.entities.kd.label },
     to: { type: "subscriber" as const, id: "subscriber-002", name: "DFW Roofing Pros", email: "sales@dfwroofing.com" },
     lineItems: [
       { description: "Monthly Subscription - Growth Tier", qty: 1, rate: 899, total: 899 },
@@ -647,7 +655,7 @@ const invoices = [
   },
   {
     invoiceNumber: "INV-KD-003",
-    from: { entity: "kd" as const, name: "Keynote Digital" },
+    from: { entity: "kd" as const, name: tenant.entities.kd.label },
     to: { type: "subscriber" as const, id: "subscriber-001", name: "North Texas Windows", email: "info@ntxwindows.com" },
     lineItems: [
       { description: "Monthly Subscription - Starter Tier", qty: 1, rate: 399, total: 399 },
@@ -664,8 +672,8 @@ const invoices = [
   // Intercompany invoice (KD to KR for lead fee)
   {
     invoiceNumber: "INV-KD-IC-001",
-    from: { entity: "kd" as const, name: "Keynote Digital" },
-    to: { type: "intercompany" as const, entity: "kr" as const, name: "Key Renovations" },
+    from: { entity: "kd" as const, name: tenant.entities.kd.label },
+    to: { type: "intercompany" as const, entity: "kr" as const, name: tenant.entities.kr.label },
     lineItems: [
       { description: "Lead Fee - Martinez (converted)", qty: 1, rate: 150, total: 150 },
       { description: "Lead Fee - Smith (converted)", qty: 1, rate: 150, total: 150 },
@@ -681,7 +689,7 @@ const invoices = [
   // More historical paid invoices for revenue chart
   {
     invoiceNumber: "INV-KR-H001",
-    from: { entity: "kr" as const, name: "Key Renovations" },
+    from: { entity: "kr" as const, name: tenant.entities.kr.label },
     to: { type: "customer" as const, name: "Historical Customer 1", email: "hist1@email.com" },
     lineItems: [{ description: "Bathroom Renovation", qty: 1, rate: 18000, total: 18000 }],
     subtotal: 18000, tax: 0, total: 18000,
@@ -692,7 +700,7 @@ const invoices = [
   },
   {
     invoiceNumber: "INV-KR-H002",
-    from: { entity: "kr" as const, name: "Key Renovations" },
+    from: { entity: "kr" as const, name: tenant.entities.kr.label },
     to: { type: "customer" as const, name: "Historical Customer 2", email: "hist2@email.com" },
     lineItems: [{ description: "Kitchen Renovation", qty: 1, rate: 32000, total: 32000 }],
     subtotal: 32000, tax: 0, total: 32000,
@@ -703,7 +711,7 @@ const invoices = [
   },
   {
     invoiceNumber: "INV-KD-H001",
-    from: { entity: "kd" as const, name: "Keynote Digital" },
+    from: { entity: "kd" as const, name: tenant.entities.kd.label },
     to: { type: "subscriber" as const, id: "subscriber-003", name: "Premier Home Solutions", email: "leads@premierhome.com" },
     lineItems: [{ description: "Monthly Subscription + Ad Spend", qty: 1, rate: 2999, total: 2999 }],
     subtotal: 2999, tax: 0, total: 2999,
@@ -714,7 +722,7 @@ const invoices = [
   },
   {
     invoiceNumber: "INV-KTS-H001",
-    from: { entity: "kts" as const, name: "Key Trade Solutions" },
+    from: { entity: "kts" as const, name: tenant.entities.kts.label },
     to: { type: "contractor" as const, id: "contractor-001", name: "ABC Installations LLC", email: "abc@install.com" },
     lineItems: [{ description: "Labor + Commission", qty: 1, rate: 5500, total: 5500 }],
     subtotal: 5500, tax: 0, total: 5500,

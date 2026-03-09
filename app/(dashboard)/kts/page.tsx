@@ -8,6 +8,7 @@ import { useContractors } from '@/lib/hooks/useContractors';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useLowStockAlerts } from '@/lib/hooks';
 import { canManageUsers, canViewInventory } from '@/types/user';
+import { tenant } from '@/lib/config/tenant';
 
 export default function KTSPage() {
   const { user } = useAuth();
@@ -34,7 +35,7 @@ export default function KTSPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white">Key Trade Solutions</h2>
+          <h2 className="text-xl font-bold text-white">{tenant.entities.kts.label}</h2>
           <p className="text-gray-400 mt-1">
             Manage contractors, crews, and assignments
           </p>

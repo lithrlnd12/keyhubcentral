@@ -1,7 +1,7 @@
 import { Timestamp } from 'firebase/firestore';
 import { Address } from './contractor';
 
-export type LeadSource = 'google_ads' | 'meta' | 'tiktok' | 'event' | 'referral' | 'other';
+export type LeadSource = 'google_ads' | 'meta' | 'tiktok' | 'event' | 'referral' | 'customer_portal' | 'other';
 export type LeadQuality = 'hot' | 'warm' | 'cold';
 export type LeadStatus =
   | 'new'
@@ -117,6 +117,11 @@ export interface Lead extends LeadCallData, LeadSmsData {
   autoAssignedDistance?: number | null; // miles from sales rep
   // Job conversion tracking
   linkedJobId?: string | null;  // Reference to created job
+  // Customer portal fields
+  specialties?: string[];
+  customerId?: string;
+  preferredDate?: string;
+  acceptedAt?: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -154,12 +159,10 @@ export interface Subscription {
   updatedAt: Timestamp;
 }
 
+import { tenant } from '@/lib/config/tenant';
+
 // Subscription tier details
 export const SUBSCRIPTION_TIERS: Record<
   SubscriptionTier,
   { monthlyFee: number; leadRange: string; adSpendMin: number }
-> = {
-  starter: { monthlyFee: 399, leadRange: '10-15', adSpendMin: 600 },
-  growth: { monthlyFee: 899, leadRange: '15-25', adSpendMin: 900 },
-  pro: { monthlyFee: 1499, leadRange: 'Flexible', adSpendMin: 1500 },
-};
+> = tenant.subscriptionTiers;

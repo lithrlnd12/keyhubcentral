@@ -13,7 +13,8 @@ import { useAuth } from '@/lib/hooks';
 import { findAndLinkContractor, updateContractor, createContractor } from '@/lib/firebase/contractors';
 import { deleteField, Timestamp } from 'firebase/firestore';
 import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
-import { Contractor, getRatingTier } from '@/types/contractor';
+import { Contractor, getRatingTier, SPECIALTIES } from '@/types/contractor';
+import { MultiSelect } from '@/components/ui/MultiSelect';
 
 const usStates = [
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
@@ -40,6 +41,7 @@ export default function PortalProfilePage() {
     city: '',
     state: '',
     zip: '',
+    specialties: [] as string[],
     skills: [] as string[],
     serviceRadius: 50,
     shippingSameAsAddress: true,
@@ -76,6 +78,7 @@ export default function PortalProfilePage() {
               businessName: user.displayName || null,
               address: { street: '', city: '', state: '', zip: '' },
               trades: [] as ('installer' | 'sales_rep' | 'service_tech' | 'pm')[],
+              specialties: [] as string[],
               skills: [] as string[],
               licenses: [],
               insurance: null,
@@ -120,6 +123,7 @@ export default function PortalProfilePage() {
       city: c.address?.city || '',
       state: c.address?.state || '',
       zip: c.address?.zip || '',
+      specialties: c.specialties || [],
       skills: c.skills || [],
       serviceRadius: c.serviceRadius || 50,
       shippingSameAsAddress: c.shippingSameAsAddress !== false,
@@ -182,6 +186,7 @@ export default function PortalProfilePage() {
           lat,
           lng,
         },
+        specialties: formData.specialties,
         skills: formData.skills,
         serviceRadius: formData.serviceRadius,
         shippingSameAsAddress: formData.shippingSameAsAddress,
@@ -209,6 +214,7 @@ export default function PortalProfilePage() {
           lat,
           lng,
         },
+        specialties: formData.specialties,
         skills: formData.skills,
         serviceRadius: formData.serviceRadius,
         shippingSameAsAddress: formData.shippingSameAsAddress,
@@ -376,6 +382,31 @@ export default function PortalProfilePage() {
                     : 'N/A'}
                 </p>
               </div>
+              {editing ? (
+                <MultiSelect
+                  label="Specialties"
+                  options={SPECIALTIES.map((s) => ({ value: s, label: s }))}
+                  value={formData.specialties}
+                  onChange={(specialties) => updateField('specialties', specialties)}
+                  placeholder="Select specialties..."
+                />
+              ) : (
+                contractor.specialties?.length > 0 && (
+                  <div>
+                    <label className="text-sm text-gray-400">Specialties</label>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {contractor.specialties.map((specialty) => (
+                        <span
+                          key={specialty}
+                          className="px-2 py-1 bg-brand-gold/10 text-brand-gold text-xs rounded"
+                        >
+                          {specialty}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
               {editing ? (
                 <TagInput
                   label="Skills & Certifications"

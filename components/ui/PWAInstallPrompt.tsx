@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { X, Download, Share, Plus, MoreVertical } from 'lucide-react';
+import { tenant } from '@/lib/config/tenant';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -125,10 +126,10 @@ export function PWAInstallPrompt() {
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-dark-300 rounded-2xl flex items-center justify-center border border-brand-gold/30">
               {/* eslint-disable-next-line @next/next/no-img-element -- SVG logo with fixed dimensions */}
-              <img src="/logo.svg" alt="KeyHub Central" className="w-10 h-10" />
+              <img src="/logo.svg" alt={tenant.appName} className="w-10 h-10" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Install KeyHub Central</h2>
+              <h2 className="text-xl font-bold text-white">{`Install ${tenant.appName}`}</h2>
               <p className="text-gray-400 text-sm">Add to your home screen for quick access</p>
             </div>
           </div>
@@ -140,7 +141,7 @@ export function PWAInstallPrompt() {
           {deferredPrompt && (
             <div className="space-y-4">
               <p className="text-gray-300 text-sm">
-                Install KeyHub Central for a faster, app-like experience with offline support and push notifications.
+                {`Install ${tenant.appName}`} for a faster, app-like experience with offline support and push notifications.
               </p>
               <button
                 onClick={handleInstallClick}
@@ -156,7 +157,7 @@ export function PWAInstallPrompt() {
           {deviceType === 'ios' && !deferredPrompt && (
             <div className="space-y-4">
               <p className="text-gray-300 text-sm">
-                Install KeyHub Central on your iPhone for quick access from your home screen.
+                {`Install ${tenant.appName}`} on your iPhone for quick access from your home screen.
               </p>
 
               <div className="space-y-3 bg-dark-300 rounded-xl p-4">
@@ -202,7 +203,7 @@ export function PWAInstallPrompt() {
           {deviceType === 'android' && !deferredPrompt && (
             <div className="space-y-4">
               <p className="text-gray-300 text-sm">
-                Install KeyHub Central on your Android device for quick access.
+                {`Install ${tenant.appName}`} on your Android device for quick access.
               </p>
 
               <div className="space-y-3 bg-dark-300 rounded-xl p-4">
@@ -244,7 +245,7 @@ export function PWAInstallPrompt() {
           {deviceType === 'desktop-chrome' && !deferredPrompt && (
             <div className="space-y-4">
               <p className="text-gray-300 text-sm">
-                Install KeyHub Central as a desktop app for quick access.
+                {`Install ${tenant.appName}`} as a desktop app for quick access.
               </p>
 
               <div className="space-y-3 bg-dark-300 rounded-xl p-4">
@@ -268,7 +269,7 @@ export function PWAInstallPrompt() {
               </div>
 
               <p className="text-gray-500 text-xs">
-                Don&apos;t see the install icon? Try the menu (⋮) → &quot;Install KeyHub Central&quot;
+                Don&apos;t see the install icon? Try the menu (⋮) → &quot;{`Install ${tenant.appName}`}&quot;
               </p>
             </div>
           )}
@@ -277,7 +278,7 @@ export function PWAInstallPrompt() {
           {deviceType === 'desktop-edge' && !deferredPrompt && (
             <div className="space-y-4">
               <p className="text-gray-300 text-sm">
-                Install KeyHub Central as a desktop app for quick access.
+                {`Install ${tenant.appName}`} as a desktop app for quick access.
               </p>
 
               <div className="space-y-3 bg-dark-300 rounded-xl p-4">
@@ -301,7 +302,7 @@ export function PWAInstallPrompt() {
               </div>
 
               <p className="text-gray-500 text-xs">
-                Or use the menu (⋯) → Apps → Install KeyHub Central
+                Or use the menu (⋯) → Apps → {`Install ${tenant.appName}`}
               </p>
             </div>
           )}
@@ -310,7 +311,7 @@ export function PWAInstallPrompt() {
           {deviceType === 'desktop-other' && !deferredPrompt && (
             <div className="space-y-4">
               <p className="text-gray-300 text-sm">
-                For the best experience, use Chrome or Edge to install KeyHub Central as a desktop app.
+                {`For the best experience, use Chrome or Edge to install ${tenant.appName} as a desktop app.`}
               </p>
 
               <div className="bg-dark-300 rounded-xl p-4 text-gray-400 text-sm">

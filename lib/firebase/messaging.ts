@@ -1,6 +1,7 @@
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { app, db } from './config';
+import { tenant } from '@/lib/config/tenant';
 
 let messaging: Messaging | null = null;
 
@@ -115,7 +116,7 @@ export function onForegroundMessage(callback: (payload: NotificationPayload) => 
 
   return onMessage(messagingInstance, (payload) => {
     const notificationPayload: NotificationPayload = {
-      title: payload.notification?.title || 'KeyHub Central',
+      title: payload.notification?.title || tenant.appName,
       body: payload.notification?.body || '',
       icon: payload.notification?.icon || '/logo.svg',
       data: payload.data as Record<string, string>,

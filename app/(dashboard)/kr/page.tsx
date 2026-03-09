@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Plus, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { getJobCountSummary } from '@/lib/utils/jobs';
+import { tenant } from '@/lib/config/tenant';
 
 export default function KRPage() {
   const { user } = useAuth();
@@ -46,7 +47,7 @@ export default function KRPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Key Renovations</h1>
+          <h1 className="text-2xl font-bold text-white">{tenant.entities.kr.label}</h1>
           <p className="text-gray-400 mt-1">
             {isSalesRep
               ? 'Your active deals in Lead and Sold stages'

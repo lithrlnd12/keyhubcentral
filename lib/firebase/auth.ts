@@ -24,24 +24,30 @@ export async function signUp(
   requestedRole?: UserRole,
   baseZipCode?: string,
   selectedPartnerId?: string,
-  companyName?: string
+  companyName?: string,
+  serviceAddress?: { street: string; city: string; state: string; zip: string }
 ): Promise<UserCredential> {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-  // Create user profile in Firestore with pending status
+  // Customers are auto-activated — no admin approval needed
+  const isCustomer = requestedRole === 'customer';
+
+  // Create user profile in Firestore
   await setDoc(doc(db, 'users', userCredential.user.uid), {
     uid: userCredential.user.uid,
     email,
     displayName,
     phone: phone || null,
-    role: 'pending' as UserRole,
-    status: 'pending' as UserStatus,
+    role: isCustomer ? ('customer' as UserRole) : ('pending' as UserRole),
+    status: isCustomer ? ('active' as UserStatus) : ('pending' as UserStatus),
     requestedRole: requestedRole || null,
     selectedPartnerId: selectedPartnerId || null,
     companyName: companyName || null,
     baseZipCode: baseZipCode || null,
     baseCoordinates: null, // Will be geocoded by Cloud Function
+    serviceAddress: serviceAddress || null,
     createdAt: serverTimestamp(),
+    ...(isCustomer ? { approvedAt: serverTimestamp(), approvedBy: 'auto' } : {}),
   });
 
   return userCredential;

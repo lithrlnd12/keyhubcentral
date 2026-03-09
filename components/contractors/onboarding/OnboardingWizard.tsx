@@ -37,6 +37,7 @@ const initialBasicInfo: BasicInfoData = {
   state: '',
   zip: '',
   trades: [],
+  specialties: [],
   skills: [],
 };
 
@@ -229,6 +230,7 @@ export function OnboardingWizard() {
           zip: basicInfo.zip,
         },
         trades: basicInfo.trades as Trade[],
+        specialties: basicInfo.specialties,
         skills: basicInfo.skills,
         licenses: documents.licenses.map((lic) => ({
           type: lic.type,

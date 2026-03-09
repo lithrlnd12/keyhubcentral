@@ -32,6 +32,7 @@ import {
 } from '@/lib/utils/dashboard';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { cn } from '@/lib/utils';
+import { tenant } from '@/lib/config/tenant';
 
 interface StatCardProps {
   title: string;
@@ -281,7 +282,7 @@ export default function OverviewPage() {
               <div className="p-2 bg-blue-500/10 rounded-lg">
                 <Wrench className="w-5 h-5 text-blue-400" />
               </div>
-              <h3 className="font-semibold text-white">Key Trade Solutions</h3>
+              <h3 className="font-semibold text-white">{tenant.entities.kts.label}</h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
@@ -307,7 +308,7 @@ export default function OverviewPage() {
               <div className="p-2 bg-green-500/10 rounded-lg">
                 <Building2 className="w-5 h-5 text-green-400" />
               </div>
-              <h3 className="font-semibold text-white">Key Renovations</h3>
+              <h3 className="font-semibold text-white">{tenant.entities.kr.label}</h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
@@ -333,7 +334,7 @@ export default function OverviewPage() {
               <div className="p-2 bg-purple-500/10 rounded-lg">
                 <Target className="w-5 h-5 text-purple-400" />
               </div>
-              <h3 className="font-semibold text-white">Keynote Digital</h3>
+              <h3 className="font-semibold text-white">{tenant.entities.kd.label}</h3>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between text-sm">

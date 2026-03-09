@@ -8,6 +8,7 @@ export type UserRole =
   | 'pm'
   | 'subscriber'
   | 'partner'
+  | 'customer'
   | 'pending';
 
 export type UserStatus = 'pending' | 'active' | 'inactive' | 'suspended';
@@ -28,6 +29,12 @@ export interface UserProfile {
     lat: number;
     lng: number;
   } | null;
+  serviceAddress?: { // For customer role: where they need work done
+    street: string;
+    city: string;
+    state: string;
+    zip: string;
+  } | null;
   createdAt: Timestamp;
   approvedAt: Timestamp | null;
   approvedBy: string | null;
@@ -46,7 +53,8 @@ export interface AuthContextType {
     requestedRole?: UserRole,
     baseZipCode?: string,
     selectedPartnerId?: string,
-    companyName?: string
+    companyName?: string,
+    serviceAddress?: { street: string; city: string; state: string; zip: string }
   ) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -56,7 +64,8 @@ export interface AuthContextType {
 // Permission helpers
 export const ADMIN_ROLES: UserRole[] = ['owner', 'admin'];
 export const INTERNAL_ROLES: UserRole[] = ['owner', 'admin', 'sales_rep', 'contractor', 'pm'];
-export const EXTERNAL_ROLES: UserRole[] = ['subscriber', 'partner'];
+export const EXTERNAL_ROLES: UserRole[] = ['subscriber', 'partner', 'customer'];
+export const CUSTOMER_ROLES: UserRole[] = ['customer'];
 
 export function canAccessDashboard(role: UserRole): boolean {
   return INTERNAL_ROLES.includes(role);
@@ -135,4 +144,8 @@ export function canAssignCrew(role: UserRole): boolean {
 
 export function canScheduleJobs(role: UserRole): boolean {
   return ['owner', 'admin', 'pm', 'sales_rep'].includes(role);
+}
+
+export function isCustomer(role: UserRole): boolean {
+  return role === 'customer';
 }

@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 import { Invoice, InvoiceStatus, InvoiceEntity, NET_TERMS_DAYS } from '@/types/invoice';
+import { tenant } from '@/lib/config/tenant';
 
 // Status display config
 export const INVOICE_STATUS_CONFIG: Record<
@@ -17,9 +18,9 @@ export const ENTITY_CONFIG: Record<
   InvoiceEntity['entity'],
   { label: string; shortLabel: string; color: string }
 > = {
-  kd: { label: 'Keynote Digital', shortLabel: 'KD', color: 'text-purple-400' },
-  kts: { label: 'Key Trade Solutions', shortLabel: 'KTS', color: 'text-blue-400' },
-  kr: { label: 'Key Renovations', shortLabel: 'KR', color: 'text-green-400' },
+  kd: { label: tenant.entities.kd.label, shortLabel: tenant.entities.kd.shortLabel, color: 'text-purple-400' },
+  kts: { label: tenant.entities.kts.label, shortLabel: tenant.entities.kts.shortLabel, color: 'text-blue-400' },
+  kr: { label: tenant.entities.kr.label, shortLabel: tenant.entities.kr.shortLabel, color: 'text-green-400' },
   customer: { label: 'Customer', shortLabel: 'Customer', color: 'text-gray-400' },
   subscriber: { label: 'Subscriber', shortLabel: 'Subscriber', color: 'text-amber-400' },
   contractor: { label: 'Contractor', shortLabel: 'Contractor', color: 'text-gold' },

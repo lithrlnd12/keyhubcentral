@@ -97,12 +97,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     requestedRole?: UserRole,
     baseZipCode?: string,
     selectedPartnerId?: string,
-    companyName?: string
+    companyName?: string,
+    serviceAddress?: { street: string; city: string; state: string; zip: string }
   ) => {
     setLoading(true);
     setError(null);
     try {
-      await firebaseSignUp(email, password, displayName, phone, requestedRole, baseZipCode, selectedPartnerId, companyName);
+      await firebaseSignUp(email, password, displayName, phone, requestedRole, baseZipCode, selectedPartnerId, companyName, serviceAddress);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Sign up failed';
       setError(errorMessage);
