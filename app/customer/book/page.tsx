@@ -6,10 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button, Input } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
 import { createLead } from '@/lib/firebase/leads';
-import { createNotification } from '@/lib/firebase/notifications';
 import { SPECIALTIES } from '@/types/contractor';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
 
 export default function CustomerBookPage() {
   const { user } = useAuth();
@@ -56,26 +53,6 @@ export default function CustomerBookPage() {
         customerId: user.uid,
         ...(preferredDate ? { preferredDate } : {}),
       } as Parameters<typeof createLead>[0]);
-
-      // Notify admins about new customer request
-      try {
-        const adminsQuery = query(
-          collection(db, 'users'),
-          where('role', 'in', ['owner', 'admin']),
-          where('status', '==', 'active')
-        );
-        const adminsSnap = await getDocs(adminsQuery);
-        adminsSnap.docs.forEach((adminDoc) => {
-          createNotification(adminDoc.id, 'lead_submitted', {
-            customerName: user.displayName || 'A customer',
-            specialties: selectedSpecialties.join(', '),
-            city: user.serviceAddress?.city || '',
-            leadId: '',
-          }).catch(() => {});
-        });
-      } catch {
-        // Non-critical — don't block the user
-      }
 
       setSubmitted(true);
     } catch (error) {
