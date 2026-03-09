@@ -58,7 +58,7 @@ export default function CustomerBookPage() {
         returnedAt: null,
         specialties: selectedSpecialties,
         customerId: user.uid,
-        preferredDate: preferredDate || undefined,
+        ...(preferredDate ? { preferredDate } : {}),
       });
 
       // Notify admins about new customer request
