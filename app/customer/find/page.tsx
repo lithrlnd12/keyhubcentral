@@ -92,17 +92,17 @@ export default function CustomerFindPage() {
         c.specialties.some((s) => selectedSpecialties.includes(s))
       );
 
-  // Calculate distances
-  const contractorsWithDistance = filteredContractors.map((c) => ({
-    ...c,
-    distance: customerLat && customerLng
-      ? calculateDistanceMiles(customerLat, customerLng, c.lat, c.lng)
-      : null,
-  }));
+  // Calculate distances and filter to only pros who serve customer's area
+  const contractorsWithDistance = filteredContractors
+    .map((c) => ({
+      ...c,
+      distance: customerLat && customerLng
+        ? calculateDistanceMiles(customerLat, customerLng, c.lat, c.lng)
+        : null,
+    }))
+    .filter((c) => c.distance !== null && c.distance <= c.serviceRadius);
 
-  const nearbyCount = contractorsWithDistance.filter(
-    (c) => c.distance !== null && c.distance <= c.serviceRadius
-  ).length;
+  const nearbyCount = contractorsWithDistance.length;
 
   // Initialize map
   const initMap = useCallback(async () => {
@@ -189,10 +189,9 @@ export default function CustomerFindPage() {
       homeMarkerRef.current = homeMarker;
     }
 
-    // Add contractor markers
+    // Add contractor markers (only pros who serve this area)
     contractorsWithDistance.forEach((contractor) => {
-      const isNearby = contractor.distance !== null && contractor.distance <= contractor.serviceRadius;
-      const pinColor = isNearby ? '#22C55E' : '#6B7280';
+      const pinColor = '#22C55E';
 
       const pinEl = document.createElement('div');
       pinEl.innerHTML = `<div style="width:12px;height:12px;background:${pinColor};border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.4);cursor:pointer;"></div>`;
@@ -246,6 +245,20 @@ export default function CustomerFindPage() {
       markersRef.current.push(marker);
       circlesRef.current.push(circle);
     });
+
+    // Fit bounds to show customer + all nearby pros
+    if (customerLat && customerLng) {
+      if (contractorsWithDistance.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend({ lat: customerLat, lng: customerLng });
+        contractorsWithDistance.forEach((c) => bounds.extend({ lat: c.lat, lng: c.lng }));
+        map.fitBounds(bounds, 50);
+      } else {
+        // No nearby pros — center on customer at a reasonable zoom
+        map.setCenter({ lat: customerLat, lng: customerLng });
+        map.setZoom(12);
+      }
+    }
   }, [contractorsWithDistance, customerLat, customerLng]);
 
   useEffect(() => {
@@ -317,7 +330,6 @@ export default function CustomerFindPage() {
           <h2 className="text-lg font-semibold text-white">Nearby Pros</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {contractorsWithDistance
-              .filter((c) => c.distance !== null)
               .sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999))
               .slice(0, 8)
               .map((contractor) => (
