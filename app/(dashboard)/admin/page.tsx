@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/hooks';
 import { Button } from '@/components/ui';
 import { UserProfile, UserRole, UserStatus } from '@/types/user';
 import { Partner } from '@/types/partner';
-import { Check, X, Clock, User, Database, RefreshCw, Users, Shield, Ban, Search } from 'lucide-react';
+import { Check, X, Clock, User, Database, RefreshCw, Users, Shield, Ban, Search, UserPlus, MapPin, Calendar } from 'lucide-react';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   owner: 'Owner',
@@ -47,11 +47,15 @@ export default function AdminPage() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | ''>('');
+  const [customers, setCustomers] = useState<UserProfile[]>([]);
+  const [customerPeriod, setCustomerPeriod] = useState<'all' | 'week' | 'month' | 'quarter'>('all');
+  const [customerSearch, setCustomerSearch] = useState('');
 
   useEffect(() => {
     fetchPendingUsers();
     fetchActiveUsers();
     fetchPartners();
+    fetchCustomers();
   }, []);
 
   const fetchPendingUsers = async () => {
@@ -109,6 +113,57 @@ export default function AdminPage() {
       console.error('Error fetching partners:', error);
     }
   };
+
+  const fetchCustomers = async () => {
+    try {
+      const q = query(
+        collection(db, 'users'),
+        where('role', '==', 'customer'),
+        where('status', 'in', ['active', 'inactive', 'suspended'])
+      );
+      const snapshot = await getDocs(q);
+      const users = snapshot.docs
+        .map((d) => d.data() as UserProfile)
+        .sort((a, b) => {
+          const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
+          const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
+          return bTime - aTime;
+        });
+      setCustomers(users);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  };
+
+  // Filter customers by time period
+  const getFilteredCustomers = () => {
+    const now = new Date();
+    let cutoff: Date | null = null;
+
+    if (customerPeriod === 'week') {
+      cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (customerPeriod === 'month') {
+      cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (customerPeriod === 'quarter') {
+      cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    }
+
+    return customers.filter((c) => {
+      const matchesSearch =
+        !customerSearch ||
+        c.displayName?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+        c.email?.toLowerCase().includes(customerSearch.toLowerCase()) ||
+        c.phone?.toLowerCase().includes(customerSearch.toLowerCase());
+
+      if (!matchesSearch) return false;
+      if (!cutoff) return true;
+
+      const createdAt = c.createdAt?.toDate?.();
+      return createdAt && createdAt >= cutoff;
+    });
+  };
+
+  const filteredCustomers = getFilteredCustomers();
 
   const handleApprove = async (uid: string) => {
     const role = selectedRoles[uid] || 'contractor';
@@ -525,6 +580,144 @@ export default function AdminPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Customer Signups */}
+      <div className="bg-brand-charcoal rounded-xl border border-gray-800">
+        <div className="p-4 border-b border-gray-800">
+          <h3 className="font-semibold text-white flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-teal-400" />
+            Customer Signups
+            <span className="ml-2 px-2 py-0.5 bg-teal-500/20 text-teal-400 text-xs rounded-full">
+              {filteredCustomers.length}{customerPeriod !== 'all' ? ` this ${customerPeriod}` : ''}
+            </span>
+          </h3>
+        </div>
+
+        {/* Filters */}
+        <div className="p-4 border-b border-gray-800 flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search customers..."
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-brand-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold"
+            />
+          </div>
+          <div className="flex gap-1">
+            {(['all', 'week', 'month', 'quarter'] as const).map((period) => (
+              <button
+                key={period}
+                onClick={() => setCustomerPeriod(period)}
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  customerPeriod === period
+                    ? 'bg-teal-500/20 text-teal-400 border border-teal-500/40'
+                    : 'bg-brand-black border border-gray-700 text-gray-400 hover:border-gray-600'
+                }`}
+              >
+                {period === 'all' ? 'All Time' : period === 'week' ? 'Last Week' : period === 'month' ? 'Last Month' : 'Last Quarter'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div className="p-4 border-b border-gray-800 grid grid-cols-4 gap-3">
+          <div className="text-center">
+            <p className="text-lg font-bold text-white">{customers.length}</p>
+            <p className="text-xs text-gray-500">Total</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-teal-400">
+              {customers.filter((c) => {
+                const d = c.createdAt?.toDate?.();
+                return d && d >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+              }).length}
+            </p>
+            <p className="text-xs text-gray-500">This Week</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-blue-400">
+              {customers.filter((c) => {
+                const d = c.createdAt?.toDate?.();
+                return d && d >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+              }).length}
+            </p>
+            <p className="text-xs text-gray-500">This Month</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-purple-400">
+              {customers.filter((c) => {
+                const d = c.createdAt?.toDate?.();
+                return d && d >= new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+              }).length}
+            </p>
+            <p className="text-xs text-gray-500">This Quarter</p>
+          </div>
+        </div>
+
+        {/* Customer List */}
+        <div className="divide-y divide-gray-800 max-h-[400px] overflow-y-auto">
+          {filteredCustomers.length === 0 ? (
+            <div className="p-6 text-center text-gray-400">
+              No customers found
+            </div>
+          ) : (
+            filteredCustomers.map((customer) => {
+              const createdAt = customer.createdAt?.toDate?.();
+              return (
+                <div key={customer.uid} className="p-4">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-teal-500/10 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-teal-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">{customer.displayName || 'Unnamed'}</p>
+                        <p className="text-sm text-gray-400">{customer.email}</p>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          {customer.phone && (
+                            <span className="text-xs text-gray-500">{customer.phone}</span>
+                          )}
+                          {customer.serviceAddress && (
+                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {customer.serviceAddress.city}, {customer.serviceAddress.state}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {customer.status !== 'active' && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">
+                          {customer.status}
+                        </span>
+                      )}
+                      {createdAt && (
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      )}
+                      <Button
+                        size="sm"
+                        variant={customer.status === 'active' ? 'danger' : 'outline'}
+                        onClick={() => handleToggleStatus(customer.uid, customer.status)}
+                        disabled={processing === customer.uid}
+                        title={customer.status === 'active' ? 'Disable' : 'Enable'}
+                      >
+                        <Ban className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       {/* Active Users Management */}
