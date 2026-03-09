@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { CheckCircle, User, Users } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button, Input } from '@/components/ui';
 import { useAuth } from '@/lib/hooks';
@@ -10,11 +11,24 @@ import { SPECIALTIES } from '@/types/contractor';
 
 export default function CustomerBookPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const contractorId = searchParams.get('contractorId');
+  const contractorName = searchParams.get('contractorName');
+  const preSelectedSpecialties = searchParams.get('specialties');
+
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [preferredDate, setPreferredDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Pre-fill specialties from URL params
+  useEffect(() => {
+    if (preSelectedSpecialties) {
+      const specs = preSelectedSpecialties.split(',').filter((s) => (SPECIALTIES as readonly string[]).includes(s));
+      if (specs.length > 0) setSelectedSpecialties(specs);
+    }
+  }, [preSelectedSpecialties]);
 
   const toggleSpecialty = (specialty: string) => {
     setSelectedSpecialties((prev) =>
@@ -52,6 +66,7 @@ export default function CustomerBookPage() {
         specialties: selectedSpecialties,
         customerId: user.uid,
         ...(preferredDate ? { preferredDate } : {}),
+        ...(contractorId ? { targetedContractorId: contractorId, targetedContractorName: contractorName || null } : {}),
       } as Parameters<typeof createLead>[0]);
 
       setSubmitted(true);
@@ -71,7 +86,9 @@ export default function CustomerBookPage() {
           </div>
           <h2 className="text-xl font-bold text-white mb-2">Request Submitted!</h2>
           <p className="text-gray-400 text-sm max-w-md mx-auto mb-6">
-            We&apos;re matching you with a top-rated pro in your area. You&apos;ll be notified as soon as a contractor accepts your project.
+            {contractorId
+              ? `Your request has been sent to ${contractorName || 'the selected pro'}. You'll be notified when they respond.`
+              : "We're matching you with a top-rated pro in your area. You'll be notified as soon as a contractor accepts your project."}
           </p>
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={() => { setSubmitted(false); setSelectedSpecialties([]); setDescription(''); setPreferredDate(''); }}>
@@ -89,6 +106,33 @@ export default function CustomerBookPage() {
         <h1 className="text-2xl font-bold text-white">Book a Pro</h1>
         <p className="text-gray-400 mt-1">Tell us what you need and we&apos;ll match you with a vetted contractor</p>
       </div>
+
+      {/* Booking Mode Indicator */}
+      {contractorId && contractorName ? (
+        <Card className="p-4 border-brand-gold/30 bg-brand-gold/5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-brand-gold/20 flex items-center justify-center">
+              <User className="w-4 h-4 text-brand-gold" />
+            </div>
+            <div className="flex-1">
+              <p className="text-white text-sm font-medium">{contractorName}</p>
+              <p className="text-gray-500 text-xs">This request will go directly to this pro</p>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <Card className="p-4 border-blue-500/20 bg-blue-500/5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <Users className="w-4 h-4 text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-white text-sm font-medium">Any Available Pro</p>
+              <p className="text-gray-500 text-xs">Your request will be sent to all matching pros nearby — first to accept wins</p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card className="p-6">
         <form onSubmit={handleSubmit} className="space-y-5">

@@ -61,12 +61,17 @@ export function useAvailableLeads() {
       return { ...lead, distance };
     })
     .filter((lead) => {
-      // Filter by distance
+      // If lead is targeted to a specific contractor, only show to that contractor
+      if (lead.targetedContractorId) {
+        return lead.targetedContractorId === contractor?.id;
+      }
+
+      // Broadcast leads: filter by distance
       if (lead.distance !== null && contractor) {
         if (lead.distance > (contractor.serviceRadius || 50)) return false;
       }
 
-      // Filter by specialty overlap
+      // Broadcast leads: filter by specialty overlap
       if (lead.specialties && lead.specialties.length > 0 && contractor?.specialties?.length) {
         const hasOverlap = lead.specialties.some((s) => contractor.specialties.includes(s));
         if (!hasOverlap) return false;

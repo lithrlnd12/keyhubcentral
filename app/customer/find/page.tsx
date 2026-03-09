@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Loader2, MapPin, Star } from 'lucide-react';
+import { Loader2, MapPin, Star, Users } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/lib/hooks';
 import { SPECIALTIES } from '@/types/contractor';
@@ -236,7 +236,7 @@ export default function CustomerFindPage() {
             <p style="color:#9ca3af;font-size:12px;margin:0 0 4px;">${contractor.city}, ${contractor.state} · ${distanceText}</p>
             <p style="color:#eab308;font-size:12px;margin:0 0 8px;">${stars}</p>
             <div style="margin-bottom:8px;">${specialtiesHtml}</div>
-            <a href="/customer/book" style="display:inline-block;padding:6px 14px;background:#d4a84b;color:#0a0a0a;font-size:12px;font-weight:600;border-radius:6px;text-decoration:none;">Book This Pro</a>
+            <a href="/customer/book?contractorId=${contractor.id}&contractorName=${encodeURIComponent(contractor.businessName)}" style="display:inline-block;padding:6px 14px;background:#d4a84b;color:#0a0a0a;font-size:12px;font-weight:600;border-radius:6px;text-decoration:none;">Book This Pro</a>
           </div>
         `);
         infoWindowRef.current?.open(map, marker);
@@ -324,11 +324,33 @@ export default function CustomerFindPage() {
         </div>
       </Card>
 
-      {/* Contractor List */}
-      {!loading && contractorsWithDistance.length > 0 && (
+      {/* Any Available Pro + Contractor List */}
+      {!loading && (
         <div className="space-y-2">
           <h2 className="text-lg font-semibold text-white">Nearby Pros</h2>
           <div className="grid gap-3 sm:grid-cols-2">
+            {/* Any Available Pro Card */}
+            <Link href={`/customer/book${selectedSpecialties.length > 0 ? `?specialties=${encodeURIComponent(selectedSpecialties.join(','))}` : ''}`}>
+              <Card className="p-4 border-brand-gold/30 bg-gradient-to-br from-brand-gold/5 to-transparent hover:from-brand-gold/10 transition-all cursor-pointer h-full">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-brand-gold/20 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-brand-gold" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-medium">Any Available Pro</h3>
+                    <p className="text-gray-500 text-xs">Fastest match — first pro to accept wins</p>
+                  </div>
+                </div>
+                <p className="text-gray-400 text-xs mb-3">
+                  Your request goes to all {nearbyCount > 0 ? nearbyCount : ''} matching pros in your area. The first one to accept gets the job.
+                </p>
+                <div className="text-center text-xs font-semibold text-brand-black bg-brand-gold rounded-lg py-2">
+                  Send to All Pros
+                </div>
+              </Card>
+            </Link>
+
+            {/* Individual Contractor Cards */}
             {contractorsWithDistance
               .sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999))
               .slice(0, 8)
@@ -363,7 +385,7 @@ export default function CustomerFindPage() {
                     </div>
                   )}
                   <Link
-                    href="/customer/book"
+                    href={`/customer/book?contractorId=${contractor.id}&contractorName=${encodeURIComponent(contractor.businessName)}`}
                     className="block mt-3 text-center text-xs font-semibold text-brand-gold border border-brand-gold/30 rounded-lg py-2 hover:bg-brand-gold/10 transition-colors"
                   >
                     Book This Pro

@@ -121,6 +121,8 @@ export interface Lead extends LeadCallData, LeadSmsData {
   specialties?: string[];
   customerId?: string;
   preferredDate?: string;
+  targetedContractorId?: string | null; // null = broadcast to all matching pros
+  targetedContractorName?: string | null;
   acceptedAt?: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;

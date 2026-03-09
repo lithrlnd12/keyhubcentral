@@ -74,14 +74,15 @@ export default function PortalLeadsPage() {
             <Card key={lead.id} className="p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  {/* Specialties */}
-                  {lead.specialties && lead.specialties.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {lead.specialties.map((s) => (
-                        <Badge key={s} variant="info">{s}</Badge>
-                      ))}
-                    </div>
-                  )}
+                  {/* Targeted / Specialties */}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {lead.targetedContractorId && (
+                      <Badge variant="success">Direct Request</Badge>
+                    )}
+                    {lead.specialties && lead.specialties.length > 0 && lead.specialties.map((s) => (
+                      <Badge key={s} variant="info">{s}</Badge>
+                    ))}
+                  </div>
 
                   {/* Description */}
                   {lead.customer?.notes && (
