@@ -391,9 +391,9 @@ export default function PortalProfilePage() {
                   placeholder="Select specialties..."
                 />
               ) : (
-                contractor.specialties?.length > 0 && (
-                  <div>
-                    <label className="text-sm text-gray-400">Specialties</label>
+                <div>
+                  <label className="text-sm text-gray-400">Specialties</label>
+                  {contractor.specialties?.length > 0 ? (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {contractor.specialties.map((specialty) => (
                         <span
@@ -404,20 +404,24 @@ export default function PortalProfilePage() {
                         </span>
                       ))}
                     </div>
-                  </div>
-                )
+                  ) : (
+                    <p className="text-gray-500 text-sm mt-1">
+                      No specialties set — tap Edit Profile to add specialties so customers can find you
+                    </p>
+                  )}
+                </div>
               )}
               {editing ? (
                 <TagInput
                   label="Skills & Certifications"
                   value={formData.skills}
                   onChange={(skills) => updateField('skills', skills)}
-                  placeholder="Press Enter to add..."
+                  placeholder="Type a skill and press Enter..."
                 />
               ) : (
-                contractor.skills?.length > 0 && (
-                  <div>
-                    <label className="text-sm text-gray-400">Skills & Certifications</label>
+                <div>
+                  <label className="text-sm text-gray-400">Skills & Certifications</label>
+                  {contractor.skills?.length > 0 ? (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {contractor.skills.map((skill) => (
                         <span
@@ -428,8 +432,12 @@ export default function PortalProfilePage() {
                         </span>
                       ))}
                     </div>
-                  </div>
-                )
+                  ) : (
+                    <p className="text-gray-500 text-sm mt-1">
+                      No skills added yet — tap Edit Profile to list your skills and certifications
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           </Card>

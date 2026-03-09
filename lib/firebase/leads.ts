@@ -676,7 +676,6 @@ export async function acceptLead(
     transaction.update(leadRef, {
       status: 'assigned',
       assignedTo: contractorUserId,
-      assignedType: 'internal',
       acceptedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

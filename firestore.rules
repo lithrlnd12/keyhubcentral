@@ -87,10 +87,15 @@ service cloud.firestore {
     match /contractors/{contractorId} {
       // Internal users can read all contractors (needed for job assignment, availability views)
       // Per PRD: Owner, Admin, PM can see all contractors
-      allow read: if isInternalUser();
+      // Contractors can read their own record (for profile page, lead feed)
+      allow read: if isInternalUser() ||
+        (isActiveUser() && resource.data.userId == request.auth.uid) ||
+        (isActiveUser() && resource.data.email == request.auth.token.email);
 
       // Admins can create/update, contractors can update their own (limited fields)
-      allow create: if isAdmin();
+      // Contractors can also create their own record (auto-creation from profile page)
+      allow create: if isAdmin() ||
+        (isContractor() && isActiveUser() && request.resource.data.userId == request.auth.uid);
       allow update: if isAdmin() ||
         (isActiveUser() && resource.data.userId == request.auth.uid &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['rating', 'status', 'userId', 'tier', 'commissionRate', 'approvedAt', 'approvedBy']));
@@ -223,7 +228,7 @@ service cloud.firestore {
         (isContractor() && isActiveUser() &&
           resource.data.source == 'customer_portal' &&
           resource.data.status == 'new' &&
-          resource.data.assignedTo == null &&
+          (!('assignedTo' in resource.data) || resource.data.assignedTo == null) &&
           request.resource.data.assignedTo == request.auth.uid &&
           request.resource.data.status == 'assigned');
       allow delete: if isOwner();
