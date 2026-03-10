@@ -53,6 +53,7 @@ export default function ReceiptDetailPage() {
   const [editingVendor, setEditingVendor] = useState(false);
   const [vendorInput, setVendorInput] = useState('');
   const [customLocation, setCustomLocation] = useState('');
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
 
   // Fetch inventory items for linking
   const { items: inventoryItems } = useInventoryItems({ realtime: true });
@@ -86,6 +87,9 @@ export default function ReceiptDetailPage() {
             }
           });
           setItemLinks(links);
+          // Default all items as selected for inventory
+          const allItems = data.parsedData?.items || data.items || [];
+          setSelectedItems(new Set(allItems.map((_, i) => i)));
         } else {
           setError('Receipt not found');
         }
@@ -153,71 +157,76 @@ export default function ReceiptDetailPage() {
     });
   }, [receipt, inventoryItems]);
 
+  const writeSelectedItemsToInventory = async () => {
+    if (!receipt || !user) return;
+    const receiptItems = receipt.parsedData?.items || receipt.items || [];
+    const linkEntries = Array.from(itemLinks.entries());
+
+    for (const [index, link] of linkEntries) {
+      const receiptItem = receiptItems[index];
+      if (!receiptItem) continue;
+      if (!selectedItems.has(index)) continue;
+
+      let inventoryItemId = link.inventoryItemId;
+      let inventoryItemName = link.inventoryItemName;
+      let parLevel = 0;
+
+      if (link.isNew && link.category && !link.inventoryItemId) {
+        const newItemId = await createInventoryItem({
+          name: receiptItem.description,
+          category: link.category,
+          unitOfMeasure: 'each',
+          parLevel: receiptItem.quantity,
+          cost: receiptItem.unitPrice || undefined,
+          createdBy: user.uid,
+        });
+        inventoryItemId = newItemId;
+        inventoryItemName = receiptItem.description;
+        parLevel = receiptItem.quantity;
+      } else if (link.inventoryItemId) {
+        const invItem = inventoryItems.find(i => i.id === link.inventoryItemId);
+        parLevel = invItem?.parLevel || 0;
+      }
+
+      if (inventoryItemId && inventoryItemName) {
+        await linkReceiptItemToInventory(receiptId, index, inventoryItemId, inventoryItemName);
+        if (receipt.locationId && receipt.locationName) {
+          await addStockFromReceipt(
+            inventoryItemId,
+            receipt.locationId,
+            receiptItem.quantity,
+            inventoryItemName,
+            receipt.locationName,
+            parLevel,
+            user.uid,
+            user.displayName || 'Unknown'
+          );
+        }
+      }
+    }
+  };
+
   const handleVerify = async () => {
     if (!receipt || !user) return;
     setVerifying(true);
     try {
-      const receiptItems = receipt.parsedData?.items || receipt.items || [];
-      const linkEntries = Array.from(itemLinks.entries());
-
-      // Save all item links and update inventory stock
-      for (const [index, link] of linkEntries) {
-        const receiptItem = receiptItems[index];
-        if (!receiptItem) continue;
-
-        let inventoryItemId = link.inventoryItemId;
-        let inventoryItemName = link.inventoryItemName;
-        let parLevel = 0;
-
-        // If this is a new item (has category but no inventory link), create it
-        if (link.isNew && link.category && !link.inventoryItemId) {
-          const newItemId = await createInventoryItem({
-            name: receiptItem.description,
-            category: link.category,
-            unitOfMeasure: 'each',
-            parLevel: receiptItem.quantity, // Set par level to initial quantity
-            cost: receiptItem.unitPrice || undefined,
-            createdBy: user.uid,
-          });
-
-          inventoryItemId = newItemId;
-          inventoryItemName = receiptItem.description;
-          parLevel = receiptItem.quantity;
-        } else if (link.inventoryItemId) {
-          // Get par level from existing inventory item
-          const invItem = inventoryItems.find(i => i.id === link.inventoryItemId);
-          parLevel = invItem?.parLevel || 0;
-        }
-
-        // Link receipt item to inventory if we have an ID
-        if (inventoryItemId && inventoryItemName) {
-          await linkReceiptItemToInventory(
-            receiptId,
-            index,
-            inventoryItemId,
-            inventoryItemName
-          );
-
-          // If receipt has a location, add stock
-          if (receipt.locationId && receipt.locationName) {
-            await addStockFromReceipt(
-              inventoryItemId,
-              receipt.locationId,
-              receiptItem.quantity,
-              inventoryItemName,
-              receipt.locationName,
-              parLevel,
-              user.uid,
-              user.displayName || 'Unknown'
-            );
-          }
-        }
-      }
-
+      await writeSelectedItemsToInventory();
       await verifyReceipt(receiptId, user.uid);
       setReceipt({ ...receipt, status: 'verified', verifiedBy: user.uid });
     } catch (err) {
       console.error('Verify error:', err);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleAddToInventory = async () => {
+    if (!receipt || !user) return;
+    setVerifying(true);
+    try {
+      await writeSelectedItemsToInventory();
+    } catch (err) {
+      console.error('Add to inventory error:', err);
     } finally {
       setVerifying(false);
     }
@@ -388,6 +397,7 @@ export default function ReceiptDetailPage() {
   const parsedData = receipt.parsedData;
   const items = parsedData?.items || receipt.items || [];
   const canEdit = receipt.status === 'parsed';
+  const canSelectInventory = ['parsed', 'verified', 'added_to_pl'].includes(receipt.status);
 
   return (
     <div className="space-y-6">
@@ -447,28 +457,56 @@ export default function ReceiptDetailPage() {
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
-              Verify & Save
+              Add {selectedItems.size} to Inventory
             </button>
           )}
           {receipt.status === 'verified' && (
-            <button
-              onClick={handleAddToPL}
-              disabled={addingToPL}
-              className="flex items-center gap-2 px-4 py-2 bg-gold text-brand-black rounded-lg font-medium hover:bg-gold/90 transition-colors disabled:opacity-50"
-            >
-              {addingToPL ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <DollarSign className="h-4 w-4" />
-              )}
-              Add to P&L
-            </button>
+            <>
+              <button
+                onClick={handleAddToInventory}
+                disabled={verifying || selectedItems.size === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {verifying ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Package className="h-4 w-4" />
+                )}
+                Add {selectedItems.size} to Inventory
+              </button>
+              <button
+                onClick={handleAddToPL}
+                disabled={addingToPL}
+                className="flex items-center gap-2 px-4 py-2 bg-gold text-brand-black rounded-lg font-medium hover:bg-gold/90 transition-colors disabled:opacity-50"
+              >
+                {addingToPL ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <DollarSign className="h-4 w-4" />
+                )}
+                Add to P&L
+              </button>
+            </>
           )}
           {receipt.status === 'added_to_pl' && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-medium">
-              <CheckCircle className="h-4 w-4" />
-              Added to P&L
-            </div>
+            <>
+              <button
+                onClick={handleAddToInventory}
+                disabled={verifying || selectedItems.size === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {verifying ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Package className="h-4 w-4" />
+                )}
+                Add {selectedItems.size} to Inventory
+              </button>
+              <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-medium">
+                <CheckCircle className="h-4 w-4" />
+                Added to P&L
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -478,8 +516,7 @@ export default function ReceiptDetailPage() {
         <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
           <h3 className="text-purple-400 font-medium mb-2">Review & Categorize Items</h3>
           <p className="text-gray-400 text-sm">
-            Link each item to existing inventory or assign a category (Material/Tool).
-            Click &quot;Verify &amp; Save&quot; when done.
+            Check the items you want to add to inventory, link each to existing inventory or assign a category (Material/Tool), then click &quot;Add to Inventory&quot;.
           </p>
         </div>
       )}
@@ -711,9 +748,25 @@ export default function ReceiptDetailPage() {
 
           {/* Line Items with Inventory Linking */}
           <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-4">
-            <h2 className="text-lg font-medium text-white mb-4">
-              Items ({items.length})
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-white">
+                Items ({items.length})
+              </h2>
+              {canSelectInventory && items.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (selectedItems.size === items.length) {
+                      setSelectedItems(new Set());
+                    } else {
+                      setSelectedItems(new Set(items.map((_, i) => i)));
+                    }
+                  }}
+                  className="text-xs text-gray-400 hover:text-white transition-colors"
+                >
+                  {selectedItems.size === items.length ? 'Deselect All' : 'Select All'}
+                </button>
+              )}
+            </div>
             {items.length > 0 ? (
               <div className="space-y-3">
                 {items.map((item, index) => {
@@ -723,9 +776,27 @@ export default function ReceiptDetailPage() {
                   return (
                     <div
                       key={index}
-                      className="p-3 bg-gray-900 rounded-lg space-y-2"
+                      className={cn(
+                        "p-3 bg-gray-900 rounded-lg space-y-2 transition-opacity",
+                        canSelectInventory && !selectedItems.has(index) && "opacity-50"
+                      )}
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start gap-3">
+                        {canSelectInventory && (
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.has(index)}
+                            onChange={(e) => {
+                              setSelectedItems(prev => {
+                                const next = new Set(prev);
+                                if (e.target.checked) next.add(index);
+                                else next.delete(index);
+                                return next;
+                              });
+                            }}
+                            className="mt-0.5 h-4 w-4 rounded border-gray-600 bg-gray-800 text-gold accent-yellow-500 cursor-pointer flex-shrink-0"
+                          />
+                        )}
                         <div className="flex-1">
                           <p className="text-white text-sm">{item.description}</p>
                           <p className="text-gray-500 text-xs">
