@@ -515,12 +515,15 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // VAPI expects destination and message as separate top-level fields
+        // Warm transfer: whisper the summary to the RECIPIENT via transferPlan
         return NextResponse.json({
           destination: {
             type: 'number',
             number: transferData.repPhone,
-            message: whisper,
+            transferPlan: {
+              mode: 'warm-transfer-with-message',
+              message: whisper,
+            },
           },
         });
       } catch (error) {

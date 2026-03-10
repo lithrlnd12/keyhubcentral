@@ -285,16 +285,26 @@ const TOOL_sendUploadLink = tool(
 );
 
 
-// transferCall tool — fallback number listed so AI can initiate transfers.
-// The message field is the whisper spoken to the recipient when they answer.
+// transferCall tool — warm transfer with whisper to the RECIPIENT.
+// transferPlan.message is spoken to the person answering the transfer.
+// The caller hears the messages[].content while waiting.
 const TOOL_transferCall = {
   type: 'transferCall',
+  messages: [
+    {
+      type: 'request-start',
+      content: 'Let me connect you now. One moment please.',
+    },
+  ],
   destinations: [
     {
       type: 'number',
       numberE164CheckEnabled: false,
       number: '+18128906303',
-      message: 'You have an incoming transfer from the Key Renovations AI receptionist. The caller is on the line.',
+      transferPlan: {
+        mode: 'warm-transfer-with-message',
+        message: 'You have an incoming call from the Key Renovations AI receptionist. A customer is on the line and needs assistance.',
+      },
     },
   ],
 };
