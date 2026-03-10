@@ -1,6 +1,16 @@
 import { getAdminDb } from '@/lib/firebase/admin';
 import { registerTool, CallContext } from '@/lib/vapi/toolRegistry';
 
+// Normalize phone to E.164 format (+1XXXXXXXXXX)
+function normalizePhone(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  if (phone.startsWith('+')) return phone;
+  return `+${digits}`;
+}
+
 // Match names by checking if all search words appear in the name
 // "Zach Rhyn" matches "Zachary Rhyne" because "zach" starts "zachary" and "rhyn" starts "rhyne"
 function nameMatches(fullName: string, searchTerms: string[]): boolean {
@@ -57,7 +67,7 @@ async function lookupTeamMemberHandler(
       const trades = (data.trades as string[]) || [];
       matches.push({
         name,
-        phone,
+        phone: normalizePhone(phone),
         role: trades.includes('sales_rep') ? 'sales_rep' : trades[0] || 'contractor',
         id: doc.id,
         userId,
@@ -77,13 +87,13 @@ async function lookupTeamMemberHandler(
     const name = (data.displayName || '') as string;
     const role = (data.role as string) || '';
 
-    if (name.toLowerCase().includes(searchName) && ['sales_rep', 'pm', 'admin', 'owner'].includes(role)) {
+    if (nameMatches(name, searchTerms) && ['sales_rep', 'pm', 'admin', 'owner'].includes(role)) {
       // Skip if already found via contractor record
       const alreadyFound = matches.some((m) => m.userId === doc.id);
       if (!alreadyFound) {
         matches.push({
           name,
-          phone: (data.phone as string) || null,
+          phone: normalizePhone(data.phone as string),
           role,
           id: doc.id,
           userId: doc.id,
@@ -107,7 +117,7 @@ async function lookupTeamMemberHandler(
     if (nameMatches(companyName, searchTerms) || nameMatches(contactName, searchTerms)) {
       matches.push({
         name: contactName || companyName,
-        phone: (data.contactPhone as string) || null,
+        phone: normalizePhone(data.contactPhone as string),
         role: 'partner',
         id: doc.id,
         userId: (data.userId as string) || null,

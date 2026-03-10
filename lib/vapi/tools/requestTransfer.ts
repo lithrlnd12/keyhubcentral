@@ -70,6 +70,13 @@ const requestTransfer: ToolDefinition = {
         }
       }
 
+      // Normalize to E.164 format
+      if (phone) {
+        const digits = phone.replace(/\D/g, '');
+        if (digits.length === 10) phone = `+1${digits}`;
+        else if (digits.length === 11 && digits.startsWith('1')) phone = `+${digits}`;
+        else if (!phone.startsWith('+')) phone = `+${digits}`;
+      }
       repPhone = phone || fallbackNumber;
       usingFallback = !phone;
     }

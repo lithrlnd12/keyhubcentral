@@ -285,9 +285,10 @@ const TOOL_sendUploadLink = tool(
 );
 
 
-// transferCall tool — warm transfer with whisper to the RECIPIENT.
-// transferPlan.message is spoken to the person answering the transfer.
-// The caller hears the messages[].content while waiting.
+// transferCall tool — NO static destinations. This forces VAPI to send
+// transfer-destination-request to our webhook, which returns the actual
+// phone number (rep, team member, or fallback) with a warm handoff whisper.
+// The AI MUST still call this tool after requestTransfer — the server handles routing.
 const TOOL_transferCall = {
   type: 'transferCall',
   messages: [
@@ -296,17 +297,7 @@ const TOOL_transferCall = {
       content: 'Let me connect you now. One moment please.',
     },
   ],
-  destinations: [
-    {
-      type: 'number',
-      numberE164CheckEnabled: false,
-      number: '+18128906303',
-      transferPlan: {
-        mode: 'warm-transfer-with-message',
-        message: 'You have an incoming call from the Key Renovations AI receptionist. A customer is on the line and needs assistance.',
-      },
-    },
-  ],
+  destinations: [],
 };
 
 // ─── Main Setup ───────────────────────────────────────────────────
@@ -363,7 +354,7 @@ After creating the lead:
 2. If a rep is available, you MUST do these steps in order:
    a. Call requestTransfer to save the rep's phone for routing
    b. Tell the customer "Let me connect you with a specialist who can help"
-   c. IMMEDIATELY call the transferCall tool — this is REQUIRED to actually connect the call. If you skip this step, the call will go silent and hang up. The transferCall tool is what performs the actual phone transfer.
+   c. IMMEDIATELY call the transferCall tool — this is REQUIRED to actually connect the call. If you skip this step, the call will go silent and hang up. The transferCall tool performs the actual phone transfer. The server handles routing dynamically — you do not need to specify a destination.
 3. If no rep is available: offer to schedule a consultation → call getCurrentDateTime first, then checkAvailability (use the returned date as startDate), then bookAppointment
 4. If neither works: assure them someone will call back shortly
 
@@ -372,7 +363,7 @@ If the caller asks to speak with a specific person (e.g. "Can I talk to John?" o
 1. Call lookupTeamMember to find that person
 2. If found, call requestTransfer with their userId and a brief summary
 3. Tell the caller "Let me connect you now"
-4. IMMEDIATELY call the transferCall tool — you MUST call transferCall or the call will go silent and hang up
+4. IMMEDIATELY call the transferCall tool — you MUST call transferCall or the call will go silent and hang up. The server routes the call dynamically.
 
 Keep the conversation warm, friendly, and natural. You're from Oklahoma — be personable! Be concise. Don't be robotic.`,
         },
