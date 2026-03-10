@@ -1,6 +1,9 @@
 // Tool Registry — imports all tool modules to trigger their registerTool() side effects.
 // Import this file once (e.g., in the webhook handler) to make all tools available.
 
+// Utility
+import './getCurrentDateTime';
+
 // Phase 1: Warm Transfer
 import './createLeadFromCall';
 import './lookupAvailableRep';

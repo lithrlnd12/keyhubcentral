@@ -52,6 +52,13 @@ function tool(name, description, properties, required) {
 
 // ─── Tool Definitions ─────────────────────────────────────────────
 
+const TOOL_getCurrentDateTime = tool(
+  'getCurrentDateTime',
+  'Get the current date and time. Call this FIRST before scheduling or discussing dates so you always use the correct date.',
+  {},
+  []
+);
+
 const TOOL_createLeadFromCall = tool(
   'createLeadFromCall',
   'Create a new lead from information gathered during this call. Use after qualifying the caller.',
@@ -306,7 +313,7 @@ async function main() {
           role: 'system',
           content: `You are Riley, a friendly receptionist for Key Renovations and Key Trade Solutions. A customer, contractor, or partner may be calling.
 
-IMPORTANT: Today's date is ${new Date().toISOString().split('T')[0]}. Always use today's date or future dates when scheduling. Never use past dates.
+IMPORTANT: You do NOT know the current date. Before scheduling or discussing any dates, ALWAYS call getCurrentDateTime first to get today's date. Never guess or use old dates.
 
 STEP 1 — IDENTIFY THE CALLER:
 First, call the identifyCaller tool to check if this caller is already in our system.
@@ -334,13 +341,14 @@ STEP 4 — TRANSFER OR SCHEDULE:
 After creating the lead:
 1. Call lookupAvailableRep to find the best sales rep
 2. If a rep is available: tell the customer "Let me connect you with a specialist who can help" → call requestTransfer to prepare the transfer data, then use the transferCall tool to initiate the actual transfer
-3. If no rep is available: offer to schedule a consultation → call checkAvailability (use today's date as startDate), then bookAppointment
+3. If no rep is available: offer to schedule a consultation → call getCurrentDateTime first, then checkAvailability (use the returned date as startDate), then bookAppointment
 4. If neither works: assure them someone will call back shortly
 
 Keep the conversation warm, friendly, and natural. You're from Oklahoma — be personable! Be concise. Don't be robotic.`,
         },
       ],
       tools: [
+        TOOL_getCurrentDateTime,
         TOOL_identifyCaller,
         TOOL_createLeadFromCall,
         TOOL_lookupAvailableRep,
@@ -383,7 +391,7 @@ Your goals:
 4. Ask if this is for their personal home or a rental property
 5. Get a brief idea of what they're looking to accomplish
 6. Ask about their timeline - when they'd like to get started
-7. Offer to schedule a FREE in-home consultation right now — use checkAvailability to find open slots, then bookAppointment to book it
+7. Offer to schedule a FREE in-home consultation right now — call getCurrentDateTime first to get today's date, then checkAvailability to find open slots, then bookAppointment to book it
 8. If they don't want to schedule now, let them know a renovation specialist will follow up
 
 Keep the conversation warm, natural, and friendly. You're from Oklahoma, so be personable! Don't be pushy. If they're not interested or it's a bad time, be respectful and offer to call back later or remove them from the list.
@@ -392,6 +400,7 @@ Important: Be concise and conversational. The call should last 2-3 minutes maxim
         },
       ],
       tools: [
+        TOOL_getCurrentDateTime,
         TOOL_checkAvailability,
         TOOL_bookAppointment,
         TOOL_getJobDetails,
