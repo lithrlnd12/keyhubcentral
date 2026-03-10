@@ -113,7 +113,8 @@ const requestTransfer: ToolDefinition = {
 
     return {
       success: true,
-      transferInitiated: true,
+      transferReady: true,
+      instruction: 'Transfer data saved. You MUST now call the transferCall tool immediately to complete the transfer. Tell the caller you are connecting them, then invoke transferCall right away.',
     };
   },
 };

@@ -96,7 +96,7 @@ const TOOL_lookupTeamMember = tool(
 
 const TOOL_requestTransfer = tool(
   'requestTransfer',
-  'Initiate a warm transfer to a sales rep or team member. Call this after finding someone via lookupAvailableRep or lookupTeamMember. Tell the customer you are connecting them before calling this.',
+  'Save transfer routing data for a rep or team member. After this tool returns success, you MUST immediately call the transferCall tool to actually connect the call. Without calling transferCall, the call will go silent.',
   {
     repUserId: { type: 'string', description: 'The userId of the rep to transfer to (from lookupAvailableRep result)' },
     leadId: { type: 'string', description: 'The lead ID (from createLeadFromCall result)' },
@@ -350,12 +350,19 @@ STEP 3 — QUALIFY & CREATE LEAD (for renovation inquiries):
 STEP 4 — TRANSFER OR SCHEDULE:
 After creating the lead:
 1. Call lookupAvailableRep to find the best sales rep
-2. If a rep is available: call requestTransfer FIRST to save the rep's phone for transfer routing, then tell the customer "Let me connect you with a specialist who can help", then use the transferCall tool to initiate the actual phone transfer. The system will automatically route to the rep's phone. If the rep is unavailable, it falls back to our main line.
+2. If a rep is available, you MUST do these steps in order:
+   a. Call requestTransfer to save the rep's phone for routing
+   b. Tell the customer "Let me connect you with a specialist who can help"
+   c. IMMEDIATELY call the transferCall tool — this is REQUIRED to actually connect the call. If you skip this step, the call will go silent and hang up. The transferCall tool is what performs the actual phone transfer.
 3. If no rep is available: offer to schedule a consultation → call getCurrentDateTime first, then checkAvailability (use the returned date as startDate), then bookAppointment
 4. If neither works: assure them someone will call back shortly
 
 DIRECT TRANSFER BY NAME:
-If the caller asks to speak with a specific person (e.g. "Can I talk to John?" or "Transfer me to Sarah"), use lookupTeamMember to find that person. If found and they have a phone number, call requestTransfer with their userId, then use transferCall to connect the caller.
+If the caller asks to speak with a specific person (e.g. "Can I talk to John?" or "Transfer me to Sarah"):
+1. Call lookupTeamMember to find that person
+2. If found, call requestTransfer with their userId and a brief summary
+3. Tell the caller "Let me connect you now"
+4. IMMEDIATELY call the transferCall tool — you MUST call transferCall or the call will go silent and hang up
 
 Keep the conversation warm, friendly, and natural. You're from Oklahoma — be personable! Be concise. Don't be robotic.`,
         },
