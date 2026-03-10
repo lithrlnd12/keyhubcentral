@@ -270,7 +270,13 @@ const TOOL_sendUploadLink = tool(
 // transferCall is a VAPI default tool type (not a custom function tool)
 const TOOL_transferCall = {
   type: 'transferCall',
-  destinations: [],  // empty = dynamic, server handles via transfer-destination-request webhook
+  destinations: [
+    {
+      type: 'number',
+      number: '+18128906303',
+      message: 'Connecting you now.',
+    },
+  ],
 };
 
 // ─── Main Setup ───────────────────────────────────────────────────
@@ -283,6 +289,12 @@ async function main() {
   await vapiRequest('PATCH', `/assistant/${INBOUND_ASSISTANT_ID}`, {
     name: 'Riley - Inbound Receptionist',
     serverUrl: WEBHOOK_URL,
+    serverMessages: [
+      'function-call',
+      'status-update',
+      'end-of-call-report',
+      'transfer-destination-request',
+    ],
     model: {
       provider: 'openai',
       model: 'gpt-4o',
