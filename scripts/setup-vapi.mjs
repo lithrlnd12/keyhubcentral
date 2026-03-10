@@ -276,13 +276,21 @@ const TOOL_sendUploadLink = tool(
 );
 
 
-// transferCall tool — empty destinations array forces VAPI to send
-// transfer-destination-request to our webhook. The webhook reads the rep's
-// phone from pendingTransfers (set by requestTransfer tool). If no pending
-// transfer exists, falls back to +18128906303.
+// transferCall tool — the fallback number is listed so the AI knows transfers
+// are possible. Because 'transfer-destination-request' is in serverMessages,
+// VAPI sends the webhook a request when the AI triggers a transfer.
+// The webhook returns the rep's phone from pendingTransfers (set by
+// requestTransfer tool). If no pending transfer exists, falls back to +18128906303.
 const TOOL_transferCall = {
   type: 'transferCall',
-  destinations: [],
+  destinations: [
+    {
+      type: 'number',
+      numberE164CheckEnabled: false,
+      number: '+18128906303',
+      message: 'Incoming warm transfer from Key Renovations AI receptionist.',
+    },
+  ],
 };
 
 // ─── Main Setup ───────────────────────────────────────────────────
