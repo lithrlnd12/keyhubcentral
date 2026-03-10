@@ -375,17 +375,8 @@ export async function POST(request: NextRequest) {
     const rawPayload = await request.json();
     const payload = rawPayload as VapiWebhookPayload;
 
-    // Debug: log full payload structure for function-call and transfer messages
     const msgType = rawPayload?.message?.type;
     console.log('Vapi webhook received:', msgType, 'call:', rawPayload?.message?.call?.id);
-
-    if (msgType === 'function-call' || msgType === 'transfer-destination-request') {
-      console.log('DEBUG payload keys:', JSON.stringify(Object.keys(rawPayload)));
-      console.log('DEBUG message keys:', JSON.stringify(Object.keys(rawPayload?.message || {})));
-      if (msgType === 'function-call') {
-        console.log('DEBUG functionCall:', JSON.stringify(rawPayload?.message?.functionCall));
-      }
-    }
 
     const { message } = payload;
     const call = message.call;
@@ -397,12 +388,69 @@ export async function POST(request: NextRequest) {
 
     const db = getAdminDb();
 
-    // === FUNCTION-CALL HANDLER (Phase 0A) ===
-    // VAPI sends function-call when assistant invokes a tool — must respond synchronously
-    if (message.type === 'function-call') {
-      // Try multiple possible locations for function call data
+    // === TOOL-CALLS HANDLER ===
+    // VAPI sends "tool-calls" with an array of toolCallList items
+    if (msgType === 'tool-calls') {
       const rawMsg = rawPayload.message as Record<string, unknown>;
-      const fcData = (rawMsg.functionCall || rawMsg.function_call || rawMsg.toolCall) as
+      const toolCallList = (rawMsg.toolCallList || rawMsg.toolCalls || []) as Array<{
+        id?: string;
+        type?: string;
+        function?: { name: string; arguments: string | Record<string, unknown> };
+        name?: string;
+        parameters?: Record<string, unknown>;
+      }>;
+
+      console.log('Tool calls received:', JSON.stringify(toolCallList));
+
+      const ctx: CallContext = {
+        callId: call.id,
+        callerPhone: call.customer?.number,
+        callType: call.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
+        metadata: call.metadata,
+      };
+
+      const results = await Promise.all(
+        toolCallList.map(async (tc) => {
+          // VAPI may use OpenAI-style format: { function: { name, arguments } }
+          // or direct format: { name, parameters }
+          const toolName = tc.function?.name || tc.name || '';
+          let toolParams: Record<string, unknown> = {};
+
+          if (tc.function?.arguments) {
+            toolParams =
+              typeof tc.function.arguments === 'string'
+                ? JSON.parse(tc.function.arguments)
+                : tc.function.arguments;
+          } else if (tc.parameters) {
+            toolParams = tc.parameters;
+          }
+
+          console.log(`Executing tool: ${toolName}`, JSON.stringify(toolParams));
+
+          try {
+            const result = await executeTool(toolName, toolParams, ctx);
+            return {
+              toolCallId: tc.id || toolName,
+              result: typeof result === 'string' ? result : JSON.stringify(result),
+            };
+          } catch (error) {
+            console.error(`Tool call error (${toolName}):`, error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            return {
+              toolCallId: tc.id || toolName,
+              result: JSON.stringify({ error: errorMessage }),
+            };
+          }
+        })
+      );
+
+      return NextResponse.json({ results });
+    }
+
+    // === FUNCTION-CALL HANDLER (legacy format) ===
+    if (message.type === 'function-call') {
+      const rawMsg = rawPayload.message as Record<string, unknown>;
+      const fcData = (rawMsg.functionCall || rawMsg.function_call) as
         | { name?: string; parameters?: Record<string, unknown> }
         | undefined;
       const functionName = fcData?.name;
