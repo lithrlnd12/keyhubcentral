@@ -109,6 +109,21 @@ service cloud.firestore {
         allow write: if isAdmin();
       }
 
+      // Appointments subcollection (booked via AI voice or in-app)
+      match /appointments/{appointmentId} {
+        // Internal users can read all appointments (admin calendar needs collection group query)
+        allow read: if isInternalUser();
+
+        // Admins can create/update/delete
+        allow create, update: if isAdmin();
+
+        // The contractor themselves can read/update their own appointments
+        allow update: if isActiveUser() &&
+          get(/databases/$(database)/documents/contractors/$(contractorId)).data.userId == request.auth.uid;
+
+        allow delete: if isAdmin();
+      }
+
       // Availability subcollection
       match /availability/{dateId} {
         // Internal users can read availability (needed for scheduling)
