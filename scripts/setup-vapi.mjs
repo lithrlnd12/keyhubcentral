@@ -276,11 +276,8 @@ const TOOL_sendUploadLink = tool(
 );
 
 
-// transferCall tool — the fallback number is listed so the AI knows transfers
-// are possible. Because 'transfer-destination-request' is in serverMessages,
-// VAPI sends the webhook a request when the AI triggers a transfer.
-// The webhook returns the rep's phone from pendingTransfers (set by
-// requestTransfer tool). If no pending transfer exists, falls back to +18128906303.
+// transferCall tool — fallback number listed so AI can initiate transfers.
+// No message/whisper on the destination — just a clean blind transfer.
 const TOOL_transferCall = {
   type: 'transferCall',
   destinations: [
@@ -288,7 +285,6 @@ const TOOL_transferCall = {
       type: 'number',
       numberE164CheckEnabled: false,
       number: '+18128906303',
-      message: 'Incoming warm transfer from Key Renovations AI receptionist.',
     },
   ],
 };

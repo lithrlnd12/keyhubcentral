@@ -485,24 +485,20 @@ export async function POST(request: NextRequest) {
       console.log(`Transfer destination request for call: ${call.id}`);
 
       try {
+        const fallbackNumber = process.env.FALLBACK_TRANSFER_NUMBER || '+18128906303';
+
         // Look up pending transfer data
         const transferDoc = await db.collection('pendingTransfers').doc(call.id).get();
 
         if (!transferDoc.exists) {
-          console.error(`No pending transfer found for call: ${call.id}`);
+          console.error(`No pending transfer found for call: ${call.id}, using fallback`);
           return NextResponse.json({
-            destination: { type: 'number', number: process.env.FALLBACK_TRANSFER_NUMBER || '+18128906303' },
-          } satisfies TransferDestinationResponse);
+            destination: { type: 'number', number: fallbackNumber },
+          });
         }
 
         const transferData = transferDoc.data()!;
-        const response: TransferDestinationResponse = {
-          destination: {
-            type: 'number',
-            number: transferData.repPhone,
-            message: transferData.whisperMessage || `Incoming call transfer. ${transferData.summary || ''}`,
-          },
-        };
+        const whisper = transferData.whisperMessage || `Incoming call transfer. ${transferData.summary || ''}`;
 
         console.log(`Transferring call ${call.id} to ${transferData.repPhone}`);
 
@@ -519,12 +515,19 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        return NextResponse.json(response);
+        // VAPI expects destination and message as separate top-level fields
+        return NextResponse.json({
+          destination: {
+            type: 'number',
+            number: transferData.repPhone,
+            message: whisper,
+          },
+        });
       } catch (error) {
         console.error('Transfer destination error:', error);
         return NextResponse.json({
           destination: { type: 'number', number: process.env.FALLBACK_TRANSFER_NUMBER || '+18128906303' },
-        } satisfies TransferDestinationResponse);
+        });
       }
     }
 
