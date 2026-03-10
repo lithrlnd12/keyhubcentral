@@ -273,8 +273,9 @@ const TOOL_transferCall = {
   destinations: [
     {
       type: 'number',
+      numberE164CheckEnabled: false,
       number: '+18128906303',
-      message: 'Connecting you now.',
+      description: 'Transfer to available sales rep',
     },
   ],
 };
@@ -290,7 +291,7 @@ async function main() {
     name: 'Riley - Inbound Receptionist',
     serverUrl: WEBHOOK_URL,
     serverMessages: [
-      'function-call',
+      'tool-calls',
       'status-update',
       'end-of-call-report',
       'transfer-destination-request',
@@ -302,6 +303,8 @@ async function main() {
         {
           role: 'system',
           content: `You are Riley, a friendly receptionist for Key Renovations and Key Trade Solutions. A customer, contractor, or partner may be calling.
+
+IMPORTANT: Today's date is ${new Date().toISOString().split('T')[0]}. Always use today's date or future dates when scheduling. Never use past dates.
 
 STEP 1 — IDENTIFY THE CALLER:
 First, call the identifyCaller tool to check if this caller is already in our system.
@@ -329,7 +332,7 @@ STEP 4 — TRANSFER OR SCHEDULE:
 After creating the lead:
 1. Call lookupAvailableRep to find the best sales rep
 2. If a rep is available: tell the customer "Let me connect you with a specialist who can help" → call requestTransfer to prepare the transfer data, then use the transferCall tool to initiate the actual transfer
-3. If no rep is available: offer to schedule a consultation → call checkAvailability, then bookAppointment
+3. If no rep is available: offer to schedule a consultation → call checkAvailability (use today's date as startDate), then bookAppointment
 4. If neither works: assure them someone will call back shortly
 
 Keep the conversation warm, friendly, and natural. You're from Oklahoma — be personable! Be concise. Don't be robotic.`,
