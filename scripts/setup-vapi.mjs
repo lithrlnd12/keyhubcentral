@@ -8,9 +8,11 @@ const API_KEY = process.env.VAPI_API_KEY || 'd575738c-7d45-436e-9c7e-246afd6ffa6
 const BASE = 'https://api.vapi.ai';
 const WEBHOOK_URL = 'https://keyhubcentral.com/api/webhooks/vapi';
 
-// Existing IDs
+// Existing IDs — all assistants use PATCH (update), never POST (create)
 const INBOUND_ASSISTANT_ID = '02e0edda-450b-4475-ad25-0e8e0b8b8d2a';
 const OUTBOUND_ASSISTANT_ID = '958da1cc-0c0d-4a17-9f06-0e6cfbb8fc80';
+const DISPATCH_ASSISTANT_ID = '788dc390-d08c-405f-a8f3-a24f091a962b';
+const FIELD_ASSISTANT_ID = '91301d51-6d77-44f4-8f60-fc4e7fc8856d';
 const KTS_PHONE_ID = '45aeda4f-1c6e-49cf-b914-5a4a00b5b181'; // +18127766215
 const KR_PHONE_ID = 'f87f87f5-a4df-48bb-b9b8-db88716c7442';  // +18128009842
 
@@ -398,9 +400,9 @@ Important: Be concise and conversational. The call should last 2-3 minutes maxim
   });
   console.log('   ✓ Outbound assistant updated\n');
 
-  // ─── 3. Create Dispatch Assistant ───
-  console.log('3. Creating dispatch assistant...');
-  const dispatchAssistant = await vapiRequest('POST', '/assistant', {
+  // ─── 3. Update Dispatch Assistant ───
+  console.log('3. Updating dispatch assistant...');
+  await vapiRequest('PATCH', `/assistant/${DISPATCH_ASSISTANT_ID}`, {
     name: 'Riley - Dispatch Calldown',
     serverUrl: WEBHOOK_URL,
     model: {
@@ -433,12 +435,11 @@ Do NOT leave voicemail. If you reach voicemail, end the call.`,
     silenceTimeoutSeconds: 15,
     maxDurationSeconds: 120,
   });
-  console.log(`   ✓ Dispatch assistant created: ${dispatchAssistant.id}`);
-  console.log(`   → Set VAPI_DISPATCH_ASSISTANT_ID=${dispatchAssistant.id}\n`);
+  console.log(`   ✓ Dispatch assistant updated: ${DISPATCH_ASSISTANT_ID}\n`);
 
-  // ─── 4. Create Field Update Assistant ───
-  console.log('4. Creating field update assistant...');
-  const fieldAssistant = await vapiRequest('POST', '/assistant', {
+  // ─── 4. Update Field Update Assistant ───
+  console.log('4. Updating field update assistant...');
+  await vapiRequest('PATCH', `/assistant/${FIELD_ASSISTANT_ID}`, {
     name: 'Riley - Field Updates',
     serverUrl: WEBHOOK_URL,
     model: {
@@ -482,34 +483,29 @@ Be friendly and efficient — contractors are calling from job sites and need qu
     silenceTimeoutSeconds: 20,
     maxDurationSeconds: 300,
   });
-  console.log(`   ✓ Field update assistant created: ${fieldAssistant.id}\n`);
+  console.log(`   ✓ Field update assistant updated: ${FIELD_ASSISTANT_ID}\n`);
 
   // ─── 5. Wire KR Phone Number to Field Update Assistant ───
   console.log('5. Wiring KR phone (+18128009842) to field update assistant...');
   await vapiRequest('PATCH', `/phone-number/${KR_PHONE_ID}`, {
-    assistantId: fieldAssistant.id,
+    assistantId: FIELD_ASSISTANT_ID,
   });
   console.log('   ✓ KR phone number wired\n');
 
   // ─── Summary ───
   console.log('═══════════════════════════════════════════════════════');
-  console.log('SETUP COMPLETE');
+  console.log('SETUP COMPLETE — all assistants updated (no new IDs)');
   console.log('═══════════════════════════════════════════════════════');
   console.log('');
   console.log('Assistants:');
   console.log(`  Inbound (KTS):    ${INBOUND_ASSISTANT_ID} — 9 tools + transfer`);
   console.log(`  Outbound (Riley): ${OUTBOUND_ASSISTANT_ID} — 3 tools`);
-  console.log(`  Dispatch (NEW):   ${dispatchAssistant.id} — 2 tools`);
-  console.log(`  Field Update:     ${fieldAssistant.id} — 6 tools`);
+  console.log(`  Dispatch:         ${DISPATCH_ASSISTANT_ID} — 2 tools`);
+  console.log(`  Field Update:     ${FIELD_ASSISTANT_ID} — 6 tools`);
   console.log('');
   console.log('Phone Numbers:');
   console.log(`  +18127766215 (KTS) → Inbound Receptionist`);
   console.log(`  +18128009842 (KR)  → Field Updates`);
-  console.log('');
-  console.log('⚠️  Add these environment variables to Vercel:');
-  console.log(`  VAPI_DISPATCH_ASSISTANT_ID=${dispatchAssistant.id}`);
-  console.log(`  VAPI_FIELD_ASSISTANT_ID=${fieldAssistant.id}`);
-  console.log(`  FALLBACK_TRANSFER_NUMBER=+18128906303`);
   console.log('');
 }
 
