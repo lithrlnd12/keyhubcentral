@@ -218,7 +218,7 @@ async function bookAppointmentHandler(
     .doc('googleCalendar')
     .get();
 
-  let calendarEventId: string | null = null;
+  const calendarEventId: string | null = null;
   if (integrationDoc.exists) {
     const integration = integrationDoc.data() as GoogleCalendarIntegration;
     if (integration.accessToken && integration.refreshToken) {
