@@ -114,6 +114,82 @@ export interface VapiWebhookPayload {
   };
 }
 
+// Function-call message from VAPI (when assistant invokes a tool)
+export interface FunctionCallMessage {
+  type: 'function-call';
+  call?: VapiCall;
+  functionCall: {
+    name: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
+// Transfer destination request from VAPI (when assistant initiates transfer)
+export interface TransferDestinationRequest {
+  type: 'transfer-destination-request';
+  call?: VapiCall;
+  destination?: {
+    type: string;
+    number?: string;
+  };
+}
+
+// Transfer destination response
+export interface TransferDestinationResponse {
+  destination: {
+    type: 'number';
+    number: string;
+    message?: string; // Whisper message played to the transfer recipient
+  };
+}
+
+// VAPI tool config for assistant definitions
+export interface VapiToolConfig {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
+// Dispatch session types
+export interface DispatchSession {
+  id: string;
+  jobId: string;
+  initiatedBy: string;
+  status: 'active' | 'completed' | 'failed' | 'cancelled';
+  candidates: DispatchCandidate[];
+  currentIndex: number;
+  assignedContractorId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DispatchCandidate {
+  contractorId: string;
+  name: string;
+  phone: string;
+  score: number;
+  callStatus: 'pending' | 'calling' | 'accepted' | 'declined' | 'no_answer' | 'failed';
+  vapiCallId?: string;
+}
+
+// Scheduled voice call (for cron-driven calls)
+export interface ScheduledVoiceCall {
+  id: string;
+  type: 'quote_followup' | 'verification' | 'compliance_reminder';
+  targetPhone: string;
+  targetName: string;
+  scheduledFor: Date;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+  attempt: number;
+  maxAttempts: number;
+  metadata: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface ScheduledCall {
   id: string;
   leadId: string;

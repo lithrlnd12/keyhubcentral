@@ -303,6 +303,31 @@ export const dailyExpirationCheck = functions.pubsub
             },
           });
 
+          // Schedule voice compliance reminder (Phase 7)
+          const reminderAt = new Date();
+          reminderAt.setHours(10, 0, 0, 0); // 10 AM today
+          if (reminderAt.getTime() < Date.now()) {
+            reminderAt.setDate(reminderAt.getDate() + 1); // Tomorrow if past 10 AM
+          }
+          await getDb().collection('scheduledVoiceCalls').add({
+            type: 'compliance_reminder',
+            contractorId: doc.id,
+            targetPhone: contractor.phone || '',
+            targetName: contractor.displayName || contractor.businessName || '',
+            scheduledFor: admin.firestore.Timestamp.fromDate(reminderAt),
+            status: 'pending',
+            attempt: 0,
+            maxAttempts: 2,
+            metadata: {
+              reminderType: 'insurance',
+              docType: 'insurance',
+              expirationDate: insuranceExpires.toISOString(),
+              daysUntilExpiry: 7,
+            },
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
           await notifyAdmins(
             {
               type: 'insurance_expiring_7',

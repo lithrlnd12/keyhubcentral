@@ -52,6 +52,9 @@ export {
 // Lead auto-assignment triggers
 export { onLeadCreatedAutoAssign, onUserGeocode } from './triggers/leadAutoAssign';
 
+// Job voice triggers (quote follow-up scheduling, completion verification)
+export { onJobStatusChangeForVoice } from './triggers/jobVoiceTriggers';
+
 // Test user seeding (for Playwright tests)
 export { seedTestUsers, deleteTestUsers } from './triggers/testUserTriggers';
 

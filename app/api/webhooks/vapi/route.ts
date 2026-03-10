@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
-import { VapiWebhookPayload, VapiCall } from '@/lib/vapi/types';
+import { VapiWebhookPayload, VapiCall, FunctionCallMessage, TransferDestinationResponse } from '@/lib/vapi/types';
 import { FieldValue, Firestore } from 'firebase-admin/firestore';
 import {
   InboundCallAnalysis,
@@ -8,6 +8,10 @@ import {
   Urgency,
   EmotionalSignal,
 } from '@/types/inboundCall';
+import { executeTool, CallContext } from '@/lib/vapi/toolRegistry';
+import { trackVoiceUsage } from '@/lib/vapi/usageTracking';
+// Import tool registrations (side-effect: registers all tools)
+import '@/lib/vapi/tools';
 
 // Vapi webhook secret for signature verification
 const VAPI_WEBHOOK_SECRET = process.env.VAPI_WEBHOOK_SECRET;
@@ -382,6 +386,85 @@ export async function POST(request: NextRequest) {
 
     const db = getAdminDb();
 
+    // === FUNCTION-CALL HANDLER (Phase 0A) ===
+    // VAPI sends function-call when assistant invokes a tool — must respond synchronously
+    if (message.type === 'function-call') {
+      const fcMessage = message as unknown as FunctionCallMessage;
+      const functionName = fcMessage.functionCall?.name;
+      const functionParams = fcMessage.functionCall?.parameters || {};
+
+      console.log(`Function call: ${functionName}`, JSON.stringify(functionParams));
+
+      if (!functionName) {
+        return NextResponse.json({ result: JSON.stringify({ error: 'No function name provided' }) });
+      }
+
+      try {
+        const ctx: CallContext = {
+          callId: call.id,
+          callerPhone: call.customer?.number,
+          callType: call.type === 'inboundPhoneCall' ? 'inbound' : 'outbound',
+          metadata: call.metadata,
+        };
+
+        const result = await executeTool(functionName, functionParams, ctx);
+        return NextResponse.json({ result: JSON.stringify(result) });
+      } catch (error) {
+        console.error(`Function call error (${functionName}):`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return NextResponse.json({ result: JSON.stringify({ error: errorMessage }) });
+      }
+    }
+
+    // === TRANSFER-DESTINATION-REQUEST HANDLER (Phase 0B) ===
+    // VAPI sends this when assistant with transferPlan.mode="server-message" initiates a transfer
+    if (message.type === 'transfer-destination-request' as string) {
+      console.log(`Transfer destination request for call: ${call.id}`);
+
+      try {
+        // Look up pending transfer data
+        const transferDoc = await db.collection('pendingTransfers').doc(call.id).get();
+
+        if (!transferDoc.exists) {
+          console.error(`No pending transfer found for call: ${call.id}`);
+          return NextResponse.json({
+            destination: { type: 'number', number: process.env.FALLBACK_TRANSFER_NUMBER || '+18128906303' },
+          } satisfies TransferDestinationResponse);
+        }
+
+        const transferData = transferDoc.data()!;
+        const response: TransferDestinationResponse = {
+          destination: {
+            type: 'number',
+            number: transferData.repPhone,
+            message: transferData.whisperMessage || `Incoming call transfer. ${transferData.summary || ''}`,
+          },
+        };
+
+        console.log(`Transferring call ${call.id} to ${transferData.repPhone}`);
+
+        // Update inbound call record with transfer info
+        const inboundCallSnap = await db
+          .collection('inboundCalls')
+          .where('vapiCallId', '==', call.id)
+          .limit(1)
+          .get();
+        if (!inboundCallSnap.empty) {
+          await inboundCallSnap.docs[0].ref.update({
+            transferredTo: transferData.repUserId || null,
+            transferredAt: FieldValue.serverTimestamp(),
+          });
+        }
+
+        return NextResponse.json(response);
+      } catch (error) {
+        console.error('Transfer destination error:', error);
+        return NextResponse.json({
+          destination: { type: 'number', number: process.env.FALLBACK_TRANSFER_NUMBER || '+18128906303' },
+        } satisfies TransferDestinationResponse);
+      }
+    }
+
     // Check if this is an inbound call (no existing voiceCalls record expected)
     // Vapi sends call.type = 'inboundPhoneCall' for inbound calls
     const callType = (call as { type?: string }).type;
@@ -529,6 +612,31 @@ export async function POST(request: NextRequest) {
 
           await db.collection('leads').doc(callData.leadId).update(removeUndefined(leadUpdate));
           console.log(`Lead ${callData.leadId} updated with call analysis:`, structuredData);
+        }
+
+        // Track voice usage (Phase 0F)
+        try {
+          await trackVoiceUsage({
+            durationSeconds: (updateData.duration as number) || 0,
+            cost: (call.cost as number) || 0,
+            callType: callType === 'inboundPhoneCall' ? 'inbound' : 'outbound',
+          });
+        } catch (usageError) {
+          console.error('Failed to track voice usage:', usageError);
+        }
+
+        // Handle dispatch session calls (Phase 3)
+        if (callData.dispatchSessionId) {
+          try {
+            const { initiateNextCall } = await import('@/lib/vapi/dispatch');
+            const outcome = updateData.outcome as string;
+            if (outcome === 'no_answer' || outcome === 'failed' || outcome === 'busy') {
+              console.log(`Dispatch call ${call.id} resulted in ${outcome}, trying next candidate`);
+              await initiateNextCall(callData.dispatchSessionId);
+            }
+          } catch (dispatchError) {
+            console.error('Dispatch next-call error:', dispatchError);
+          }
         }
 
         console.log(`Call ${call.id} completed. Outcome: ${updateData.outcome}`);

@@ -17,10 +17,23 @@ import {
 } from '@/types/availability';
 import { CalendarJobCard } from './CalendarJobCard';
 
+export interface CalendarAppointment {
+  id: string;
+  date: string;
+  timeBlock: TimeBlock;
+  customerName: string;
+  customerPhone: string;
+  description?: string;
+  leadId?: string;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  source?: 'voice_call' | 'app' | 'manual';
+}
+
 interface CalendarDayDetailProps {
   date: Date;
   jobs: Job[];
   availability: BlockStatus | null;
+  appointments?: CalendarAppointment[];
   googleCalendarEvents?: GoogleCalendarEvent[];
   onClose: () => void;
   onAvailabilityChange?: (block: TimeBlock, status: AvailabilityStatus) => Promise<void>;
@@ -40,6 +53,7 @@ export function CalendarDayDetail({
   date,
   jobs,
   availability,
+  appointments = [],
   googleCalendarEvents = [],
   onClose,
   onAvailabilityChange,
@@ -156,6 +170,53 @@ export function CalendarDayDetail({
           </div>
         )}
       </div>
+
+      {/* Appointments Section (booked via AI voice or in-app) */}
+      {appointments.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-gray-700">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-400">
+              Appointments ({appointments.length})
+            </span>
+          </div>
+          <div className="space-y-2">
+            {appointments.map((appt) => (
+              <div
+                key={appt.id}
+                className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg"
+              >
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-white text-sm truncate">
+                    {appt.customerName}
+                  </h4>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {TIME_BLOCK_CONFIG[appt.timeBlock]?.label || appt.timeBlock}
+                    </span>
+                    {appt.source === 'voice_call' && (
+                      <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[10px] uppercase tracking-wide">
+                        AI Booked
+                      </span>
+                    )}
+                  </div>
+                  {appt.description && (
+                    <p className="mt-1 text-xs text-gray-400 line-clamp-2">{appt.description}</p>
+                  )}
+                  {appt.customerPhone && (
+                    <a
+                      href={`tel:${appt.customerPhone}`}
+                      className="mt-1 text-xs text-brand-gold hover:underline inline-block"
+                    >
+                      {appt.customerPhone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Google Calendar Events Section */}
       {externalGCalEvents.length > 0 && (

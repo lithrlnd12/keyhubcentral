@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Briefcase, CalendarDays } from 'lucide-react';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Contractor } from '@/types/contractor';
@@ -12,11 +14,12 @@ import {
   TIME_BLOCK_CONFIG,
   getAvailabilityInfo,
   getDefaultBlocks,
+  formatDateKey,
   TimeBlock,
   AvailabilityStatus,
 } from '@/types/availability';
 import { setBlockAvailability } from '@/lib/firebase/availability';
-import { CalendarDayDetail } from './CalendarDayDetail';
+import { CalendarDayDetail, CalendarAppointment } from './CalendarDayDetail';
 
 interface ContractorCalendarProps {
   contractor: Contractor;
@@ -53,6 +56,38 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
     startDate: monthStart,
     endDate: monthEnd,
   });
+
+  // Appointments for this month (booked via AI voice or manually)
+  const [appointments, setAppointments] = useState<CalendarAppointment[]>([]);
+
+  useEffect(() => {
+    if (!contractor?.id) return;
+
+    const startKey = formatDateKey(monthStart);
+    const endKey = formatDateKey(monthEnd);
+
+    const q = query(
+      collection(db, 'contractors', contractor.id, 'appointments'),
+      where('date', '>=', startKey),
+      where('date', '<=', endKey)
+    );
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      const appts = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as CalendarAppointment[];
+      setAppointments(appts);
+    });
+
+    return () => unsub();
+  }, [contractor?.id, monthStart, monthEnd]);
+
+  // Get appointments for a specific date
+  function getAppointmentsForDate(date: Date): CalendarAppointment[] {
+    const key = formatDateKey(date);
+    return appointments.filter((a) => a.date === key);
+  }
 
   // Check if mobile on mount
   useState(() => {
@@ -121,6 +156,7 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
 
   const selectedSchedule = selectedDate ? getScheduleDay(selectedDate) : null;
   const selectedGCalEvents = selectedDate ? getEventsForDate(googleCalendarEvents, selectedDate) : [];
+  const selectedAppointments = selectedDate ? getAppointmentsForDate(selectedDate) : [];
 
   // Handle availability change from calendar detail
   const handleAvailabilityChange = async (block: TimeBlock, status: AvailabilityStatus) => {
@@ -280,6 +316,7 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
               date={selectedDate!}
               jobs={selectedSchedule.jobs}
               availability={selectedSchedule.availability}
+              appointments={selectedAppointments}
               googleCalendarEvents={selectedGCalEvents}
               onClose={() => setSelectedDate(null)}
               onAvailabilityChange={handleAvailabilityChange}
@@ -311,6 +348,7 @@ export function ContractorCalendar({ contractor }: ContractorCalendarProps) {
             date={selectedDate!}
             jobs={selectedSchedule.jobs}
             availability={selectedSchedule.availability}
+            appointments={selectedAppointments}
             googleCalendarEvents={selectedGCalEvents}
             onClose={() => setSelectedDate(null)}
             onAvailabilityChange={handleAvailabilityChange}

@@ -185,6 +185,16 @@ export async function validateTransition(
         met: paymentRecorded,
         message: 'Final payment must be recorded and verified',
       });
+
+      // Optional: customer verification via AI voice call (Phase 6)
+      // If a verification call was scheduled but customer didn't verify, warn (not block)
+      const jobData = job as Job & { customerVerified?: boolean; verificationCallScheduledAt?: unknown };
+      if (jobData.verificationCallScheduledAt && jobData.customerVerified === false) {
+        requirements.push({
+          met: false,
+          message: 'Customer reported issues during verification call — review before marking paid',
+        });
+      }
       break;
 
     // Other transitions have no requirements
