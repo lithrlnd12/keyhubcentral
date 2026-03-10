@@ -53,12 +53,25 @@ const requestTransfer: ToolDefinition = {
       usingFallback = true;
     } else {
       const contractorData = contractorSnap.docs[0].data();
-      repPhone = (contractorData.phone as string | undefined) || fallbackNumber;
+      let phone = contractorData.phone as string | undefined;
       repName =
         (contractorData.businessName as string) ||
         (contractorData.displayName as string) ||
         'Sales Rep';
-      usingFallback = !contractorData.phone;
+
+      // If contractor record has no phone, check the users collection
+      if (!phone) {
+        const userDoc = await db.collection('users').doc(repUserId).get();
+        if (userDoc.exists) {
+          phone = userDoc.data()?.phone as string | undefined;
+          if (!repName || repName === 'Sales Rep') {
+            repName = userDoc.data()?.displayName || repName;
+          }
+        }
+      }
+
+      repPhone = phone || fallbackNumber;
+      usingFallback = !phone;
     }
 
     // Build whisper message for the rep
