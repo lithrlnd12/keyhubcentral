@@ -54,6 +54,8 @@ export default function ReceiptDetailPage() {
   const [vendorInput, setVendorInput] = useState('');
   const [customLocation, setCustomLocation] = useState('');
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [inventoryError, setInventoryError] = useState<string | null>(null);
+  const [inventorySuccess, setInventorySuccess] = useState(false);
 
   // Fetch inventory items for linking
   const { items: inventoryItems } = useInventoryItems({ realtime: true });
@@ -222,11 +224,23 @@ export default function ReceiptDetailPage() {
 
   const handleAddToInventory = async () => {
     if (!receipt || !user) return;
+    if (!receipt.locationId) {
+      setInventoryError('Select a stock location above before adding to inventory.');
+      return;
+    }
+    if (selectedItems.size === 0) {
+      setInventoryError('No items selected.');
+      return;
+    }
+    setInventoryError(null);
+    setInventorySuccess(false);
     setVerifying(true);
     try {
       await writeSelectedItemsToInventory();
+      setInventorySuccess(true);
     } catch (err) {
       console.error('Add to inventory error:', err);
+      setInventoryError('Something went wrong. Check the console.');
     } finally {
       setVerifying(false);
     }
@@ -675,13 +689,13 @@ export default function ReceiptDetailPage() {
               {/* Inventory Location - Dropdown + Custom Option */}
               <div className="flex justify-between items-center">
                 <span className="text-gray-400">Stock Location</span>
-                {canEdit ? (
+                {canSelectInventory ? (
                   <div className="flex flex-col items-end gap-2">
                     <select
                       value={receipt.locationId || 'custom'}
                       onChange={async (e) => {
+                        setInventoryError(null);
                         if (e.target.value === 'custom') {
-                          // Clear location, user will type custom
                           setCustomLocation('');
                           setReceipt({ ...receipt, locationId: undefined, locationName: undefined });
                         } else {
@@ -710,7 +724,6 @@ export default function ReceiptDetailPage() {
                         onChange={(e) => setCustomLocation(e.target.value)}
                         onBlur={async () => {
                           if (customLocation.trim()) {
-                            // Save as custom location name without an ID
                             await updateReceiptLocation(receiptId, 'custom', customLocation.trim());
                             setReceipt({ ...receipt, locationId: 'custom', locationName: customLocation.trim() });
                           }
@@ -745,6 +758,24 @@ export default function ReceiptDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Inventory feedback banners */}
+          {inventoryError && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center justify-between">
+              <span className="text-red-400 text-sm">{inventoryError}</span>
+              <button onClick={() => setInventoryError(null)} className="text-gray-500 hover:text-white ml-3">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          {inventorySuccess && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 flex items-center justify-between">
+              <span className="text-green-400 text-sm">Selected items added to inventory stock.</span>
+              <button onClick={() => setInventorySuccess(false)} className="text-gray-500 hover:text-white ml-3">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
 
           {/* Line Items with Inventory Linking */}
           <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-4">
