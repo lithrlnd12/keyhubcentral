@@ -375,12 +375,23 @@ export async function POST(request: NextRequest) {
     const rawPayload = await request.json();
     const payload = rawPayload as VapiWebhookPayload;
 
-    console.log('Vapi webhook received:', payload.message?.type, 'call:', payload.message?.call?.id);
+    // Debug: log full payload structure for function-call and transfer messages
+    const msgType = rawPayload?.message?.type;
+    console.log('Vapi webhook received:', msgType, 'call:', rawPayload?.message?.call?.id);
+
+    if (msgType === 'function-call' || msgType === 'transfer-destination-request') {
+      console.log('DEBUG payload keys:', JSON.stringify(Object.keys(rawPayload)));
+      console.log('DEBUG message keys:', JSON.stringify(Object.keys(rawPayload?.message || {})));
+      if (msgType === 'function-call') {
+        console.log('DEBUG functionCall:', JSON.stringify(rawPayload?.message?.functionCall));
+      }
+    }
 
     const { message } = payload;
     const call = message.call;
 
     if (!call) {
+      console.log('No call object in payload, returning ok');
       return NextResponse.json({ status: 'ok' });
     }
 
@@ -389,9 +400,13 @@ export async function POST(request: NextRequest) {
     // === FUNCTION-CALL HANDLER (Phase 0A) ===
     // VAPI sends function-call when assistant invokes a tool — must respond synchronously
     if (message.type === 'function-call') {
-      const fcMessage = message as unknown as FunctionCallMessage;
-      const functionName = fcMessage.functionCall?.name;
-      const functionParams = fcMessage.functionCall?.parameters || {};
+      // Try multiple possible locations for function call data
+      const rawMsg = rawPayload.message as Record<string, unknown>;
+      const fcData = (rawMsg.functionCall || rawMsg.function_call || rawMsg.toolCall) as
+        | { name?: string; parameters?: Record<string, unknown> }
+        | undefined;
+      const functionName = fcData?.name;
+      const functionParams = fcData?.parameters || {};
 
       console.log(`Function call: ${functionName}`, JSON.stringify(functionParams));
 
@@ -418,7 +433,7 @@ export async function POST(request: NextRequest) {
 
     // === TRANSFER-DESTINATION-REQUEST HANDLER (Phase 0B) ===
     // VAPI sends this when assistant with transferPlan.mode="server-message" initiates a transfer
-    if (message.type === 'transfer-destination-request' as string) {
+    if (message.type === 'transfer-destination-request' || (message.type as string) === 'transfer-destination-request') {
       console.log(`Transfer destination request for call: ${call.id}`);
 
       try {
