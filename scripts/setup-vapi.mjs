@@ -276,20 +276,13 @@ const TOOL_sendUploadLink = tool(
 );
 
 
-// transferCall tool — destinations must include at least one entry for VAPI to allow transfers.
-// The actual destination is dynamically resolved via transfer-destination-request webhook
-// (reads the rep's phone from pendingTransfers). The fallback number is used if no
-// pending transfer is found or if the rep lookup fails.
+// transferCall tool — empty destinations array forces VAPI to send
+// transfer-destination-request to our webhook. The webhook reads the rep's
+// phone from pendingTransfers (set by requestTransfer tool). If no pending
+// transfer exists, falls back to +18128906303.
 const TOOL_transferCall = {
   type: 'transferCall',
-  destinations: [
-    {
-      type: 'number',
-      numberE164CheckEnabled: false,
-      number: '+18128906303',
-      description: 'Fallback transfer number',
-    },
-  ],
+  destinations: [],
 };
 
 // ─── Main Setup ───────────────────────────────────────────────────
@@ -308,12 +301,6 @@ async function main() {
       'end-of-call-report',
       'transfer-destination-request',
     ],
-    // When the AI initiates a transfer, VAPI sends transfer-destination-request
-    // to our webhook, which returns the rep's phone from pendingTransfers.
-    // If no pending transfer exists, webhook falls back to +18128906303.
-    transferPlan: {
-      mode: 'server-message',
-    },
     model: {
       provider: 'openai',
       model: 'gpt-4o',
