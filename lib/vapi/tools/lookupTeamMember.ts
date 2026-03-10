@@ -1,6 +1,16 @@
 import { getAdminDb } from '@/lib/firebase/admin';
 import { registerTool, CallContext } from '@/lib/vapi/toolRegistry';
 
+// Match names by checking if all search words appear in the name
+// "Zach Rhyn" matches "Zachary Rhyne" because "zach" starts "zachary" and "rhyn" starts "rhyne"
+function nameMatches(fullName: string, searchTerms: string[]): boolean {
+  const nameLower = fullName.toLowerCase();
+  const nameWords = nameLower.split(/\s+/);
+  return searchTerms.every((term) =>
+    nameWords.some((word) => word.startsWith(term) || word.includes(term))
+  );
+}
+
 async function lookupTeamMemberHandler(
   params: Record<string, unknown>,
   _ctx: CallContext
@@ -10,6 +20,8 @@ async function lookupTeamMemberHandler(
   if (!searchName) {
     return { found: false, error: 'Please provide a name to search for' };
   }
+
+  const searchTerms = searchName.split(/\s+/).filter((w) => w.length > 0);
 
   const db = getAdminDb();
   const matches: Array<{
@@ -30,7 +42,7 @@ async function lookupTeamMemberHandler(
   for (const doc of contractorsSnap.docs) {
     const data = doc.data();
     const name = (data.businessName || data.contactName || data.displayName || '') as string;
-    if (name.toLowerCase().includes(searchName)) {
+    if (nameMatches(name, searchTerms)) {
       // Get phone from contractor record or linked user record
       let phone = (data.phone as string) || null;
       const userId = (data.userId as string) || null;
@@ -92,7 +104,7 @@ async function lookupTeamMemberHandler(
     const companyName = (data.companyName || '') as string;
     const contactName = (data.contactName || '') as string;
 
-    if (companyName.toLowerCase().includes(searchName) || contactName.toLowerCase().includes(searchName)) {
+    if (nameMatches(companyName, searchTerms) || nameMatches(contactName, searchTerms)) {
       matches.push({
         name: contactName || companyName,
         phone: (data.contactPhone as string) || null,

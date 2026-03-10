@@ -96,13 +96,20 @@ const requestTransfer: ToolDefinition = {
         createdAt: FieldValue.serverTimestamp(),
       });
 
-    // Update the lead with the assigned sales rep
-    await db.collection('leads').doc(leadId).update({
-      assignedTo: repUserId,
-      assignedType: 'internal',
-      status: 'assigned',
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    // Update the lead with the assigned sales rep (skip if no valid leadId)
+    if (leadId && leadId !== 'unknown' && leadId !== 'none') {
+      try {
+        await db.collection('leads').doc(leadId).update({
+          assignedTo: repUserId,
+          assignedType: 'internal',
+          status: 'assigned',
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      } catch (err) {
+        console.error(`Failed to update lead ${leadId}:`, err);
+        // Don't fail the transfer over a lead update issue
+      }
+    }
 
     return {
       success: true,

@@ -286,7 +286,7 @@ const TOOL_sendUploadLink = tool(
 
 
 // transferCall tool — fallback number listed so AI can initiate transfers.
-// No message/whisper on the destination — just a clean blind transfer.
+// The message field is the whisper spoken to the recipient when they answer.
 const TOOL_transferCall = {
   type: 'transferCall',
   destinations: [
@@ -294,6 +294,7 @@ const TOOL_transferCall = {
       type: 'number',
       numberE164CheckEnabled: false,
       number: '+18128906303',
+      message: 'You have an incoming transfer from the Key Renovations AI receptionist. The caller is on the line.',
     },
   ],
 };
