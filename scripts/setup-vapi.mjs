@@ -85,9 +85,18 @@ const TOOL_lookupAvailableRep = tool(
   ['projectType']
 );
 
+const TOOL_lookupTeamMember = tool(
+  'lookupTeamMember',
+  'Search for a team member by name. Returns their phone number and role. Use when a caller asks to speak with a specific person.',
+  {
+    name: { type: 'string', description: 'The name (or partial name) of the team member to find' },
+  },
+  ['name']
+);
+
 const TOOL_requestTransfer = tool(
   'requestTransfer',
-  'Initiate a warm transfer to a sales rep. Call this after lookupAvailableRep finds someone. Tell the customer you are connecting them before calling this.',
+  'Initiate a warm transfer to a sales rep or team member. Call this after finding someone via lookupAvailableRep or lookupTeamMember. Tell the customer you are connecting them before calling this.',
   {
     repUserId: { type: 'string', description: 'The userId of the rep to transfer to (from lookupAvailableRep result)' },
     leadId: { type: 'string', description: 'The lead ID (from createLeadFromCall result)' },
@@ -344,6 +353,9 @@ After creating the lead:
 3. If no rep is available: offer to schedule a consultation → call getCurrentDateTime first, then checkAvailability (use the returned date as startDate), then bookAppointment
 4. If neither works: assure them someone will call back shortly
 
+DIRECT TRANSFER BY NAME:
+If the caller asks to speak with a specific person (e.g. "Can I talk to John?" or "Transfer me to Sarah"), use lookupTeamMember to find that person. If found and they have a phone number, call requestTransfer with their userId, then use transferCall to connect the caller.
+
 Keep the conversation warm, friendly, and natural. You're from Oklahoma — be personable! Be concise. Don't be robotic.`,
         },
       ],
@@ -352,6 +364,7 @@ Keep the conversation warm, friendly, and natural. You're from Oklahoma — be p
         TOOL_identifyCaller,
         TOOL_createLeadFromCall,
         TOOL_lookupAvailableRep,
+        TOOL_lookupTeamMember,
         TOOL_requestTransfer,
         TOOL_checkAvailability,
         TOOL_bookAppointment,

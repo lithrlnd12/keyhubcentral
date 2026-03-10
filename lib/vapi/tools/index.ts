@@ -7,6 +7,7 @@ import './getCurrentDateTime';
 // Phase 1: Warm Transfer
 import './createLeadFromCall';
 import './lookupAvailableRep';
+import './lookupTeamMember';
 import './requestTransfer';
 
 // Phase 2: Smart Scheduling
