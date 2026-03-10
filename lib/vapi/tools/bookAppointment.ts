@@ -245,15 +245,20 @@ async function bookAppointmentHandler(
   }
 
   // Update lead with scheduled consultation if leadId provided
-  if (leadId) {
-    const blockConfig = TIME_BLOCK_CONFIG[timeBlock];
-    const startHour = blockConfig.start.toString().padStart(2, '0');
-    const scheduledAt = new Date(`${date}T${startHour}:00:00`);
+  if (leadId && leadId !== 'unknown' && leadId !== 'none') {
+    try {
+      const blockConfig = TIME_BLOCK_CONFIG[timeBlock];
+      const startHour = blockConfig.start.toString().padStart(2, '0');
+      const scheduledAt = new Date(`${date}T${startHour}:00:00`);
 
-    await db.collection('leads').doc(leadId).update({
-      scheduledConsultationAt: scheduledAt,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+      await db.collection('leads').doc(leadId).update({
+        scheduledConsultationAt: scheduledAt,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    } catch (err) {
+      console.error(`Failed to update lead ${leadId} with consultation:`, err);
+      // Don't fail the booking over a lead update issue
+    }
   }
 
   return {
