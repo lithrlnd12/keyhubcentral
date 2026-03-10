@@ -41,30 +41,30 @@ const requestTransfer: ToolDefinition = {
       .limit(1)
       .get();
 
+    const fallbackNumber = process.env.FALLBACK_TRANSFER_NUMBER || '+18128906303';
+
+    let repPhone: string;
+    let repName: string;
+    let usingFallback: boolean;
+
     if (contractorSnap.empty) {
-      return {
-        success: false,
-        error: 'Sales rep contractor record not found',
-      };
-    }
-
-    const contractorDoc = contractorSnap.docs[0];
-    const contractorData = contractorDoc.data();
-    const repPhone = contractorData.phone as string | undefined;
-    const repName =
-      (contractorData.businessName as string) ||
-      (contractorData.displayName as string) ||
-      'Sales Rep';
-
-    if (!repPhone) {
-      return {
-        success: false,
-        error: 'Sales rep does not have a phone number on file',
-      };
+      repPhone = fallbackNumber;
+      repName = 'Sales Team';
+      usingFallback = true;
+    } else {
+      const contractorData = contractorSnap.docs[0].data();
+      repPhone = (contractorData.phone as string | undefined) || fallbackNumber;
+      repName =
+        (contractorData.businessName as string) ||
+        (contractorData.displayName as string) ||
+        'Sales Rep';
+      usingFallback = !contractorData.phone;
     }
 
     // Build whisper message for the rep
-    const whisperMessage = `Incoming warm transfer. ${summary}`;
+    const whisperMessage = usingFallback
+      ? `Incoming warm transfer (rep has no phone on file). ${summary}`
+      : `Incoming warm transfer. ${summary}`;
 
     // Write pending transfer document keyed by callId
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
