@@ -73,8 +73,8 @@ export async function GET(request: Request) {
       altCount: altAppts.length,
       altAppointments: altAppts,
       collectionGroupCount: collGroupResults.length,
-      collectionGroupResults,
-      collectionGroupError,
+      collectionGroupResults: collGroupResults,
+      collectionGroupError: collGroupError,
     });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
