@@ -433,7 +433,7 @@ export async function POST(request: NextRequest) {
 
     // === TRANSFER-DESTINATION-REQUEST HANDLER (Phase 0B) ===
     // VAPI sends this when assistant with transferPlan.mode="server-message" initiates a transfer
-    if (message.type === 'transfer-destination-request' || (message.type as string) === 'transfer-destination-request') {
+    if (message.type === 'transfer-destination-request') {
       console.log(`Transfer destination request for call: ${call.id}`);
 
       try {

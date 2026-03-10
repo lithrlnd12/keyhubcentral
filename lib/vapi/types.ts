@@ -87,7 +87,7 @@ export interface VapiMessage {
 
 export interface VapiWebhookPayload {
   message: {
-    type: 'status-update' | 'end-of-call-report' | 'hang' | 'transcript' | 'function-call' | 'speech-update';
+    type: 'status-update' | 'end-of-call-report' | 'hang' | 'transcript' | 'function-call' | 'speech-update' | 'transfer-destination-request';
     call?: VapiCall;
     status?: string;
     endedReason?: string;
