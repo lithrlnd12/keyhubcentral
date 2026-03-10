@@ -276,7 +276,10 @@ const TOOL_sendUploadLink = tool(
 );
 
 
-// transferCall is a VAPI default tool type (not a custom function tool)
+// transferCall tool — destinations must include at least one entry for VAPI to allow transfers.
+// The actual destination is dynamically resolved via transfer-destination-request webhook
+// (reads the rep's phone from pendingTransfers). The fallback number is used if no
+// pending transfer is found or if the rep lookup fails.
 const TOOL_transferCall = {
   type: 'transferCall',
   destinations: [
@@ -284,7 +287,7 @@ const TOOL_transferCall = {
       type: 'number',
       numberE164CheckEnabled: false,
       number: '+18128906303',
-      description: 'Transfer to available sales rep',
+      description: 'Fallback transfer number',
     },
   ],
 };
@@ -305,6 +308,12 @@ async function main() {
       'end-of-call-report',
       'transfer-destination-request',
     ],
+    // When the AI initiates a transfer, VAPI sends transfer-destination-request
+    // to our webhook, which returns the rep's phone from pendingTransfers.
+    // If no pending transfer exists, webhook falls back to +18128906303.
+    transferPlan: {
+      mode: 'server-message',
+    },
     model: {
       provider: 'openai',
       model: 'gpt-4o',
@@ -340,7 +349,7 @@ STEP 3 — QUALIFY & CREATE LEAD (for renovation inquiries):
 STEP 4 — TRANSFER OR SCHEDULE:
 After creating the lead:
 1. Call lookupAvailableRep to find the best sales rep
-2. If a rep is available: tell the customer "Let me connect you with a specialist who can help" → call requestTransfer to prepare the transfer data, then use the transferCall tool to initiate the actual transfer
+2. If a rep is available: call requestTransfer FIRST to save the rep's phone for transfer routing, then tell the customer "Let me connect you with a specialist who can help", then use the transferCall tool to initiate the actual phone transfer. The system will automatically route to the rep's phone. If the rep is unavailable, it falls back to our main line.
 3. If no rep is available: offer to schedule a consultation → call getCurrentDateTime first, then checkAvailability (use the returned date as startDate), then bookAppointment
 4. If neither works: assure them someone will call back shortly
 
