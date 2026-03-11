@@ -169,13 +169,18 @@ export default function TenantLeadCapture() {
           attachments: attachments.length > 0 ? attachments : null,
         },
         quality: 'warm',
-        status: 'new',
+        // Auto-assign to tenant owner so lead goes directly to them
+        status: 'assigned',
+        assignedTo: tenant.ownerId,
+        assignedType: 'internal',
+        autoAssigned: true,
+        autoAssignedAt: serverTimestamp(),
         contactPreference: phoneNumber ? contactPreference : null,
         callAttempts: 0,
         smsAttempts: 0,
         smsCallOptIn: formData.smsCallOptIn,
         smsCallOptInAt: formData.smsCallOptIn ? serverTimestamp() : null,
-        // Tag with tenant info so the tenant owner sees it
+        // Tag with tenant info for filtering
         tenantId: tenant.id,
         tenantSlug: tenant.slug,
         tenantOwnerId: tenant.ownerId,
@@ -201,6 +206,17 @@ export default function TenantLeadCapture() {
           }),
         }).catch((err) => console.error('Failed to send confirmation email:', err));
       }
+
+      // Notify tenant owner of new lead (in-app notification, fire and forget)
+      addDoc(collection(db, 'notifications'), {
+        userId: tenant.ownerId,
+        type: 'new_lead',
+        title: 'New Lead from Portal',
+        message: `${customerName} submitted a quote request via your customer portal.`,
+        link: `/kd/leads`,
+        read: false,
+        createdAt: serverTimestamp(),
+      }).catch((err) => console.error('Failed to create notification:', err));
 
       // Trigger SMS or call if opted in
       if (phoneNumber && formData.smsCallOptIn) {
