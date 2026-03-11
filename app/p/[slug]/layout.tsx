@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { getTenantBySlug } from '@/lib/firebase/tenants';
 import { TenantProvider } from '@/lib/contexts/TenantContext';
 import { TenantPortalConfig } from '@/types/tenant-portal';
+import { PortalBottomNav } from '@/components/portal-wl/PortalBottomNav';
 
 export default function WhiteLabelPortalLayout({
   children,
@@ -69,8 +70,9 @@ export default function WhiteLabelPortalLayout({
 
   return (
     <TenantProvider tenant={tenant}>
-      <div style={cssVars} className="min-h-screen" data-tenant={tenant.slug}>
+      <div style={cssVars} className="min-h-screen pb-16 md:pb-0" data-tenant={tenant.slug}>
         {children}
+        <PortalBottomNav slug={tenant.slug} primaryColor={tenant.branding.primaryColor} />
       </div>
     </TenantProvider>
   );

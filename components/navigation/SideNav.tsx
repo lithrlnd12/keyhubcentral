@@ -26,6 +26,7 @@ import {
   Phone,
   MessageSquare,
   CreditCard,
+  Globe,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
 import { useAuth, useNewCallsCount } from '@/lib/hooks';
@@ -94,6 +95,7 @@ const navItems: NavItem[] = [
   // ── ADMIN ──
   { label: 'Partners', href: '/admin/partners', icon: Briefcase, permission: canManagePartnerRequests, section: 'admin' },
   { label: 'Partner Requests', href: '/admin/partner-requests', icon: Users, permission: canManagePartnerRequests, section: 'admin' },
+  { label: 'Customer Portal', href: '/admin/portal', icon: Globe, permission: canManageUsers, section: 'admin' },
   { label: 'Admin', href: '/admin', icon: Settings, permission: canManageUsers, section: 'admin' },
 ];
 
@@ -114,7 +116,7 @@ interface FooterItem {
 }
 
 const footerItems: FooterItem[] = [
-  { label: 'Profile', href: '/profile', icon: User, permission: (r) => isInternalStaff(r) || isSubscriber(r) || isCustomerRole(r) },
+  { label: 'Profile', href: '/profile', icon: User, permission: (r) => isInternalStaff(r) || isSubscriber(r) || isCustomerRole(r) || isPartner(r) },
   { label: 'Profile', href: '/portal/my-profile', icon: User, permission: isContractor },
   { label: 'Settings', href: '/settings', icon: Cog, permission: (r) => canAccessSettings(r) && !isContractor(r) },
   { label: 'Settings', href: '/portal/settings', icon: Cog, permission: isContractor },

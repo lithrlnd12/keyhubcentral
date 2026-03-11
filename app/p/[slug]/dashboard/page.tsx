@@ -14,7 +14,9 @@ import {
   Camera,
   ChevronRight,
   Clock,
+  DollarSign,
   FileText,
+  MessageCircle,
   Shield,
 } from 'lucide-react';
 
@@ -95,6 +97,31 @@ export default function TenantDashboard() {
             value={jobs.filter((j) => j.warranty?.status === 'active').length}
             color="#F59E0B"
           />
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          <button
+            onClick={() => router.push(`/p/${tenant.slug}/jobs`)}
+            className="bg-[#2D2D2D] rounded-xl p-4 border border-gray-700/50 hover:border-gray-600 transition-colors text-center"
+          >
+            <Briefcase size={22} className="mx-auto mb-2" style={{ color: primaryColor }} />
+            <p className="text-white text-sm font-medium">All Projects</p>
+          </button>
+          <button
+            onClick={() => router.push(`/p/${tenant.slug}/invoices`)}
+            className="bg-[#2D2D2D] rounded-xl p-4 border border-gray-700/50 hover:border-gray-600 transition-colors text-center"
+          >
+            <DollarSign size={22} className="mx-auto mb-2 text-green-400" />
+            <p className="text-white text-sm font-medium">Invoices</p>
+          </button>
+          <button
+            onClick={() => router.push(`/p/${tenant.slug}/messages`)}
+            className="bg-[#2D2D2D] rounded-xl p-4 border border-gray-700/50 hover:border-gray-600 transition-colors text-center"
+          >
+            <MessageCircle size={22} className="mx-auto mb-2 text-blue-400" />
+            <p className="text-white text-sm font-medium">Messages</p>
+          </button>
         </div>
 
         {/* Active Projects */}
