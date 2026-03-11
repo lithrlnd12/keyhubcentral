@@ -154,7 +154,18 @@ async function bookAppointmentHandler(
   }
 
   const userData = userDoc.data();
-  const contractorId = userData?.contractorId || userId;
+
+  // Resolve the actual contractor document ID by querying contractors where userId matches.
+  // User docs do NOT store contractorId — the contractor doc stores userId instead.
+  let contractorId: string = userId; // fallback
+  const contractorQuery = await db
+    .collection('contractors')
+    .where('userId', '==', userId)
+    .limit(1)
+    .get();
+  if (!contractorQuery.empty) {
+    contractorId = contractorQuery.docs[0].id;
+  }
 
   // Check current availability before booking
   const availRef = db
