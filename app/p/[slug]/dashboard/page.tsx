@@ -63,14 +63,23 @@ export default function TenantDashboard() {
       />
 
       <main className="max-w-5xl mx-auto px-4 py-6">
-        {/* Welcome */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">
-            Welcome back, {user.displayName?.split(' ')[0] || 'there'}
-          </h1>
-          <p className="text-gray-400 mt-1">
-            Here&apos;s the latest on your projects with {tenant.companyName}.
-          </p>
+        {/* Welcome + CTA */}
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              Welcome back, {user.displayName?.split(' ')[0] || 'there'}
+            </h1>
+            <p className="text-gray-400 mt-1">
+              Here&apos;s the latest on your projects with {tenant.companyName}.
+            </p>
+          </div>
+          <button
+            onClick={() => router.push(`/p/${tenant.slug}/request`)}
+            className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-white text-sm whitespace-nowrap transition-all hover:opacity-90"
+            style={{ backgroundColor: primaryColor }}
+          >
+            Get a Quote
+          </button>
         </div>
 
         {/* Quick Stats */}
