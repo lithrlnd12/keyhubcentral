@@ -187,9 +187,11 @@ async function bookAppointmentHandler(
 
   // Set the availability block to 'busy'
   if (availDoc.exists) {
-    await availRef.update({ [`blocks.${timeBlock}`]: 'busy' });
+    // Include `date` in case this doc was created without it (ensures calendar queries work)
+    await availRef.update({ [`blocks.${timeBlock}`]: 'busy', date });
   } else {
     await availRef.set({
+      date,
       blocks: {
         am: timeBlock === 'am' ? 'busy' : 'available',
         pm: timeBlock === 'pm' ? 'busy' : 'available',
