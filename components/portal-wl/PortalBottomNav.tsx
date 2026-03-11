@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Briefcase, DollarSign, Home, MessageCircle } from 'lucide-react';
+import { Briefcase, CalendarPlus, DollarSign, Home, MessageCircle } from 'lucide-react';
 
 interface PortalBottomNavProps {
   slug: string;
@@ -17,6 +17,7 @@ export function PortalBottomNav({ slug, primaryColor }: PortalBottomNavProps) {
     { label: 'Projects', icon: Briefcase, path: `/p/${slug}/jobs` },
     { label: 'Invoices', icon: DollarSign, path: `/p/${slug}/invoices` },
     { label: 'Messages', icon: MessageCircle, path: `/p/${slug}/messages` },
+    { label: 'Schedule', icon: CalendarPlus, path: `/p/${slug}/schedule` },
   ];
 
   return (

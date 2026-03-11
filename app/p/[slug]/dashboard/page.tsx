@@ -11,11 +11,13 @@ import { CUSTOMER_STATUS_MAP } from '@/types/tenant-portal';
 import {
   Briefcase,
   Calendar,
+  CalendarPlus,
   Camera,
   ChevronRight,
   Clock,
   DollarSign,
   FileText,
+  FolderOpen,
   MessageCircle,
   Shield,
 } from 'lucide-react';
@@ -100,13 +102,13 @@ export default function TenantDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-8">
           <button
             onClick={() => router.push(`/p/${tenant.slug}/jobs`)}
             className="bg-[#2D2D2D] rounded-xl p-4 border border-gray-700/50 hover:border-gray-600 transition-colors text-center"
           >
             <Briefcase size={22} className="mx-auto mb-2" style={{ color: primaryColor }} />
-            <p className="text-white text-sm font-medium">All Projects</p>
+            <p className="text-white text-sm font-medium">Projects</p>
           </button>
           <button
             onClick={() => router.push(`/p/${tenant.slug}/invoices`)}
@@ -121,6 +123,20 @@ export default function TenantDashboard() {
           >
             <MessageCircle size={22} className="mx-auto mb-2 text-blue-400" />
             <p className="text-white text-sm font-medium">Messages</p>
+          </button>
+          <button
+            onClick={() => router.push(`/p/${tenant.slug}/documents`)}
+            className="bg-[#2D2D2D] rounded-xl p-4 border border-gray-700/50 hover:border-gray-600 transition-colors text-center"
+          >
+            <FolderOpen size={22} className="mx-auto mb-2 text-purple-400" />
+            <p className="text-white text-sm font-medium">Documents</p>
+          </button>
+          <button
+            onClick={() => router.push(`/p/${tenant.slug}/schedule`)}
+            className="bg-[#2D2D2D] rounded-xl p-4 border border-gray-700/50 hover:border-gray-600 transition-colors text-center"
+          >
+            <CalendarPlus size={22} className="mx-auto mb-2 text-orange-400" />
+            <p className="text-white text-sm font-medium">Schedule</p>
           </button>
         </div>
 
