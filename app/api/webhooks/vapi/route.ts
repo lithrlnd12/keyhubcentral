@@ -336,13 +336,28 @@ async function handleInboundCall(
     notes,
   };
 
+  // Detect complaints from transcript + emotional signal
+  const transcriptText = (call.transcript || message.transcript || parsedFromConversation.transcript || '').toLowerCase();
+  const COMPLAINT_KEYWORDS = ['complaint', 'unhappy', 'terrible', 'awful', 'unacceptable', 'refund', 'not satisfied', 'fix this', 'demand', 'angry', 'furious', 'disappointed', 'worst', 'horrible', 'disgusted', 'lawsuit', 'sue'];
+  const isComplaint = emotionalSignal === 'frustrated' || COMPLAINT_KEYWORDS.some(kw => transcriptText.includes(kw));
+
+  // Escalate urgency for complaints
+  const finalUrgency: Urgency | null = isComplaint ? 'urgent' : urgency;
+  const finalEmotionalSignal: EmotionalSignal | null = isComplaint && !emotionalSignal ? 'frustrated' : emotionalSignal;
+
+  const finalAnalysis: InboundCallAnalysis = {
+    ...analysis,
+    urgency: finalUrgency,
+    emotionalSignal: finalEmotionalSignal,
+  };
+
   const inboundCallData = {
     vapiCallId: call.id,
     caller: {
       phone: callerPhone,
       name: callerName,
     },
-    analysis,
+    analysis: finalAnalysis,
     duration,
     recordingUrl: call.recordingUrl || (message as { recordingUrl?: string }).recordingUrl || null,
     transcript: call.transcript || message.transcript || parsedFromConversation.transcript || null,
@@ -350,6 +365,7 @@ async function handleInboundCall(
     status: 'new',
     closedReason: null,
     linkedLeadId: null,
+    isComplaint,
     reviewedBy: null,
     reviewedAt: null,
     createdAt: FieldValue.serverTimestamp(),

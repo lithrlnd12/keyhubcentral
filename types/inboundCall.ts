@@ -33,6 +33,7 @@ export interface InboundCall {
   status: InboundCallStatus;
   closedReason: ClosedReason | null;
   linkedLeadId: string | null;
+  isComplaint: boolean;
   reviewedBy: string | null;
   reviewedAt: Timestamp | null;
   createdAt: Timestamp;
