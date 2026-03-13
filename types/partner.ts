@@ -121,6 +121,7 @@ export interface PartnerServiceTicket {
   issueDescription: string;
   productInfo: string | null; // e.g., "Model XYZ, installed 2024-03-15"
   photos: string[]; // URLs to uploaded photos
+  photosMeta?: Array<{ url: string; takenAt: string }>; // Per-photo metadata with timestamps
   urgency: Urgency;
   preferredDate: Timestamp | null;
 

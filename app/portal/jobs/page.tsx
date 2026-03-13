@@ -55,6 +55,7 @@ function formatDate(timestamp: any) {
 
 export default function MyJobsPage() {
   const { user } = useAuth();
+  const canSeeCosts = user?.role && ['owner', 'admin', 'pm', 'partner'].includes(user.role);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
@@ -296,12 +297,14 @@ export default function MyJobsPage() {
                   )}
                 </div>
 
-                <div className="text-right">
-                  <p className="text-lg font-bold text-gold">
-                    {formatCurrency(job.costs?.laborActual || job.costs?.laborProjected || 0)}
-                  </p>
-                  <p className="text-xs text-gray-500">Labor value</p>
-                </div>
+                {canSeeCosts && (
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-gold">
+                      {formatCurrency(job.costs?.laborActual || job.costs?.laborProjected || 0)}
+                    </p>
+                    <p className="text-xs text-gray-500">Labor value</p>
+                  </div>
+                )}
               </div>
             </Card>
           ))}
@@ -315,17 +318,19 @@ export default function MyJobsPage() {
             <p className="text-sm text-gray-400">Showing</p>
             <p className="text-xl font-bold text-white">{filteredJobs.length} jobs</p>
           </div>
-          <div>
-            <p className="text-sm text-gray-400">Total Value</p>
-            <p className="text-xl font-bold text-gold">
-              {formatCurrency(
-                filteredJobs.reduce(
-                  (sum, job) => sum + (job.costs?.laborActual || job.costs?.laborProjected || 0),
-                  0
-                )
-              )}
-            </p>
-          </div>
+          {canSeeCosts && (
+            <div>
+              <p className="text-sm text-gray-400">Total Value</p>
+              <p className="text-xl font-bold text-gold">
+                {formatCurrency(
+                  filteredJobs.reduce(
+                    (sum, job) => sum + (job.costs?.laborActual || job.costs?.laborProjected || 0),
+                    0
+                  )
+                )}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -219,6 +219,7 @@ export default function NewServiceTicketPage() {
         issueDescription: formData.issueDescription,
         productInfo: formData.productInfo || null,
         photos: photos.map((p) => p.url),
+        photosMeta: photos.map((p) => ({ url: p.url, takenAt: new Date().toISOString() })),
         urgency: formData.urgency,
         preferredDate: formData.preferredDate
           ? Timestamp.fromDate(new Date(formData.preferredDate))
