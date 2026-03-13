@@ -10,6 +10,7 @@ import {
   markInvoiceAsSent,
   markInvoiceAsPaid,
   deleteInvoice,
+  updateInvoice,
 } from '@/lib/firebase/invoices';
 import { functions } from '@/lib/firebase/config';
 import { httpsCallable } from 'firebase/functions';
@@ -38,6 +39,9 @@ import {
   Calendar,
   Mail,
   AlertTriangle,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -56,8 +60,23 @@ export default function InvoiceDetailPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [editingNumber, setEditingNumber] = useState(false);
+  const [invoiceNumberDraft, setInvoiceNumberDraft] = useState('');
 
   const canManage = user?.role && canViewFinancials(user.role);
+
+  const handleSaveInvoiceNumber = async () => {
+    if (!invoice || !invoiceNumberDraft.trim()) return;
+    setActionLoading('number');
+    try {
+      await updateInvoice(invoice.id, { invoiceNumber: invoiceNumberDraft.trim() });
+      setEditingNumber(false);
+    } catch (err) {
+      console.error('Failed to update invoice number:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
   const overdue = invoice ? isOverdue(invoice) : false;
 
   const handleMarkAsSent = async () => {
@@ -161,8 +180,48 @@ export default function InvoiceDetailPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-white">{invoice.invoiceNumber}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            {editingNumber ? (
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  type="text"
+                  value={invoiceNumberDraft}
+                  onChange={(e) => setInvoiceNumberDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveInvoiceNumber();
+                    if (e.key === 'Escape') setEditingNumber(false);
+                  }}
+                  className="text-2xl font-bold bg-transparent border-b border-brand-gold text-white focus:outline-none w-48"
+                />
+                <button
+                  onClick={handleSaveInvoiceNumber}
+                  disabled={actionLoading === 'number'}
+                  className="text-green-400 hover:text-green-300 transition-colors"
+                >
+                  <Check className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setEditingNumber(false)}
+                  className="text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 group">
+                <h1 className="text-2xl font-bold text-white">{invoice.invoiceNumber}</h1>
+                {canManage && (
+                  <button
+                    onClick={() => { setInvoiceNumberDraft(invoice.invoiceNumber); setEditingNumber(true); }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-brand-gold"
+                    title="Edit invoice number"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
             <InvoiceStatusBadge status={overdue ? 'overdue' : invoice.status} />
             {overdue && <AlertTriangle className="w-5 h-5 text-red-400" />}
           </div>
