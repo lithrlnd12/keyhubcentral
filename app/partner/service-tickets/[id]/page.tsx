@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Phone, Mail, AlertTriangle, Calendar, CheckCircle, User, ImageIcon, MessageCircle, Loader2, Camera, Plus } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Mail, AlertTriangle, Calendar, CheckCircle, User, ImageIcon, MessageCircle, Loader2, Camera, Plus, FileText, Hash, DollarSign } from 'lucide-react';
 import { usePartnerTicket, useAuth } from '@/lib/hooks';
 import { findOrCreateRequestChat } from '@/lib/firebase/messages';
 import { getUserProfile } from '@/lib/firebase/auth';
@@ -279,6 +279,78 @@ export default function ServiceTicketDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Work Order Details */}
+      {(ticket.serviceOrderNumber || ticket.caseNumber || ticket.workOrderUrl || ticket.estimatedCost || (ticket.lineItems && ticket.lineItems.length > 0)) && (
+        <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-white">Work Order</h2>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {ticket.serviceOrderNumber && (
+              <div>
+                <p className="text-gray-400 text-sm">Service Order #</p>
+                <p className="text-white font-mono">{ticket.serviceOrderNumber}</p>
+              </div>
+            )}
+            {ticket.caseNumber && (
+              <div>
+                <p className="text-gray-400 text-sm">Case #</p>
+                <p className="text-white font-mono">{ticket.caseNumber}</p>
+              </div>
+            )}
+            {ticket.estimatedCost != null && (
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-gray-400" />
+                <div>
+                  <p className="text-gray-400 text-sm">Estimated Cost</p>
+                  <p className="text-white">${ticket.estimatedCost.toFixed(2)}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {ticket.workOrderUrl && (
+            <a
+              href={ticket.workOrderUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-brand-gold hover:underline text-sm"
+            >
+              <FileText className="h-4 w-4" />
+              View uploaded SWO PDF
+            </a>
+          )}
+
+          {ticket.lineItems && ticket.lineItems.length > 0 && (
+            <div>
+              <p className="text-gray-400 text-sm mb-2">Line Items</p>
+              <div className="space-y-2">
+                {ticket.lineItems.map((item, i) => (
+                  <div key={i} className="bg-gray-900/60 rounded-lg p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="text-white text-sm font-medium">{item.activity}</p>
+                        {item.description && (
+                          <p className="text-gray-400 text-xs mt-0.5">{item.description}</p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-gray-400 text-xs">Qty: {item.quantity}</p>
+                        {item.estimatedCost != null && (
+                          <p className="text-white text-sm">${item.estimatedCost.toFixed(2)}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Photos */}
       <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6 space-y-4">

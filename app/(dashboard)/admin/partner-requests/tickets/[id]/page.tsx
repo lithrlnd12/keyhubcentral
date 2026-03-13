@@ -17,6 +17,8 @@ import {
   Image,
   MessageCircle,
   Loader2 as Loader2Icon,
+  DollarSign,
+  Hash,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePartnerTicket } from '@/lib/hooks/usePartnerTickets';
@@ -285,6 +287,80 @@ export default function ServiceTicketDetailPage() {
                 <div>
                   <p className="text-sm text-gray-400 mb-1">Product Info</p>
                   <p className="text-white">{ticket.productInfo}</p>
+                </div>
+              )}
+
+              {/* Work order reference numbers */}
+              {(ticket.serviceOrderNumber || ticket.caseNumber) && (
+                <div className="grid grid-cols-2 gap-4">
+                  {ticket.serviceOrderNumber && (
+                    <div className="flex items-center gap-2">
+                      <Hash className="w-4 h-4 text-gold" />
+                      <div>
+                        <p className="text-sm text-gray-400">Service Order #</p>
+                        <p className="text-white font-mono text-sm">{ticket.serviceOrderNumber}</p>
+                      </div>
+                    </div>
+                  )}
+                  {ticket.caseNumber && (
+                    <div className="flex items-center gap-2">
+                      <Hash className="w-4 h-4 text-gold" />
+                      <div>
+                        <p className="text-sm text-gray-400">Case #</p>
+                        <p className="text-white font-mono text-sm">{ticket.caseNumber}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {ticket.estimatedCost != null && (
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-gold" />
+                  <div>
+                    <p className="text-sm text-gray-400">Estimated Cost</p>
+                    <p className="text-white">${ticket.estimatedCost.toFixed(2)}</p>
+                  </div>
+                </div>
+              )}
+
+              {ticket.workOrderUrl && (
+                <div>
+                  <a
+                    href={ticket.workOrderUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-gold hover:underline text-sm"
+                  >
+                    <FileText className="w-4 h-4" />
+                    View uploaded SWO PDF
+                  </a>
+                </div>
+              )}
+
+              {ticket.lineItems && ticket.lineItems.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-400 mb-2">Line Items</p>
+                  <div className="space-y-2">
+                    {ticket.lineItems.map((item, i) => (
+                      <div key={i} className="bg-gray-900/60 rounded-lg p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="text-white text-sm font-medium">{item.activity}</p>
+                            {item.description && (
+                              <p className="text-gray-400 text-xs mt-0.5">{item.description}</p>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-gray-400 text-xs">Qty: {item.quantity}</p>
+                            {item.estimatedCost != null && (
+                              <p className="text-white text-sm">${item.estimatedCost.toFixed(2)}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

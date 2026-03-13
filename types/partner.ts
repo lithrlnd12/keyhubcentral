@@ -103,6 +103,13 @@ export interface PartnerStatusChange {
   notes: string | null;
 }
 
+export interface ServiceTicketLineItem {
+  activity: string;
+  description: string;
+  quantity: number;
+  estimatedCost: number | null;
+}
+
 export interface PartnerServiceTicket {
   id: string;
   ticketNumber: string; // e.g., PST-2026-0001
@@ -134,6 +141,7 @@ export interface PartnerServiceTicket {
   caseNumber?: string | null;
   estimatedCost?: number | null;
   workOrderUrl?: string | null;
+  lineItems?: ServiceTicketLineItem[] | null;
 
   // Resolution
   status: PartnerTicketStatus;
