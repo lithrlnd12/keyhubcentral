@@ -33,6 +33,9 @@ export interface TenantConfig {
   // Admin notification emails
   adminEmails: string[];
 
+  // Google Review URL
+  googleReviewUrl: string;
+
   // Firebase project
   firebaseProjectId: string;
 
@@ -99,6 +102,9 @@ export const tenant: TenantConfig = {
 
   // Firebase project
   firebaseProjectId: 'key-hub-central',
+
+  // Google Review URL (replace with your actual Google review link)
+  googleReviewUrl: 'https://g.page/r/YOUR_GOOGLE_REVIEW_LINK/review',
 
   // Business entities
   entities: {

@@ -276,6 +276,10 @@ export async function transitionJobStatus(
         break;
       case 'scheduled':
         updates['dates.scheduledStart'] = now;
+        // Reminder timestamps are set when scheduledStart is confirmed on the job.
+        // The appointment-reminder cron reads reminderDayBeforeSent / reminderMorningOfSent.
+        updates['reminderDayBeforeSent'] = false;
+        updates['reminderMorningOfSent'] = false;
         break;
       case 'started':
         updates['dates.actualStart'] = now;
@@ -289,6 +293,11 @@ export async function transitionJobStatus(
         const warrantyEnd = new Date();
         warrantyEnd.setFullYear(warrantyEnd.getFullYear() + 1);
         updates['warranty.endDate'] = Timestamp.fromDate(warrantyEnd);
+        // Schedule rating call for 24 hours after completion
+        const ratingCallTime = new Date();
+        ratingCallTime.setHours(ratingCallTime.getHours() + 24);
+        updates['ratingCallScheduledAt'] = Timestamp.fromDate(ratingCallTime);
+        updates['ratingCallSent'] = false;
         break;
       case 'paid_in_full':
         updates['dates.paidInFull'] = now;
