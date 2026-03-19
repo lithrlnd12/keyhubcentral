@@ -6,7 +6,9 @@ import { useCampaigns } from '@/lib/hooks/useCampaigns';
 import { useSubscriptions } from '@/lib/hooks/useSubscriptions';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { LeadList, LeadFilters } from '@/components/leads';
-import { KDStats, LeadSourceChart, CampaignPerformance, SubscriberBreakdown } from '@/components/kd';
+import { KDStats, CampaignPerformance, SubscriberBreakdown } from '@/components/kd';
+import { LeadPipelineChart } from '@/components/charts';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Plus, LayoutDashboard, Users, MapPin, Globe } from 'lucide-react';
 import Link from 'next/link';
@@ -163,7 +165,14 @@ export default function KDPage() {
 
           {/* Analytics Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <LeadSourceChart leads={leads} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Lead Pipeline</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <LeadPipelineChart leads={leads} />
+              </CardContent>
+            </Card>
             <SubscriberBreakdown subscriptions={subscriptions} />
           </div>
 
