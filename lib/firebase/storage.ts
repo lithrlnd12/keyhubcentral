@@ -275,6 +275,21 @@ export async function uploadJobSignature(
 }
 
 // ==========================================
+// COMPLETION CERTIFICATE PDF
+// ==========================================
+
+export async function uploadCompletionCertPDF(
+  jobId: string,
+  pdfBlob: Blob
+): Promise<string> {
+  const timestamp = Date.now();
+  const path = `jobs/${jobId}/completion-cert/certificate_${timestamp}.pdf`;
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, pdfBlob, { contentType: 'application/pdf' });
+  return getDownloadURL(storageRef);
+}
+
+// ==========================================
 // WORK ORDER PDF FUNCTIONS (Partner Service Tickets)
 // ==========================================
 

@@ -7,7 +7,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import { Job, CompletionCertificate } from '@/types/job';
-import { uploadJobSignature, deleteJobDocument, extractPathFromUrl } from './storage';
+import { uploadJobSignature, deleteJobDocument, extractPathFromUrl, uploadCompletionCertPDF } from './storage';
 
 /**
  * Save completion certificate signatures and update job
@@ -18,7 +18,10 @@ export async function saveCompletionCertificate(
   contractorSignatureDataUrl: string,
   contractorId: string,
   customerName: string,
-  notes?: string
+  contractorName: string,
+  notes?: string,
+  pdfBlob?: Blob,
+  costs?: CompletionCertificate['costs']
 ): Promise<CompletionCertificate> {
   const jobRef = doc(db, 'jobs', jobId);
   const jobSnap = await getDoc(jobRef);
@@ -35,13 +38,22 @@ export async function saveCompletionCertificate(
     contractorSignatureDataUrl
   );
 
+  // Upload PDF if provided
+  let pdfUrl: string | undefined;
+  if (pdfBlob) {
+    pdfUrl = await uploadCompletionCertPDF(jobId, pdfBlob);
+  }
+
   const completionCert: CompletionCertificate = {
     customerSignatureUrl,
     contractorSignatureUrl,
     signedAt: Timestamp.now(),
     signedBy: contractorId,
     customerName,
+    contractorName,
     notes,
+    pdfUrl,
+    costs,
   };
 
   // Update job with completion certificate in documents

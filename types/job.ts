@@ -123,7 +123,15 @@ export interface CompletionCertificate {
   signedAt: Timestamp;
   signedBy: string; // Contractor who captured the signatures
   customerName: string;
+  contractorName?: string;
   notes?: string;
+  pdfUrl?: string;
+  costs?: {
+    materialProjected: number;
+    materialActual: number;
+    laborProjected: number;
+    laborActual: number;
+  };
 }
 
 // Final payment tracking
