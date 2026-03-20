@@ -27,6 +27,18 @@ export function getContractorDocumentPath(
   return `contractors/${userId}/documents/${docType}_${timestamp}_${sanitizedFileName}`;
 }
 
+export function uploadUserDocument(
+  userId: string,
+  file: File,
+  docType: string
+): UploadTask {
+  const timestamp = Date.now();
+  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const path = `users/${userId}/documents/${docType}_${timestamp}_${sanitizedFileName}`;
+  const storageRef = ref(storage, path);
+  return uploadBytesResumable(storageRef, file);
+}
+
 export function uploadContractorDocument(
   userId: string,
   file: File,
