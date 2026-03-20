@@ -232,7 +232,6 @@ export function ContractorNetworkMap({
       center: { lat: 39.8283, lng: -98.5795 },
       zoom: 4,
       mapId: 'DEMO_MAP_ID',
-      styles: MAP_STYLES,
       disableDefaultUI: true,
       zoomControl: true,
       mapTypeControl: false,

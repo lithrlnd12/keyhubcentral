@@ -168,6 +168,20 @@ service cloud.firestore {
 
       allow delete: if isOwner();
 
+      // Job addendums subcollection
+      match /addendums/{addendumId} {
+        // Internal users can read all addendums
+        allow read: if isInternalUser();
+
+        // Internal users can create addendums (contractor in field, PM, admin)
+        allow create: if isInternalUser() && isActiveUser();
+
+        // Only admins can update (void) addendums
+        allow update: if isAdmin();
+
+        allow delete: if isOwner();
+      }
+
       // Job communications subcollection
       match /communications/{commId} {
         // Internal users can read job communications
