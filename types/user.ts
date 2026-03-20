@@ -35,6 +35,15 @@ export interface UserProfile {
     state: string;
     zip: string;
   } | null;
+  onboardingComplete?: boolean;
+  onboardingData?: {
+    address?: {
+      street: string;
+      city: string;
+      state: string;
+      zip: string;
+    };
+  };
   createdAt: Timestamp;
   approvedAt: Timestamp | null;
   approvedBy: string | null;
