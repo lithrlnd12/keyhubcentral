@@ -203,7 +203,7 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
 
         {['complete', 'paid_in_full'].includes(job.status) && (
           <TabsContent value="completion">
-            <CompletionCertificateFlow job={job} onComplete={update} />
+            <CompletionCertificateFlow job={job} onComplete={() => update({})} />
           </TabsContent>
         )}
       </Tabs>
