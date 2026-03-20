@@ -2,8 +2,6 @@
 
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { tenant } from '@/lib/config/tenant';
-
 export default function SmsTermsPage() {
   const router = useRouter();
 
@@ -32,8 +30,7 @@ export default function SmsTermsPage() {
               <h2 className="text-xl font-semibold text-white mb-3">1. Consent to Receive Communications</h2>
               <p>
                 By providing your phone number and checking the consent box, you agree to receive
-                autodialed calls and text messages from {tenant.shortName}, {tenant.entities.kts.label}, {tenant.entities.kr.label},
-                {tenant.entities.kd.label}, and their affiliates regarding your inquiry, quotes, appointments,
+                autodialed calls and text messages from Key Renovations and its affiliates regarding your inquiry, quotes, appointments,
                 project updates, and promotional offers.
               </p>
             </section>
@@ -51,7 +48,7 @@ export default function SmsTermsPage() {
               <h2 className="text-xl font-semibold text-white mb-3">3. Message and Data Rates</h2>
               <p>
                 Message and data rates may apply. Please contact your wireless carrier for details
-                about your text messaging plan. {tenant.shortName} is not responsible for any charges incurred
+                about your text messaging plan. Key Renovations is not responsible for any charges incurred
                 from your wireless provider.
               </p>
             </section>
@@ -81,7 +78,7 @@ export default function SmsTermsPage() {
               <h2 className="text-xl font-semibold text-white mb-3">6. Consent Not Required for Purchase</h2>
               <p>
                 Your consent to receive calls and text messages is not a condition of purchasing any
-                goods or services from {tenant.shortName} or its affiliates. You may choose not to provide consent
+                goods or services from Key Renovations or its affiliates. You may choose not to provide consent
                 and still receive services from us through other communication methods.
               </p>
             </section>
@@ -115,7 +112,7 @@ export default function SmsTermsPage() {
             <section className="pt-6 border-t border-gray-700">
               <h2 className="text-xl font-semibold text-white mb-3">Contact Information</h2>
               <p>
-                {tenant.entities.kts.label} LLC<br />
+                Key Renovations LLC<br />
                 Email: zach.rhyne@keytradesolutions.com<br />
                 Phone: (405) 990-7821
               </p>

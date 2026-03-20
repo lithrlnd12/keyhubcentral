@@ -2,8 +2,6 @@
 
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { tenant } from '@/lib/config/tenant';
-
 export default function PrivacyPolicyPage() {
   const router = useRouter();
 
@@ -31,7 +29,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold text-white mb-3">1. Introduction</h2>
               <p>
-                {tenant.appName} (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) respects your privacy and is committed to protecting
+                Key Renovations (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) respects your privacy and is committed to protecting
                 your personal information. This Privacy Policy explains how we collect, use, disclose, and
                 safeguard your information when you use our services.
               </p>
@@ -80,7 +78,7 @@ export default function PrivacyPolicyPage() {
               <p className="mb-3">We may share your information with:</p>
               <ul className="list-disc list-inside ml-4 text-gray-400 space-y-2">
                 <li><strong>Service Providers:</strong> Contractors and partners who help us deliver services to you</li>
-                <li><strong>Business Affiliates:</strong> {tenant.entities.kts.label}, {tenant.entities.kr.label}, and {tenant.entities.kd.label} for service fulfillment</li>
+                <li><strong>Business Affiliates:</strong> Key Trade Solutions, Key Renovations, and Keynote Digital for service fulfillment</li>
                 <li><strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
               </ul>
               <p className="mt-3">
@@ -140,7 +138,7 @@ export default function PrivacyPolicyPage() {
                 If you have questions about this Privacy Policy or our data practices, please contact us at:
               </p>
               <p className="mt-3">
-                {tenant.entities.kts.label} LLC<br />
+                Key Renovations LLC<br />
                 Email: zach.rhyne@keytradesolutions.com<br />
                 Phone: (405) 990-7821
               </p>

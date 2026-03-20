@@ -443,7 +443,7 @@ export default function LeadCapturePage() {
                   />
                   <label htmlFor="smsCallOptIn" className="text-sm text-gray-300 cursor-pointer">
                     By checking this box, I consent to receive automated text messages and phone calls
-                    from {tenant.appName} at the phone number provided above regarding:
+                    from Key Renovations at the phone number provided above regarding:
                     <ul className="list-disc list-inside mt-1 mb-2 ml-2 text-gray-400 text-xs">
                       <li>Quote requests and follow-ups</li>
                       <li>Appointment confirmations and reminders</li>
