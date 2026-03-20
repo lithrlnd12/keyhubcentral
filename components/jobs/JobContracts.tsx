@@ -42,12 +42,26 @@ export function JobContracts({ job, userId, userRole }: JobContractsProps) {
   const loadContracts = useCallback(async () => {
     try {
       setLoading(true);
-      const [jobContracts, jobAddendums] = await Promise.all([
+
+      // Load contracts and addendums independently so one failure doesn't block the other
+      const [contractsResult, addendumsResult] = await Promise.allSettled([
         getJobContracts(job.id),
         getAddendums(job.id),
       ]);
-      setContracts(jobContracts);
-      setAddendums(jobAddendums);
+
+      if (contractsResult.status === 'fulfilled') {
+        setContracts(contractsResult.value);
+      } else {
+        console.error('Failed to load contracts:', contractsResult.reason);
+        setError('Failed to load contracts');
+      }
+
+      if (addendumsResult.status === 'fulfilled') {
+        setAddendums(addendumsResult.value);
+      } else {
+        console.error('Failed to load addendums:', addendumsResult.reason);
+        // Don't set error for addendums — contracts are more important
+      }
     } catch (err) {
       console.error('Failed to load contracts:', err);
       setError('Failed to load contracts');
