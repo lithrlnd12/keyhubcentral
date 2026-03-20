@@ -88,6 +88,7 @@ export function CompletionCertificate({
         contractorSignature,
         user.uid,
         job.customer.name,
+        user.displayName || 'Contractor',
         notes || undefined
       );
       await loadData();
