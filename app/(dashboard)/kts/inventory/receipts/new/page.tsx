@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Check } from 'lucide-react';
+import { ArrowLeft, Loader2, Check, Package, ArrowRight } from 'lucide-react';
 import { useReceiptMutations, useInventoryLocations, useAuth } from '@/lib/hooks';
 import { ReceiptUploader } from '@/components/inventory';
 
@@ -53,21 +53,49 @@ export default function NewReceiptPage() {
     }
   };
 
+  const [redirectCountdown, setRedirectCountdown] = useState(5);
+
+  // Auto-redirect to receipt detail page after parsing
+  useEffect(() => {
+    if (!success || !uploadedReceipt) return;
+    if (redirectCountdown <= 0) {
+      router.push(`/kts/inventory/receipts/${uploadedReceipt.id}`);
+      return;
+    }
+    const timer = setTimeout(() => setRedirectCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [success, uploadedReceipt, redirectCountdown, router]);
+
   if (success && uploadedReceipt) {
     return (
       <div className="max-w-2xl mx-auto text-center py-12">
         <div className="p-4 bg-green-500/10 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
           <Check className="h-8 w-8 text-green-400" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Receipt Uploaded!</h2>
-        <p className="text-gray-400 mb-6">
-          Your receipt has been processed. Review the parsed data.
+        <h2 className="text-2xl font-bold text-white mb-2">Receipt Parsed!</h2>
+        <p className="text-gray-400 mb-2">
+          AI has extracted the items from your receipt.
         </p>
+
+        {/* Next step callout */}
+        <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 mb-6 text-left max-w-md mx-auto">
+          <div className="flex items-start gap-3">
+            <Package className="h-5 w-5 text-purple-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-purple-400 font-medium text-sm">Next: Add items to inventory</p>
+              <p className="text-gray-400 text-sm mt-1">
+                Review parsed items, select a stock location, and link them to your inventory.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="flex gap-3 justify-center">
           <button
             onClick={() => {
               setUploadedReceipt(null);
               setSuccess(false);
+              setRedirectCountdown(5);
             }}
             className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors"
           >
@@ -75,11 +103,16 @@ export default function NewReceiptPage() {
           </button>
           <Link
             href={`/kts/inventory/receipts/${uploadedReceipt.id}`}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
           >
-            View Receipt
+            <Package className="h-4 w-4" />
+            Review & Add to Inventory
+            <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
+        <p className="text-gray-500 text-xs mt-4">
+          Redirecting in {redirectCountdown}s...
+        </p>
       </div>
     );
   }
