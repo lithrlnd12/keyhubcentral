@@ -21,6 +21,8 @@
  *   1. Replace placeholder icons in /public/icons/ with real logos
  *   2. Copy .env.local.template → .env.local and fill in secrets
  *   3. Deploy (git push)
+ *   4. Set up Resend (email) — verify domain or use shared sender
+ *   5. Set up VAPI phone number + caller reputation (see checklist)
  */
 
 const fs = require('fs');
@@ -43,6 +45,7 @@ const EXAMPLE = {
   supportEmail: 'support@acmepro.com',
   billingEmail: 'billing@acmepro.com',
   noreplyEmail: 'noreply@acmepro.com',
+  fromEmail: 'noreply@acmepro.com', // Resend verified sending address
   phone: '5551234567',
   domain: 'acmepro.com',
   serviceArea: 'Dallas-Fort Worth Metro Area',
@@ -308,9 +311,10 @@ export const tenant = {
   tagline: ${JSON.stringify(cfg.tagline)},
   description: ${JSON.stringify(cfg.description)},
 
-  // Contact
+  // Contact & Email
   supportEmail: ${JSON.stringify(cfg.supportEmail)},
   noreplyEmail: ${JSON.stringify(cfg.noreplyEmail)},
+  fromEmail: ${JSON.stringify(cfg.fromEmail || cfg.noreplyEmail)},
   domain: ${JSON.stringify(cfg.domain)},
 
   // Service area
@@ -519,6 +523,9 @@ After running, remember to:
   1. Copy .env.local.template → .env.local and fill in secrets
   2. Replace placeholder icons in /public/icons/ with real logos
   3. Deploy (git push)
+  4. Set up Resend email (verify domain, add RESEND_API_KEY)
+  5. Set up VAPI phone number + caller reputation
+     (Free Caller Registry, Hiya, CNAM)
 `);
   process.exit(0);
 }
@@ -626,4 +633,27 @@ console.log(`
   2. Replace placeholder icons in /public/icons/ with real logos
   3. Build functions:  cd functions && npm run build
   4. Deploy:           git push
+
+\x1b[1m📧 Email Setup (Resend):\x1b[0m
+  5. Add RESEND_API_KEY to Vercel env vars (or Firebase secrets)
+  6. Verify sending domain in Resend dashboard (add DNS records)
+     • Or use shared domain (e.g., noreply@keyhubcentral.com)
+
+\x1b[1m📞 Phone / Voice Setup (VAPI):\x1b[0m
+  7. Create a VAPI phone number (Dashboard → Phone Numbers → Create)
+     • Free US numbers: up to 10 per account, no Twilio needed
+     • Or import from Telnyx for more control
+  8. Set VAPI_PHONE_NUMBER_ID in env vars
+  9. Assign assistant to the phone number
+
+\x1b[1m📞 Caller Reputation (prevent spam flagging):\x1b[0m
+  10. Register at https://freecallerregistry.com (free, 5 min)
+  11. Register with Hiya (https://hiya.com) — powers "Spam Likely" labels
+  12. Set up CNAM (Caller ID Name) through your carrier
+      • Shows business name instead of "Unknown" on caller ID
+      • Requires an EIN
+  13. STIR/SHAKEN — usually automatic with VAPI/Telnyx numbers
+
+\x1b[1m⚠ Note:\x1b[0m A2P 10DLC registration is for SMS only, NOT voice calls.
+  Voice spam prevention uses CNAM + Free Caller Registry + Hiya.
 `);

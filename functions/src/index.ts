@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import * as nodemailer from 'nodemailer';
 import { tenant } from './config/tenant';
+import { sendEmail } from './utils/email';
 
 // Initialize Firebase Admin first, before any other imports that use Firestore
 admin.initializeApp();
@@ -61,17 +61,6 @@ export { seedTestUsers, deleteTestUsers } from './triggers/testUserTriggers';
 // Admin emails to notify when new users sign up
 const ADMIN_EMAILS = tenant.adminEmails;
 
-// Configure email transporter (lazy initialization to avoid deployment timeout)
-function getTransporter() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-}
-
 // Trigger when a new user document is created in Firestore
 export const onUserCreated = functions.firestore
   .document('users/{userId}')
@@ -86,7 +75,7 @@ export const onUserCreated = functions.firestore
 
     const mailOptions = {
       from: `"${tenant.appName}" <${tenant.noreplyEmail}>`,
-      to: ADMIN_EMAILS.join(', '),
+      to: [...ADMIN_EMAILS],
       subject: `🔔 New User Pending Approval - ${tenant.appName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -131,7 +120,11 @@ export const onUserCreated = functions.firestore
     };
 
     try {
-      await getTransporter().sendMail(mailOptions);
+      await sendEmail({
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        html: mailOptions.html,
+      });
       console.log(`Notification email sent for new user: ${userData.email}`);
       return null;
     } catch (error) {
@@ -192,7 +185,11 @@ export const onUserApproved = functions.firestore
       };
 
       try {
-        await getTransporter().sendMail(mailOptions);
+        await sendEmail({
+          to: mailOptions.to,
+          subject: mailOptions.subject,
+          html: mailOptions.html,
+        });
         console.log(`Approval email sent to: ${afterData.email}`);
       } catch (error) {
         console.error('Error sending approval email:', error);
