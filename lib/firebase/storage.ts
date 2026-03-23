@@ -27,6 +27,18 @@ export function getContractorDocumentPath(
   return `contractors/${userId}/documents/${docType}_${timestamp}_${sanitizedFileName}`;
 }
 
+export function uploadUserDocument(
+  userId: string,
+  file: File,
+  docType: string
+): UploadTask {
+  const timestamp = Date.now();
+  const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const path = `users/${userId}/documents/${docType}_${timestamp}_${sanitizedFileName}`;
+  const storageRef = ref(storage, path);
+  return uploadBytesResumable(storageRef, file);
+}
+
 export function uploadContractorDocument(
   userId: string,
   file: File,
@@ -259,6 +271,21 @@ export async function uploadJobSignature(
   const path = getJobSignaturePath(jobId, signatureType);
   const storageRef = ref(storage, path);
   await uploadBytes(storageRef, blob, { contentType: 'image/png' });
+  return getDownloadURL(storageRef);
+}
+
+// ==========================================
+// COMPLETION CERTIFICATE PDF
+// ==========================================
+
+export async function uploadCompletionCertPDF(
+  jobId: string,
+  pdfBlob: Blob
+): Promise<string> {
+  const timestamp = Date.now();
+  const path = `jobs/${jobId}/completion-cert/certificate_${timestamp}.pdf`;
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, pdfBlob, { contentType: 'application/pdf' });
   return getDownloadURL(storageRef);
 }
 

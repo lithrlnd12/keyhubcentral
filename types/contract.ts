@@ -115,3 +115,34 @@ export const PAYMENT_METHOD_LABELS: Record<ContractPaymentMethod, string> = {
   financing: 'Financing',
   other: 'Other',
 };
+
+// ==========================================
+// CONTRACT ADDENDUMS
+// ==========================================
+
+export type AddendumType = 'scope_change' | 'additional_work' | 'price_adjustment' | 'timeline_change';
+
+export const ADDENDUM_TYPE_LABELS: Record<AddendumType, string> = {
+  scope_change: 'Scope Change',
+  additional_work: 'Additional Work',
+  price_adjustment: 'Price Adjustment',
+  timeline_change: 'Timeline Change',
+};
+
+export interface ContractAddendum {
+  id: string;
+  jobId: string;
+  addendumNumber: number;
+  type: AddendumType;
+  description: string;
+  costImpact: number; // positive = increase, negative = decrease, 0 = no change
+  photoUrls: string[];
+  customerSignatureUrl: string;
+  contractorSignatureUrl: string;
+  customerName: string;
+  contractorName: string;
+  signedAt: Timestamp;
+  createdBy: string;
+  pdfUrl?: string;
+  status: 'signed' | 'voided';
+}

@@ -3,13 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Job } from '@/types/job';
-import { SignedContract, CONTRACT_TYPE_LABELS, CONTRACT_STATUS_LABELS, ContractDocumentType } from '@/types/contract';
+import { SignedContract, CONTRACT_TYPE_LABELS, CONTRACT_STATUS_LABELS, ContractDocumentType, ContractAddendum, ADDENDUM_TYPE_LABELS } from '@/types/contract';
 import { getJobContracts } from '@/lib/firebase/contracts';
+import { getAddendums } from '@/lib/firebase/addendums';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { ContractUploadModal } from '@/components/contracts/ContractUploadModal';
+import { AddendumForm } from '@/components/contracts/AddendumForm';
 import {
   FileText,
   Download,
@@ -20,6 +22,7 @@ import {
   AlertCircle,
   Plus,
   Upload,
+  FilePlus2,
 } from 'lucide-react';
 
 interface JobContractsProps {
@@ -30,15 +33,35 @@ interface JobContractsProps {
 
 export function JobContracts({ job, userId, userRole }: JobContractsProps) {
   const [contracts, setContracts] = useState<SignedContract[]>([]);
+  const [addendums, setAddendums] = useState<ContractAddendum[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showAddendumForm, setShowAddendumForm] = useState(false);
 
   const loadContracts = useCallback(async () => {
     try {
       setLoading(true);
-      const jobContracts = await getJobContracts(job.id);
-      setContracts(jobContracts);
+
+      // Load contracts and addendums independently so one failure doesn't block the other
+      const [contractsResult, addendumsResult] = await Promise.allSettled([
+        getJobContracts(job.id),
+        getAddendums(job.id),
+      ]);
+
+      if (contractsResult.status === 'fulfilled') {
+        setContracts(contractsResult.value);
+      } else {
+        console.error('Failed to load contracts:', contractsResult.reason);
+        setError('Failed to load contracts');
+      }
+
+      if (addendumsResult.status === 'fulfilled') {
+        setAddendums(addendumsResult.value);
+      } else {
+        console.error('Failed to load addendums:', addendumsResult.reason);
+        // Don't set error for addendums — contracts are more important
+      }
     } catch (err) {
       console.error('Failed to load contracts:', err);
       setError('Failed to load contracts');
@@ -309,6 +332,131 @@ export function JobContracts({ job, userId, userRole }: JobContractsProps) {
             Upload Instead
           </Button>
         </div>
+      )}
+
+      {/* Addendums Section */}
+      {(addendums.length > 0 || ['started', 'complete', 'paid_in_full'].includes(job.status)) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <FilePlus2 className="w-5 h-5" />
+                Addendums
+                {addendums.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 bg-gray-700 rounded-full text-gray-300">
+                    {addendums.length}
+                  </span>
+                )}
+              </span>
+              {['started', 'complete', 'paid_in_full'].includes(job.status) && (
+                <Button size="sm" variant="outline" onClick={() => setShowAddendumForm(true)}>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Addendum
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {addendums.length > 0 ? (
+              <div className="space-y-3">
+                {addendums.map((addendum) => (
+                  <div
+                    key={addendum.id}
+                    className={`p-4 rounded-lg border ${
+                      addendum.status === 'voided'
+                        ? 'border-red-500/30 bg-red-500/5 opacity-60'
+                        : 'border-gray-700 bg-gray-800'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-medium text-white">
+                            Addendum #{addendum.addendumNumber}
+                          </p>
+                          <span className="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded">
+                            {ADDENDUM_TYPE_LABELS[addendum.type]}
+                          </span>
+                          {addendum.status === 'voided' && (
+                            <Badge variant="error">Voided</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-400 line-clamp-2">{addendum.description}</p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                          <span>
+                            {addendum.signedAt?.toDate
+                              ? addendum.signedAt.toDate().toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })
+                              : '-'}
+                          </span>
+                          {addendum.costImpact !== 0 && (
+                            <span className={addendum.costImpact > 0 ? 'text-red-400' : 'text-green-400'}>
+                              {addendum.costImpact > 0 ? '+' : ''}
+                              ${Math.abs(addendum.costImpact).toFixed(2)}
+                            </span>
+                          )}
+                          {addendum.photoUrls.length > 0 && (
+                            <span>{addendum.photoUrls.length} photo{addendum.photoUrls.length !== 1 ? 's' : ''}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {addendum.pdfUrl && (
+                          <>
+                            <Button variant="ghost" size="sm" onClick={() => window.open(addendum.pdfUrl!, '_blank')}>
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(addendum.pdfUrl!);
+                                  const blob = await response.blob();
+                                  const url = URL.createObjectURL(blob);
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.download = `Addendum-${addendum.addendumNumber}-${job.jobNumber}.pdf`;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                  URL.revokeObjectURL(url);
+                                } catch {
+                                  window.open(addendum.pdfUrl!, '_blank');
+                                }
+                              }}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-4">
+                No addendums yet. Use &quot;Add Addendum&quot; to document changes in the field.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Addendum Form Modal */}
+      {showAddendumForm && (
+        <AddendumForm
+          job={job}
+          onClose={() => setShowAddendumForm(false)}
+          onSaved={() => {
+            setShowAddendumForm(false);
+            loadContracts();
+          }}
+        />
       )}
 
       {/* Upload Modal */}

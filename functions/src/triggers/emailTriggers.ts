@@ -1,13 +1,13 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import * as nodemailer from 'nodemailer';
 import { tenant, getEntityFullName } from '../config/tenant';
+import { sendEmail } from '../utils/email';
 
 // Runtime options
 const runtimeOpts: functions.RuntimeOptions = {
   timeoutSeconds: 60,
   memory: '256MB',
-  secrets: ['GMAIL_USER', 'GMAIL_APP_PASSWORD'],
+  secrets: ['RESEND_API_KEY'],
 };
 
 // HTML entity escaping to prevent injection in email templates
@@ -37,17 +37,6 @@ function sanitizeUrl(url: string | undefined | null): string {
 
 // Internal roles that can send emails
 const INTERNAL_ROLES = ['owner', 'admin', 'sales_rep', 'contractor', 'pm'];
-
-// Configure email transporter
-function getTransporter() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-}
 
 // Format currency
 function formatCurrency(amount: number): string {
@@ -243,24 +232,21 @@ export const sendInvoiceEmail = functions
       </html>
     `;
 
-    // Send email
-    const transporter = getTransporter();
-    const mailOptions = {
-      from: `"${getEntityName(invoice.from.entity)}" <${process.env.GMAIL_USER}>`,
-      to: toEmail,
-      subject: `Invoice ${invoice.invoiceNumber} from ${getEntityName(invoice.from.entity)}`,
-      html: emailHtml,
-    };
-
+    // Send email via Resend
     try {
-      await transporter.sendMail(mailOptions);
+      await sendEmail({
+        to: toEmail,
+        subject: `Invoice ${invoice.invoiceNumber} from ${getEntityName(invoice.from.entity)}`,
+        html: emailHtml,
+        fromName: getEntityName(invoice.from.entity),
+      });
       console.log(`Invoice ${invoice.invoiceNumber} sent to ${toEmail}`);
 
       // Update invoice status to sent
       await db.collection('invoices').doc(invoiceId).update({
         status: 'sent',
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
-        'to.email': toEmail, // Save the email used
+        'to.email': toEmail,
       });
 
       return { success: true, message: `Invoice sent to ${toEmail}` };
@@ -423,17 +409,14 @@ export const sendContractEmail = functions
       </html>
     `;
 
-    // Send email
-    const transporter = getTransporter();
-    const mailOptions = {
-      from: `"${tenant.entities.kr.label}" <${process.env.GMAIL_USER}>`,
-      to: toEmail,
-      subject: `Your Signed ${documentTypeLabel} - Job #${jobNumber}`,
-      html: emailHtml,
-    };
-
+    // Send email via Resend
     try {
-      await transporter.sendMail(mailOptions);
+      await sendEmail({
+        to: toEmail,
+        subject: `Your Signed ${documentTypeLabel} - Job #${jobNumber}`,
+        html: emailHtml,
+        fromName: tenant.entities.kr.label,
+      });
       console.log(`Contract ${contractId} sent to ${toEmail}`);
 
       // Update contract with email sent info

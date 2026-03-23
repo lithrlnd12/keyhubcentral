@@ -15,6 +15,7 @@ import {
   JobCommission,
   JobContracts,
   JobMeasurements,
+  CompletionCertificateFlow,
 } from '@/components/jobs';
 import { useJob } from '@/lib/hooks/useJob';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -129,6 +130,11 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
           <TabsTrigger value="costs">Costs</TabsTrigger>
           <TabsTrigger value="crew">Crew</TabsTrigger>
           <TabsTrigger value="comms">Notes</TabsTrigger>
+          {['complete', 'paid_in_full'].includes(job.status) && (
+            <TabsTrigger value="completion">
+              {job.documents?.completionCert ? 'Certificate' : 'Completion'}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="info">
@@ -194,6 +200,12 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
             canEdit={canEdit}
           />
         </TabsContent>
+
+        {['complete', 'paid_in_full'].includes(job.status) && (
+          <TabsContent value="completion">
+            <CompletionCertificateFlow job={job} onComplete={() => update({})} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

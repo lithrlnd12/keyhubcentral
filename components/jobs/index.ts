@@ -20,6 +20,7 @@ export { MaterialStatusBadge, getMaterialStatusOptions } from './MaterialStatusB
 export { JobMaterials } from './JobMaterials';
 export { SignaturePad } from './SignaturePad';
 export { CompletionCertificate } from './CompletionCertificate';
+export { CompletionCertificateFlow } from './CompletionCertificateFlow';
 export { FinalPaymentForm } from './FinalPaymentForm';
 export { JobContracts } from './JobContracts';
 // Measurements components

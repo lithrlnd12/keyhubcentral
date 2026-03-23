@@ -298,6 +298,12 @@ export default function InventoryDashboardPage() {
         <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium text-white">Locations</h2>
+            <Link
+              href="/kts/inventory/locations"
+              className="text-gold text-sm hover:underline"
+            >
+              Manage
+            </Link>
           </div>
           {locationsLoading ? (
             <div className="flex justify-center py-6">
@@ -307,6 +313,12 @@ export default function InventoryDashboardPage() {
             <div className="text-center py-6">
               <Warehouse className="h-8 w-8 text-gray-600 mx-auto mb-2" />
               <p className="text-gray-400">No locations configured</p>
+              <Link
+                href="/kts/inventory/locations"
+                className="text-gold text-sm hover:underline mt-2 inline-block"
+              >
+                Add your first location
+              </Link>
             </div>
           ) : (
             <div className="space-y-2">

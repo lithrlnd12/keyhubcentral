@@ -40,41 +40,6 @@ export function TerritoryMap({
       center: defaultCenter,
       zoom: center ? 10 : 4,
       mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
-      styles: [
-        { elementType: 'geometry', stylers: [{ color: '#1a1a1a' }] },
-        { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a1a' }] },
-        { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
-        {
-          featureType: 'administrative.locality',
-          elementType: 'labels.text.fill',
-          stylers: [{ color: '#d4a84b' }],
-        },
-        {
-          featureType: 'road',
-          elementType: 'geometry',
-          stylers: [{ color: '#2d2d2d' }],
-        },
-        {
-          featureType: 'road',
-          elementType: 'geometry.stroke',
-          stylers: [{ color: '#1a1a1a' }],
-        },
-        {
-          featureType: 'road.highway',
-          elementType: 'geometry',
-          stylers: [{ color: '#3d3d3d' }],
-        },
-        {
-          featureType: 'water',
-          elementType: 'geometry',
-          stylers: [{ color: '#0e1626' }],
-        },
-        {
-          featureType: 'water',
-          elementType: 'labels.text.fill',
-          stylers: [{ color: '#515c6d' }],
-        },
-      ],
       disableDefaultUI: !interactive,
       zoomControl: interactive,
       mapTypeControl: false,

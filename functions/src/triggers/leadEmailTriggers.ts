@@ -1,24 +1,13 @@
 import * as functions from 'firebase-functions';
-import * as nodemailer from 'nodemailer';
 import { tenant } from '../config/tenant';
+import { sendEmail } from '../utils/email';
 
 // Runtime options
 const runtimeOpts: functions.RuntimeOptions = {
   timeoutSeconds: 60,
   memory: '256MB',
-  secrets: ['GMAIL_USER', 'GMAIL_APP_PASSWORD'],
+  secrets: ['RESEND_API_KEY'],
 };
-
-// Configure email transporter
-function getTransporter() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-}
 
 /**
  * Send confirmation email when a new lead is created
@@ -100,16 +89,13 @@ export const onLeadCreated = functions
       </html>
     `;
 
-    const mailOptions = {
-      from: `"${tenant.entities.kr.label}" <${process.env.GMAIL_USER}>`,
-      to: email,
-      subject: `Thank You for Your Quote Request - ${tenant.entities.kr.label}`,
-      html: emailHtml,
-    };
-
     try {
-      const transporter = getTransporter();
-      await transporter.sendMail(mailOptions);
+      await sendEmail({
+        to: email,
+        subject: `Thank You for Your Quote Request - ${tenant.entities.kr.label}`,
+        html: emailHtml,
+        fromName: tenant.entities.kr.label,
+      });
       console.log(`Lead confirmation email sent to: ${email}`);
       return null;
     } catch (error) {

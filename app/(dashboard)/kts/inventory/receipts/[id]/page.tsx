@@ -528,10 +528,16 @@ export default function ReceiptDetailPage() {
       {/* Instructions for parsed status */}
       {receipt.status === 'parsed' && (
         <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
-          <h3 className="text-purple-400 font-medium mb-2">Review & Categorize Items</h3>
-          <p className="text-gray-400 text-sm">
-            Check the items you want to add to inventory, link each to existing inventory or assign a category (Material/Tool), then click &quot;Add to Inventory&quot;.
-          </p>
+          <h3 className="text-purple-400 font-medium mb-2 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-500/30 text-xs font-bold text-purple-300">!</span>
+            Action Required: Add Items to Inventory
+          </h3>
+          <ol className="text-gray-400 text-sm space-y-1 list-decimal list-inside ml-1">
+            <li>Select a <strong className="text-white">Stock Location</strong> in the Summary section below</li>
+            <li>Check the items you want to add (all selected by default)</li>
+            <li>Link items to existing inventory or assign a category (Material/Tool)</li>
+            <li>Click <strong className="text-green-400">&quot;Add to Inventory&quot;</strong> above to update stock</li>
+          </ol>
         </div>
       )}
 

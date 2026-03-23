@@ -16,9 +16,10 @@ export const tenant = {
   description:
     'Unified business management for Keynote Digital, Key Trade Solutions, and Key Renovations',
 
-  // Contact
+  // Contact & Email
   supportEmail: 'support@keyrenovations.com',
   noreplyEmail: 'noreply@keyhubcentral.com',
+  fromEmail: 'noreply@keyhubcentral.com', // Resend verified sending address
   domain: 'keyhubcentral.com',
 
   // Service area
