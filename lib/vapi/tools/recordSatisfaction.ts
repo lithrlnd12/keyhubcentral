@@ -37,13 +37,45 @@ const recordSatisfaction: ToolDefinition = {
       return { error: 'Job not found' };
     }
 
+    const jobData = jobDoc.data()!;
+    const pmReviewRequired = rating <= 3;
+
+    // Update job with rating
     await jobRef.update({
       customerRating: rating,
       customerFeedback: feedback,
+      pmReviewRequired,
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    return { success: true };
+    // Write to ratingRequests collection for PM review queue
+    await db.collection('ratingRequests').add({
+      jobId,
+      customerId: jobData.customerId || null,
+      customerName: jobData.customer?.name || jobData.customer?.firstName || null,
+      contractorId: jobData.contractorId || null,
+      rating,
+      feedback,
+      pmReviewRequired,
+      source: 'ai_voice_call',
+      reviewedByPm: false,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    // Response tells the assistant what to say next
+    if (pmReviewRequired) {
+      return {
+        success: true,
+        action: 'pm_review',
+        message: 'Rating recorded. A project manager will follow up.',
+      };
+    }
+
+    return {
+      success: true,
+      action: 'request_review',
+      message: 'Rating recorded. Customer is happy — prompt for Google review.',
+    };
   },
 };
 

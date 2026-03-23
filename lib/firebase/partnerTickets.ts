@@ -13,6 +13,7 @@ import {
   serverTimestamp,
   QueryConstraint,
   Timestamp,
+  arrayUnion,
 } from 'firebase/firestore';
 import { db } from './config';
 import {
@@ -120,6 +121,18 @@ export async function updatePartnerTicket(
   const docRef = doc(db, COLLECTION, id);
   await updateDoc(docRef, {
     ...data,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function addPhotosToPartnerTicket(
+  id: string,
+  newPhotos: Array<{ url: string; takenAt: string }>
+): Promise<void> {
+  const docRef = doc(db, COLLECTION, id);
+  await updateDoc(docRef, {
+    photos: arrayUnion(...newPhotos.map((p) => p.url)),
+    photosMeta: arrayUnion(...newPhotos),
     updatedAt: serverTimestamp(),
   });
 }

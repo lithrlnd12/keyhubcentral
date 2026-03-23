@@ -1,13 +1,15 @@
 import {
   collection,
   doc,
+  documentId,
   getDoc,
   getDocs,
   setDoc,
   deleteDoc,
   query,
-  where,
   orderBy,
+  startAt,
+  endAt,
   onSnapshot,
   serverTimestamp,
   updateDoc,
@@ -79,11 +81,13 @@ export async function getAvailabilityRange(
   const startKey = formatDateKey(startDate);
   const endKey = formatDateKey(endDate);
 
+  // Query by document ID (which is the date string) so docs without a 'date'
+  // field (e.g. those created by the VAPI bookAppointment tool) are still returned.
   const q = query(
     getAvailabilityCollection(contractorId),
-    where('date', '>=', startKey),
-    where('date', '<=', endKey),
-    orderBy('date', 'asc')
+    orderBy(documentId()),
+    startAt(startKey),
+    endAt(endKey)
   );
 
   const snapshot = await getDocs(q);
@@ -203,9 +207,9 @@ export function subscribeToMonthAvailability(
 
   const q = query(
     getAvailabilityCollection(contractorId),
-    where('date', '>=', startKey),
-    where('date', '<=', endKey),
-    orderBy('date', 'asc')
+    orderBy(documentId()),
+    startAt(startKey),
+    endAt(endKey)
   );
 
   return onSnapshot(q, (snapshot) => {

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, Phone, UserPlus, X, Loader2 } from 'lucide-react';
+import { Eye, Phone, UserPlus, X, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { InboundCall, InboundCallStatus, ClosedReason } from '@/types/inboundCall';
 import { useInboundCallMutations } from '@/lib/hooks/useInboundCalls';
 import { CLOSED_REASON_LABELS } from '@/lib/utils/inboundCalls';
+import { NotifyContractorModal } from './NotifyContractorModal';
 
 interface InboundCallActionsProps {
   call: InboundCall;
@@ -15,6 +16,8 @@ interface InboundCallActionsProps {
 export function InboundCallActions({ call, onConvertSuccess }: InboundCallActionsProps) {
   const { markAsReviewed, markAsContacted, closeCall, convertToLead, loading } = useInboundCallMutations();
   const [showCloseOptions, setShowCloseOptions] = useState(false);
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [notifySent, setNotifySent] = useState(false);
 
   const handleMarkReviewed = async () => {
     try {
@@ -56,7 +59,16 @@ export function InboundCallActions({ call, onConvertSuccess }: InboundCallAction
   }
 
   return (
+    <>
     <div className="space-y-3">
+      {/* Complaint banner */}
+      {call.isComplaint && (
+        <div className="flex items-center gap-2 p-2.5 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-400">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          This call was flagged as a complaint.
+          {notifySent && <span className="ml-auto text-green-400 font-medium">Contractor notified</span>}
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         {/* Mark as Reviewed - only for new calls */}
         {call.status === 'new' && (
@@ -95,6 +107,19 @@ export function InboundCallActions({ call, onConvertSuccess }: InboundCallAction
           Convert to Lead
         </Button>
 
+        {/* Notify Contractor - complaint calls only */}
+        {call.isComplaint && !notifySent && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowNotifyModal(true)}
+            className="border-red-500/50 text-red-400 hover:border-red-500 hover:bg-red-500/10"
+          >
+            <AlertTriangle className="w-4 h-4 mr-2" />
+            Notify Contractor
+          </Button>
+        )}
+
         {/* Close button */}
         <Button
           variant="ghost"
@@ -128,5 +153,17 @@ export function InboundCallActions({ call, onConvertSuccess }: InboundCallAction
         </div>
       )}
     </div>
+
+    {showNotifyModal && (
+      <NotifyContractorModal
+        call={call}
+        onClose={() => setShowNotifyModal(false)}
+        onSent={() => {
+          setShowNotifyModal(false);
+          setNotifySent(true);
+        }}
+      />
+    )}
+    </>
   );
 }

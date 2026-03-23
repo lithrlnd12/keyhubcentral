@@ -43,3 +43,6 @@ import './routeToEntity';
 // Phase 9: Partner Intake
 import './lookupPartnerInfo';
 import './createPartnerServiceTicket';
+
+// Phase 10: Appointment Reminders
+import './confirmAppointment';

@@ -17,6 +17,8 @@ import {
   Image,
   MessageCircle,
   Loader2 as Loader2Icon,
+  DollarSign,
+  Hash,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePartnerTicket } from '@/lib/hooks/usePartnerTickets';
@@ -288,30 +290,111 @@ export default function ServiceTicketDetailPage() {
                 </div>
               )}
 
+              {/* Work order reference numbers */}
+              {(ticket.serviceOrderNumber || ticket.caseNumber) && (
+                <div className="grid grid-cols-2 gap-4">
+                  {ticket.serviceOrderNumber && (
+                    <div className="flex items-center gap-2">
+                      <Hash className="w-4 h-4 text-gold" />
+                      <div>
+                        <p className="text-sm text-gray-400">Service Order #</p>
+                        <p className="text-white font-mono text-sm">{ticket.serviceOrderNumber}</p>
+                      </div>
+                    </div>
+                  )}
+                  {ticket.caseNumber && (
+                    <div className="flex items-center gap-2">
+                      <Hash className="w-4 h-4 text-gold" />
+                      <div>
+                        <p className="text-sm text-gray-400">Case #</p>
+                        <p className="text-white font-mono text-sm">{ticket.caseNumber}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {ticket.estimatedCost != null && (
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-gold" />
+                  <div>
+                    <p className="text-sm text-gray-400">Estimated Cost</p>
+                    <p className="text-white">${ticket.estimatedCost.toFixed(2)}</p>
+                  </div>
+                </div>
+              )}
+
+              {ticket.workOrderUrl && (
+                <div>
+                  <a
+                    href={ticket.workOrderUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-gold hover:underline text-sm"
+                  >
+                    <FileText className="w-4 h-4" />
+                    View uploaded SWO PDF
+                  </a>
+                </div>
+              )}
+
+              {ticket.lineItems && ticket.lineItems.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-400 mb-2">Line Items</p>
+                  <div className="space-y-2">
+                    {ticket.lineItems.map((item, i) => (
+                      <div key={i} className="bg-gray-900/60 rounded-lg p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="text-white text-sm font-medium">{item.activity}</p>
+                            {item.description && (
+                              <p className="text-gray-400 text-xs mt-0.5">{item.description}</p>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-gray-400 text-xs">Qty: {item.quantity}</p>
+                            {item.estimatedCost != null && (
+                              <p className="text-white text-sm">${item.estimatedCost.toFixed(2)}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {ticket.photos.length > 0 && (
                 <div>
-                  <p className="text-sm text-gray-400 mb-2">Photos</p>
+                  <p className="text-sm text-gray-400 mb-2">Photos ({ticket.photos.length})</p>
                   <div className="grid grid-cols-3 gap-2">
-                    {ticket.photos.map((photo, i) => (
-                      <a
-                        key={i}
-                        href={photo}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative aspect-square bg-gray-800 rounded-lg overflow-hidden group"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element -- User-uploaded photo */}
-                        <img
-                          src={photo}
-                          alt={`Photo ${i + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          {/* eslint-disable-next-line jsx-a11y/alt-text -- This is a Lucide icon, not an img */}
-                          <Image className="w-6 h-6 text-white" />
-                        </div>
-                      </a>
-                    ))}
+                    {ticket.photos.map((photo, i) => {
+                      const meta = ticket.photosMeta?.find((m) => m.url === photo);
+                      const takenAt = meta?.takenAt
+                        ? new Date(meta.takenAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                        : null;
+                      return (
+                        <a
+                          key={i}
+                          href={photo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="relative aspect-square bg-gray-800 rounded-lg overflow-hidden group"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element -- User-uploaded photo */}
+                          <img src={photo} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            {/* eslint-disable-next-line jsx-a11y/alt-text -- Lucide icon */}
+                            <Image className="w-6 h-6 text-white" />
+                          </div>
+                          {takenAt && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs px-1.5 py-1 leading-tight">
+                              {takenAt}
+                            </div>
+                          )}
+                        </a>
+                      );
+                    })}
                   </div>
                 </div>
               )}

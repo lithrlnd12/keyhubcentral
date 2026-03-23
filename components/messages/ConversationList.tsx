@@ -213,6 +213,11 @@ function ConversationItem({
               </span>
             )}
           </div>
+          {conversation.complaintCallId && (
+            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-medium bg-red-500/10 border border-red-500/30 text-red-400">
+              Complaint
+            </span>
+          )}
           {conversation.type === 'group' && (
             <p className="text-xs text-gray-600 mt-0.5">{participantCount} members</p>
           )}

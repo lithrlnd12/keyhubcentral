@@ -8,7 +8,7 @@ import { Timestamp } from 'firebase/firestore';
 import { useAuth, usePartner } from '@/lib/hooks';
 import { createPartnerTicket } from '@/lib/firebase/partnerTickets';
 import { uploadWorkOrderPdf, uploadPartnerTicketPhoto } from '@/lib/firebase/storage';
-import { IssueType, Urgency, ISSUE_TYPE_OPTIONS, URGENCY_OPTIONS } from '@/types/partner';
+import { IssueType, Urgency, ISSUE_TYPE_OPTIONS, URGENCY_OPTIONS, ServiceTicketLineItem } from '@/types/partner';
 import { Address } from '@/types/contractor';
 
 type UploadStatus = 'idle' | 'uploading' | 'parsing' | 'done' | 'error';
@@ -43,6 +43,7 @@ export default function NewServiceTicketPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [workOrderUrl, setWorkOrderUrl] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [parsedLineItems, setParsedLineItems] = useState<ServiceTicketLineItem[]>([]);
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -119,6 +120,10 @@ export default function NewServiceTicketPage() {
         caseNumber: data.caseNumber || prev.caseNumber,
         estimatedCost: data.estimatedCost != null ? String(data.estimatedCost) : prev.estimatedCost,
       }));
+
+      if (Array.isArray(data.lineItems) && data.lineItems.length > 0) {
+        setParsedLineItems(data.lineItems);
+      }
 
       setUploadStatus('done');
     } catch (err) {
@@ -219,6 +224,7 @@ export default function NewServiceTicketPage() {
         issueDescription: formData.issueDescription,
         productInfo: formData.productInfo || null,
         photos: photos.map((p) => p.url),
+        photosMeta: photos.map((p) => ({ url: p.url, takenAt: new Date().toISOString() })),
         urgency: formData.urgency,
         preferredDate: formData.preferredDate
           ? Timestamp.fromDate(new Date(formData.preferredDate))
@@ -227,6 +233,7 @@ export default function NewServiceTicketPage() {
         caseNumber: formData.caseNumber || null,
         estimatedCost: formData.estimatedCost ? parseFloat(formData.estimatedCost) : null,
         workOrderUrl: workOrderUrl || null,
+        lineItems: parsedLineItems.length > 0 ? parsedLineItems : null,
       });
 
       router.push('/partner/service-tickets');

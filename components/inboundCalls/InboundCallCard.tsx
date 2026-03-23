@@ -23,7 +23,7 @@ export function InboundCallCard({ call, className }: InboundCallCardProps) {
       className={cn(
         'block bg-brand-charcoal rounded-xl p-4 border border-gray-800',
         'hover:border-brand-gold/50 transition-colors',
-        call.status === 'new' && 'border-blue-500/30',
+        call.isComplaint ? 'border-red-500/40' : call.status === 'new' && 'border-blue-500/30',
         className
       )}
     >
@@ -33,6 +33,11 @@ export function InboundCallCard({ call, className }: InboundCallCardProps) {
             <h3 className="text-white font-medium truncate">{callerDisplay}</h3>
             <InboundCallStatusBadge status={call.status} />
             <InboundCallUrgencyBadge urgency={call.analysis.urgency} />
+            {call.isComplaint && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium border border-red-500/50 bg-red-500/10 text-red-400">
+                Complaint
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1 mt-1 text-sm text-gray-400">

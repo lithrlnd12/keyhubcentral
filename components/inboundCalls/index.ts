@@ -6,3 +6,4 @@ export { InboundCallUrgencyBadge } from './InboundCallUrgencyBadge';
 export { InboundCallDetail } from './InboundCallDetail';
 export { InboundCallActions } from './InboundCallActions';
 export { ConvertToLeadModal } from './ConvertToLeadModal';
+export { NotifyContractorModal } from './NotifyContractorModal';

@@ -42,6 +42,17 @@ export interface VapiAssistant {
     successEvaluationPrompt?: string;
     successEvaluationRubric?: 'NumericScale' | 'DescriptiveScale' | 'Checklist' | 'Matrix' | 'PercentageScale' | 'LikertScale' | 'AutomaticRubric' | 'PassFail';
   };
+  tools?: Array<{
+    type: 'function';
+    function: {
+      name: string;
+      description: string;
+      parameters: Record<string, unknown>;
+    };
+    server?: {
+      url: string;
+    };
+  }>;
   endCallPhrases?: string[];
   silenceTimeoutSeconds?: number;
   maxDurationSeconds?: number;

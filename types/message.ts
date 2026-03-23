@@ -20,6 +20,7 @@ export interface Conversation {
   jobId?: string | null;
   requestId?: string | null;
   requestType?: 'labor' | 'service' | null;
+  complaintCallId?: string | null;
   lastMessage: {
     text: string;
     senderId: string;

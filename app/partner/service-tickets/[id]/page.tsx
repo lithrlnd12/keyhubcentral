@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Phone, Mail, AlertTriangle, Calendar, CheckCircle, User, ImageIcon, MessageCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Mail, AlertTriangle, Calendar, CheckCircle, User, ImageIcon, MessageCircle, Loader2, Camera, Plus, FileText, Hash, DollarSign } from 'lucide-react';
 import { usePartnerTicket, useAuth } from '@/lib/hooks';
 import { findOrCreateRequestChat } from '@/lib/firebase/messages';
 import { getUserProfile } from '@/lib/firebase/auth';
+import { addPhotosToPartnerTicket } from '@/lib/firebase/partnerTickets';
+import { uploadPartnerTicketPhoto } from '@/lib/firebase/storage';
 import { getPartnerTicketStatusLabel, PARTNER_TICKET_STATUS_ORDER, PartnerTicketStatus, URGENCY_OPTIONS } from '@/types/partner';
 import { Spinner } from '@/components/ui/Spinner';
 
@@ -26,6 +28,9 @@ export default function ServiceTicketDetailPage() {
   const { user } = useAuth();
   const { ticket, loading, error } = usePartnerTicket(id, true);
   const [startingChat, setStartingChat] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleChat = async () => {
     if (!ticket || !user?.uid || !ticket.assignedTechId) return;
@@ -73,6 +78,28 @@ export default function ServiceTicketDetailPage() {
       </div>
     );
   }
+
+  const handleAddPhotos = async (files: FileList | null) => {
+    if (!files || !user) return;
+    setPhotoUploading(true);
+    try {
+      const takenAt = new Date().toISOString();
+      const uploaded: Array<{ url: string; takenAt: string }> = [];
+      for (const file of Array.from(files)) {
+        const url = await uploadPartnerTicketPhoto(user.uid, file);
+        uploaded.push({ url, takenAt });
+      }
+      if (uploaded.length > 0) {
+        await addPhotosToPartnerTicket(id, uploaded);
+      }
+    } catch (err) {
+      console.error('Failed to upload photos:', err);
+    } finally {
+      setPhotoUploading(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+    }
+  };
 
   const currentStatusIndex = PARTNER_TICKET_STATUS_ORDER.indexOf(ticket.status);
   const urgencyInfo = URGENCY_OPTIONS.find(o => o.value === ticket.urgency);
@@ -253,33 +280,138 @@ export default function ServiceTicketDetailPage() {
         )}
       </div>
 
-      {/* Photos */}
-      {ticket.photos && ticket.photos.length > 0 && (
+      {/* Work Order Details */}
+      {(ticket.serviceOrderNumber || ticket.caseNumber || ticket.workOrderUrl || ticket.estimatedCost || (ticket.lineItems && ticket.lineItems.length > 0)) && (
         <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6 space-y-4">
           <div className="flex items-center gap-2">
-            <ImageIcon className="h-5 w-5 text-gray-400" />
-            <h2 className="text-lg font-semibold text-white">Photos ({ticket.photos.length})</h2>
+            <FileText className="h-5 w-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-white">Work Order</h2>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {ticket.photos.map((url, index) => (
-              <a
-                key={index}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic photo from Firebase Storage */}
-                <img
-                  src={url}
-                  alt={`Issue photo ${index + 1}`}
-                  className="w-full h-32 object-cover rounded-lg bg-gray-900 hover:opacity-80 transition-opacity"
-                />
-              </a>
-            ))}
+
+          <div className="grid grid-cols-2 gap-4">
+            {ticket.serviceOrderNumber && (
+              <div>
+                <p className="text-gray-400 text-sm">Service Order #</p>
+                <p className="text-white font-mono">{ticket.serviceOrderNumber}</p>
+              </div>
+            )}
+            {ticket.caseNumber && (
+              <div>
+                <p className="text-gray-400 text-sm">Case #</p>
+                <p className="text-white font-mono">{ticket.caseNumber}</p>
+              </div>
+            )}
+            {ticket.estimatedCost != null && (
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-gray-400" />
+                <div>
+                  <p className="text-gray-400 text-sm">Estimated Cost</p>
+                  <p className="text-white">${ticket.estimatedCost.toFixed(2)}</p>
+                </div>
+              </div>
+            )}
           </div>
+
+          {ticket.workOrderUrl && (
+            <a
+              href={ticket.workOrderUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-brand-gold hover:underline text-sm"
+            >
+              <FileText className="h-4 w-4" />
+              View uploaded SWO PDF
+            </a>
+          )}
+
+          {ticket.lineItems && ticket.lineItems.length > 0 && (
+            <div>
+              <p className="text-gray-400 text-sm mb-2">Line Items</p>
+              <div className="space-y-2">
+                {ticket.lineItems.map((item, i) => (
+                  <div key={i} className="bg-gray-900/60 rounded-lg p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="text-white text-sm font-medium">{item.activity}</p>
+                        {item.description && (
+                          <p className="text-gray-400 text-xs mt-0.5">{item.description}</p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-gray-400 text-xs">Qty: {item.quantity}</p>
+                        {item.estimatedCost != null && (
+                          <p className="text-white text-sm">${item.estimatedCost.toFixed(2)}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Photos */}
+      <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-white">
+              Photos {ticket.photos?.length ? `(${ticket.photos.length})` : ''}
+            </h2>
+          </div>
+          {ticket.status !== 'complete' && (
+            <div className="flex items-center gap-2">
+              <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden"
+                onChange={(e) => handleAddPhotos(e.target.files)} />
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
+                onChange={(e) => handleAddPhotos(e.target.files)} />
+              {photoUploading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-brand-gold" />
+              ) : (
+                <>
+                  <button onClick={() => cameraInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 text-gray-300 text-sm rounded-lg hover:bg-gray-700 transition-colors">
+                    <Camera className="w-4 h-4" /> Take Photo
+                  </button>
+                  <button onClick={() => photoInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 text-gray-300 text-sm rounded-lg hover:bg-gray-700 transition-colors">
+                    <Plus className="w-4 h-4" /> Add Photos
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {ticket.photos && ticket.photos.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {ticket.photos.map((url, index) => {
+              const meta = ticket.photosMeta?.find((m) => m.url === url);
+              const takenAt = meta?.takenAt
+                ? new Date(meta.takenAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : null;
+              return (
+                <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                  <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- Dynamic photo from Firebase Storage */}
+                    <img src={url} alt={`Photo ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg bg-gray-900 hover:opacity-80 transition-opacity" />
+                    {takenAt && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs px-2 py-1 rounded-b-lg">
+                        {takenAt}
+                      </div>
+                    )}
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-sm">No photos yet. Use the buttons above to add photos.</p>
+        )}
+      </div>
 
       {/* Status History */}
       <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6">
