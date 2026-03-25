@@ -26,6 +26,7 @@ import {
   Phone,
   MessageSquare,
   CreditCard,
+  FolderOpen,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
 import { useAuth, useNewCallsCount } from '@/lib/hooks';
@@ -94,6 +95,7 @@ const navItems: NavItem[] = [
   // ── ADMIN ──
   { label: 'Partners', href: '/admin/partners', icon: Briefcase, permission: canManagePartnerRequests, section: 'admin' },
   { label: 'Partner Requests', href: '/admin/partner-requests', icon: Users, permission: canManagePartnerRequests, section: 'admin' },
+  { label: 'Job History', href: '/admin/job-history', icon: FolderOpen, permission: canManageUsers, section: 'admin' },
   { label: 'Admin', href: '/admin', icon: Settings, permission: canManageUsers, section: 'admin' },
 ];
 
