@@ -261,9 +261,8 @@ async function testFeature3_RemoteESignature() {
   const feature = '3. Remote E-Signature';
   log(`\n${colors.cyan}${colors.bold}Feature 3 — Remote E-Signature${colors.reset}`);
 
-  // Test: verify endpoint with invalid token
-  await testAPI(feature, 'POST /api/contracts/remote-sign/verify with invalid token', 'POST', '/api/contracts/remote-sign/verify?token=invalid-token', {
-    body: {},
+  // Test: verify endpoint with invalid token (GET endpoint)
+  await testAPI(feature, 'GET /api/contracts/remote-sign/verify with invalid token', 'GET', '/api/contracts/remote-sign/verify?token=invalid-token', {
     expectStatus: [400, 401, 404, 500],
   });
 
@@ -286,8 +285,8 @@ async function testFeature4_OfflinePWA() {
     },
   });
 
-  // Test: manifest.json has proper PWA config
-  await testAPI(feature, 'GET /manifest.json has PWA config', 'GET', '/manifest.json', {
+  // Test: manifest has proper PWA config (Next.js uses /manifest.webmanifest or dynamic route)
+  await testAPI(feature, 'GET /manifest.webmanifest has PWA config', 'GET', '/manifest.webmanifest', {
     expectStatus: [200],
     validateBody: (text) => {
       try {
@@ -428,7 +427,7 @@ async function testStaticAssets() {
   log(`\n${colors.cyan}${colors.bold}Static Assets${colors.reset}`);
 
   await testAPI(feature, 'GET /sw.js exists', 'GET', '/sw.js', { expectStatus: [200] });
-  await testAPI(feature, 'GET /manifest.json exists', 'GET', '/manifest.json', { expectStatus: [200] });
+  await testAPI(feature, 'GET /manifest.webmanifest exists', 'GET', '/manifest.webmanifest', { expectStatus: [200] });
   await testAPI(feature, 'GET /favicon.ico exists', 'GET', '/favicon.ico', { expectStatus: [200] });
 }
 
