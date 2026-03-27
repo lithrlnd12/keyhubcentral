@@ -1,8 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminDb } from '@/lib/firebase/admin';
 
+// Simple in-memory rate limiter for token verification (per IP)
+const verifyAttempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_ATTEMPTS_PER_MINUTE = 5;
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = verifyAttempts.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    verifyAttempts.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+
+  if (entry.count >= MAX_ATTEMPTS_PER_MINUTE) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting: 5 attempts per IP per minute
+    const clientIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+
+    if (!checkRateLimit(clientIp)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 

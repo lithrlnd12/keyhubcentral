@@ -11,10 +11,69 @@ import { FieldValue } from 'firebase-admin/firestore';
 const ENDPOINTS_COLLECTION = 'webhookEndpoints';
 const DELIVERIES_COLLECTION = 'webhookDeliveries';
 
+/** Max response body length stored in Firestore (prevents data exfiltration) */
+const MAX_RESPONSE_BODY_LENGTH = 1024;
+
+/**
+ * Blocked IP ranges for SSRF protection.
+ * Prevents webhook URLs from targeting internal/cloud metadata endpoints.
+ */
+const BLOCKED_IP_PATTERNS = [
+  /^127\./,                // Loopback
+  /^10\./,                 // RFC 1918
+  /^172\.(1[6-9]|2\d|3[01])\./, // RFC 1918
+  /^192\.168\./,           // RFC 1918
+  /^169\.254\./,           // Link-local / cloud metadata
+  /^0\./,                  // Current network
+  /^::1$/,                 // IPv6 loopback
+  /^fc00:/i,               // IPv6 private
+  /^fe80:/i,               // IPv6 link-local
+];
+
+const BLOCKED_HOSTNAMES = [
+  'localhost',
+  'metadata.google.internal',
+  'metadata.google',
+  '169.254.169.254',
+];
+
+/**
+ * Validate a webhook URL is safe to fetch from the server.
+ * Blocks private IPs, cloud metadata endpoints, and non-HTTPS URLs.
+ */
+export function isUrlSafeForServerFetch(url: string): { safe: boolean; reason?: string } {
+  try {
+    const parsed = new URL(url);
+
+    // Must be HTTPS (allow HTTP only for explicit localhost in development)
+    if (parsed.protocol !== 'https:') {
+      return { safe: false, reason: 'Only HTTPS URLs are allowed for webhook endpoints' };
+    }
+
+    // Block known dangerous hostnames
+    const hostname = parsed.hostname.toLowerCase();
+    if (BLOCKED_HOSTNAMES.includes(hostname)) {
+      return { safe: false, reason: `Hostname '${hostname}' is not allowed` };
+    }
+
+    // Block private/internal IP ranges
+    for (const pattern of BLOCKED_IP_PATTERNS) {
+      if (pattern.test(hostname)) {
+        return { safe: false, reason: 'Private/internal IP addresses are not allowed' };
+      }
+    }
+
+    return { safe: true };
+  } catch {
+    return { safe: false, reason: 'Invalid URL' };
+  }
+}
+
 /**
  * Dispatch a webhook event to all active endpoints subscribed to it.
  *
  * For each matching endpoint:
+ *  - Validate URL is safe (SSRF protection)
  *  - POST JSON payload to the endpoint URL
  *  - Sign with HMAC-SHA256 using the endpoint's secret
  *  - Log delivery result (success / failure) to Firestore
@@ -41,6 +100,23 @@ export async function dispatchWebhookEvent(
     const endpoint = endpointDoc.data();
     const endpointId = endpointDoc.id;
 
+    // SSRF protection: validate URL before fetching
+    const urlCheck = isUrlSafeForServerFetch(endpoint.url);
+    if (!urlCheck.safe) {
+      await db.collection(DELIVERIES_COLLECTION).add({
+        endpointId,
+        event,
+        payload,
+        status: 'failed',
+        responseCode: null,
+        responseBody: `Blocked: ${urlCheck.reason}`,
+        attemptCount: 1,
+        lastAttemptAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
     // Create HMAC-SHA256 signature
     const signature = createHmac('sha256', endpoint.secret)
       .update(body)
@@ -64,7 +140,9 @@ export async function dispatchWebhookEvent(
       });
 
       responseCode = response.status;
-      responseBody = await response.text().catch(() => undefined);
+      const rawBody = await response.text().catch(() => undefined);
+      // Truncate response body to prevent data exfiltration
+      responseBody = rawBody ? rawBody.substring(0, MAX_RESPONSE_BODY_LENGTH) : undefined;
 
       // Treat 2xx as success
       if (response.ok) {

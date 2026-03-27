@@ -3,6 +3,7 @@ import { createHmac } from 'crypto';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { verifyFirebaseAuth, isAdmin } from '@/lib/auth/verifyRequest';
 import { FieldValue } from 'firebase-admin/firestore';
+import { isUrlSafeForServerFetch } from '@/lib/webhooks/dispatcher';
 
 /**
  * POST /api/webhooks/test
@@ -45,6 +46,15 @@ export async function POST(request: NextRequest) {
 
     const endpoint = endpointDoc.data()!;
 
+    // SSRF protection: validate URL before fetching
+    const urlCheck = isUrlSafeForServerFetch(endpoint.url);
+    if (!urlCheck.safe) {
+      return NextResponse.json(
+        { error: `Webhook URL blocked: ${urlCheck.reason}` },
+        { status: 400 }
+      );
+    }
+
     // Build test payload
     const testPayload = {
       event: 'test',
@@ -81,7 +91,9 @@ export async function POST(request: NextRequest) {
       });
 
       responseCode = response.status;
-      responseBody = await response.text().catch(() => undefined);
+      const rawBody = await response.text().catch(() => undefined);
+      // Truncate to prevent data exfiltration
+      responseBody = rawBody ? rawBody.substring(0, 1024) : undefined;
 
       if (response.ok) {
         status = 'success';
@@ -103,10 +115,10 @@ export async function POST(request: NextRequest) {
       createdAt: FieldValue.serverTimestamp(),
     });
 
+    // Don't return full response body — only status info
     return NextResponse.json({
       status,
       responseCode: responseCode ?? null,
-      responseBody: responseBody ?? null,
     });
   } catch (error) {
     console.error('Webhook test error:', error);

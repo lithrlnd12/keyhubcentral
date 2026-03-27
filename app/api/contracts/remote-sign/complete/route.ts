@@ -63,7 +63,25 @@ export async function POST(request: NextRequest) {
     const base64Data = signatureDataUrl.replace(/^data:image\/png;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
 
-    const storagePath = `contracts/${session.contractId}/remote-signatures/${session.id}.png`;
+    // Validate file content: check PNG magic bytes
+    const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    if (buffer.length < 8 || !buffer.subarray(0, 8).equals(PNG_MAGIC)) {
+      return NextResponse.json(
+        { error: 'Invalid signature image. Only PNG format is accepted.' },
+        { status: 400 }
+      );
+    }
+
+    // Enforce max size (500KB) to prevent abuse
+    const MAX_SIGNATURE_SIZE = 500 * 1024;
+    if (buffer.length > MAX_SIGNATURE_SIZE) {
+      return NextResponse.json(
+        { error: 'Signature image too large. Maximum 500KB.' },
+        { status: 400 }
+      );
+    }
+
+    const storagePath = `contracts/${session.contractId}/remote-signatures/${sessionDoc.id}.png`;
     const bucket = getStorage().bucket();
     const file = bucket.file(storagePath);
 
@@ -73,9 +91,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Make the file publicly accessible and get the URL
-    await file.makePublic();
-    const signatureUrl = `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
+    // Generate a signed URL (expires in 7 days) instead of making file permanently public
+    const [signatureUrl] = await file.getSignedUrl({
+      action: 'read',
+      expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
 
     // Capture IP and user agent
     const ipAddress =
