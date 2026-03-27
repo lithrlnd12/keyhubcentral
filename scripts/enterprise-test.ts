@@ -501,7 +501,7 @@ async function run() {
   log(`${colors.bold}| Feature                              | Tests | Pass | Fail | Skip |${colors.reset}`);
   log(`${colors.bold}+--------------------------------------+-------+------+------+------+${colors.reset}`);
 
-  for (const [feature, tests] of features) {
+  for (const [feature, tests] of Array.from(features)) {
     const pass = tests.filter(t => t.status === 'pass').length;
     const fail = tests.filter(t => t.status === 'fail').length;
     const skip = tests.filter(t => t.status === 'skip').length;
