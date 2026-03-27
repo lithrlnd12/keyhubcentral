@@ -262,7 +262,7 @@ export async function getAllCampaignMetrics(
   const uniqueJobIds = Array.from(new Set(linkedJobIds));
 
   // Fetch all linked jobs
-  let allJobs: Job[] = [];
+  const allJobs: Job[] = [];
   if (uniqueJobIds.length > 0) {
     for (let i = 0; i < uniqueJobIds.length; i += 30) {
       const chunk = uniqueJobIds.slice(i, i + 30);
