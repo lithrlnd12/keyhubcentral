@@ -14,7 +14,13 @@ import {
   QueryConstraint,
 } from 'firebase/firestore';
 import { db } from './config';
-import { Campaign, CampaignPlatform } from '@/types/lead';
+import { Campaign, CampaignPlatform, Lead } from '@/types/lead';
+import { Job } from '@/types/job';
+import {
+  CampaignMetrics,
+  calculateFullCampaignMetrics,
+  calculateCampaignROI,
+} from '@/lib/utils/campaignMetrics';
 
 const COLLECTION = 'campaigns';
 
@@ -175,12 +181,114 @@ export function subscribeToCampaign(
   });
 }
 
-// Calculate campaign metrics
+// Calculate campaign metrics (basic - without lead/job data)
 export function calculateCampaignMetrics(campaign: Campaign): {
   cpl: number;
   roi: number | null;
 } {
   const cpl = campaign.leadsGenerated > 0 ? campaign.spend / campaign.leadsGenerated : 0;
-  // ROI calculation would require revenue data which isn't tracked yet
-  return { cpl, roi: null };
+  // If we have cached revenue data on the campaign, calculate ROI
+  const revenue = campaign.revenueAttributed ?? 0;
+  const roi = revenue > 0 ? calculateCampaignROI(campaign.spend, revenue) : null;
+  return { cpl, roi };
+}
+
+// Fetch campaign with full metrics (campaign + related leads + related jobs in parallel)
+export async function getCampaignWithMetrics(
+  id: string
+): Promise<{ campaign: Campaign; metrics: CampaignMetrics } | null> {
+  const campaign = await getCampaign(id);
+  if (!campaign) return null;
+
+  // Fetch leads for this campaign
+  const leadsQuery = query(
+    collection(db, 'leads'),
+    where('campaignId', '==', id)
+  );
+  const leadsSnapshot = await getDocs(leadsQuery);
+  const leads = leadsSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as Lead[];
+
+  // Collect linked job IDs from converted leads
+  const linkedJobIds = leads
+    .filter((l) => l.linkedJobId)
+    .map((l) => l.linkedJobId as string);
+
+  // Fetch linked jobs in parallel (Firestore 'in' queries limited to 30 items)
+  let jobs: Job[] = [];
+  if (linkedJobIds.length > 0) {
+    const chunks: string[][] = [];
+    for (let i = 0; i < linkedJobIds.length; i += 30) {
+      chunks.push(linkedJobIds.slice(i, i + 30));
+    }
+    const jobPromises = chunks.map((chunk) =>
+      getDocs(query(collection(db, 'jobs'), where('__name__', 'in', chunk)))
+    );
+    const jobSnapshots = await Promise.all(jobPromises);
+    jobs = jobSnapshots.flatMap((snap) =>
+      snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Job)
+    );
+  }
+
+  const metrics = calculateFullCampaignMetrics(campaign, leads, jobs);
+  return { campaign, metrics };
+}
+
+// Fetch metrics for all campaigns (batch)
+export async function getAllCampaignMetrics(
+  campaigns: Campaign[]
+): Promise<Map<string, CampaignMetrics>> {
+  const metricsMap = new Map<string, CampaignMetrics>();
+  if (campaigns.length === 0) return metricsMap;
+
+  // Fetch all leads that belong to any of these campaigns
+  const campaignIds = campaigns.map((c) => c.id);
+  const allLeads: Lead[] = [];
+
+  // Firestore 'in' queries are limited to 30 items
+  for (let i = 0; i < campaignIds.length; i += 30) {
+    const chunk = campaignIds.slice(i, i + 30);
+    const leadsQuery = query(
+      collection(db, 'leads'),
+      where('campaignId', 'in', chunk)
+    );
+    const snap = await getDocs(leadsQuery);
+    allLeads.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Lead));
+  }
+
+  // Collect all linked job IDs
+  const linkedJobIds = allLeads
+    .filter((l) => l.linkedJobId)
+    .map((l) => l.linkedJobId as string);
+  const uniqueJobIds = Array.from(new Set(linkedJobIds));
+
+  // Fetch all linked jobs
+  let allJobs: Job[] = [];
+  if (uniqueJobIds.length > 0) {
+    for (let i = 0; i < uniqueJobIds.length; i += 30) {
+      const chunk = uniqueJobIds.slice(i, i + 30);
+      const snap = await getDocs(
+        query(collection(db, 'jobs'), where('__name__', 'in', chunk))
+      );
+      allJobs.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Job));
+    }
+  }
+
+  // Group leads by campaign
+  const leadsByCampaign = new Map<string, Lead[]>();
+  for (const lead of allLeads) {
+    if (lead.campaignId) {
+      const existing = leadsByCampaign.get(lead.campaignId) || [];
+      existing.push(lead);
+      leadsByCampaign.set(lead.campaignId, existing);
+    }
+  }
+
+  // Calculate metrics per campaign
+  for (const campaign of campaigns) {
+    const campaignLeads = leadsByCampaign.get(campaign.id) || [];
+    const metrics = calculateFullCampaignMetrics(campaign, campaignLeads, allJobs);
+    metricsMap.set(campaign.id, metrics);
+  }
+
+  return metricsMap;
 }

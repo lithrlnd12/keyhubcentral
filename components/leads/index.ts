@@ -10,3 +10,4 @@ export { LeadAssignment } from './LeadAssignment';
 export { LeadReturnModal } from './LeadReturnModal';
 export { ConvertLeadDialog } from './ConvertLeadDialog';
 export { LeadForm } from './LeadForm';
+export { LeadImportModal } from './LeadImportModal';

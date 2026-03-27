@@ -14,6 +14,8 @@ import {
   Timestamp,
   QueryConstraint,
   runTransaction,
+  writeBatch,
+  increment,
 } from 'firebase/firestore';
 import { db } from './config';
 import { Lead, LeadStatus, LeadSource, LeadQuality, AssignedType } from '@/types/lead';
@@ -748,4 +750,58 @@ export async function getLeadCountsByStatus(): Promise<Record<LeadStatus, number
   });
 
   return counts;
+}
+
+/**
+ * Batch create multiple leads at once.
+ * Uses Firestore writeBatch (max 500 per batch).
+ * For each lead with a campaignId, increments the campaign's leadsGenerated counter.
+ * @returns Array of created lead document IDs
+ */
+export async function createLeadsBatch(
+  leads: Array<Omit<Lead, 'id' | 'createdAt' | 'updatedAt' | 'smsCallOptInAt'>>
+): Promise<string[]> {
+  const createdIds: string[] = [];
+
+  // Process in chunks of 500 (Firestore writeBatch limit)
+  const BATCH_SIZE = 500;
+  for (let i = 0; i < leads.length; i += BATCH_SIZE) {
+    const chunk = leads.slice(i, i + BATCH_SIZE);
+    const batch = writeBatch(db);
+    const chunkIds: string[] = [];
+
+    // Track campaign increments within this batch
+    const campaignIncrements: Record<string, number> = {};
+
+    for (const lead of chunk) {
+      const docRef = doc(collection(db, COLLECTION));
+      chunkIds.push(docRef.id);
+
+      batch.set(docRef, {
+        ...lead,
+        smsCallOptInAt: lead.smsCallOptIn ? serverTimestamp() : null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // Track campaign lead counts
+      if (lead.campaignId) {
+        campaignIncrements[lead.campaignId] = (campaignIncrements[lead.campaignId] || 0) + 1;
+      }
+    }
+
+    // Increment campaign leadsGenerated counters within the same batch
+    for (const [campaignId, count] of Object.entries(campaignIncrements)) {
+      const campaignRef = doc(db, 'campaigns', campaignId);
+      batch.update(campaignRef, {
+        leadsGenerated: increment(count),
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
+    createdIds.push(...chunkIds);
+  }
+
+  return createdIds;
 }
