@@ -443,6 +443,12 @@ GOOGLE_CALENDAR_CLIENT_ID=
 GOOGLE_CALENDAR_CLIENT_SECRET=
 
 # ========================================
+# Enterprise Features
+# ========================================
+# Secret for cron-triggered email queue processing (generate a strong random string)
+CRON_SECRET=
+
+# ========================================
 # App
 # ========================================
 NEXT_PUBLIC_APP_URL=https://${cfg.domain}
@@ -687,6 +693,19 @@ console.log(`
       • Shows business name instead of "Unknown" on caller ID
       • Requires an EIN
   13. STIR/SHAKEN — usually automatic with VAPI/Telnyx numbers
+
+\x1b[1m🔒 Firestore Security Rules (Enterprise Collections):\x1b[0m
+  14. Update firestore.rules to add rules for these new collections:
+      • remoteSigningSessions  (public read via token, admin write)
+      • emailQueue             (admin read/write, cron processing)
+      • emailTemplates         (admin read/write)
+      • webhookEndpoints       (admin read/write)
+      • webhookDeliveries      (admin read)
+      • apiKeys                (admin read/write)
+      • marketplaceListings    (authenticated read, admin/pm write, contractor bid)
+      • routingRules           (admin read/write)
+      • savedReports           (admin read/write)
+  15. Deploy rules: npx firebase deploy --only firestore:rules
 
 \x1b[1m⚠ Note:\x1b[0m A2P 10DLC registration is for SMS only, NOT voice calls.
   Voice spam prevention uses CNAM + Free Caller Registry + Hiya.
