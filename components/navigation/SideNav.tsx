@@ -27,6 +27,12 @@ import {
   MessageSquare,
   CreditCard,
   FolderOpen,
+  BarChart3,
+  Brain,
+  Store,
+  Zap,
+  Mail,
+  Webhook,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
 import { useAuth, useNewCallsCount } from '@/lib/hooks';
@@ -69,11 +75,14 @@ const navItems: NavItem[] = [
   { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff, section: 'work' },
   { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: canManageCampaigns, section: 'work' },
   { label: 'Calendar', href: '/calendar', icon: Calendar, permission: isInternalStaff, section: 'work' },
+  { label: 'Smart Schedule', href: '/calendar/smart-schedule', icon: Zap, permission: (r) => ['owner', 'admin', 'pm'].includes(r), section: 'work' },
+  { label: 'Marketplace', href: '/kts/marketplace', icon: Store, permission: (r) => ['owner', 'admin', 'pm'].includes(r), section: 'work' },
   // Contractor work
   { label: 'Available Jobs', href: '/portal/leads', icon: Target, permission: isContractor, section: 'work' },
   { label: 'Calendar', href: '/portal/calendar', icon: Calendar, permission: isContractor, section: 'work' },
   { label: 'My Jobs', href: '/portal/jobs', icon: Briefcase, permission: isContractor, section: 'work' },
   { label: 'Inventory', href: '/portal/inventory', icon: Package, permission: isContractor, section: 'work' },
+  { label: 'Marketplace', href: '/portal/marketplace', icon: Store, permission: isContractor, section: 'work' },
   // Partner work
   { label: 'Labor Requests', href: '/partner/labor-requests', icon: Wrench, permission: isPartner, section: 'work' },
   { label: 'Service Tickets', href: '/partner/service-tickets', icon: ClipboardList, permission: isPartner, section: 'work' },
@@ -96,6 +105,10 @@ const navItems: NavItem[] = [
   { label: 'Partners', href: '/admin/partners', icon: Briefcase, permission: canManagePartnerRequests, section: 'admin' },
   { label: 'Partner Requests', href: '/admin/partner-requests', icon: Users, permission: canManagePartnerRequests, section: 'admin' },
   { label: 'Job History', href: '/admin/job-history', icon: FolderOpen, permission: canManageUsers, section: 'admin' },
+  { label: 'Reports', href: '/admin/reports', icon: BarChart3, permission: canManageUsers, section: 'admin' },
+  { label: 'Analytics', href: '/admin/analytics', icon: Brain, permission: canManageUsers, section: 'admin' },
+  { label: 'Email', href: '/settings/email', icon: Mail, permission: canManageUsers, section: 'admin' },
+  { label: 'Webhooks', href: '/settings/webhooks', icon: Webhook, permission: canManageUsers, section: 'admin' },
   { label: 'Admin', href: '/admin', icon: Settings, permission: canManageUsers, section: 'admin' },
 ];
 
