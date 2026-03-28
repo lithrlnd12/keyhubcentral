@@ -1,7 +1,7 @@
 # KeyHub Central - Technical Documentation
 
-**Version:** 2.0
-**Last Updated:** February 6, 2026
+**Version:** 3.0
+**Last Updated:** March 27, 2026
 **Status:** Active Development
 
 ---
@@ -72,10 +72,10 @@ buy marketing <---- provides labor --------------+
 | **File Storage** | Firebase Storage + Google Drive API | - |
 | **Backend** | Firebase Cloud Functions | - |
 | **Calendar** | Google Calendar API (2-way sync) | - |
-| **Email** | Gmail API (auto-invoicing), Nodemailer | - |
-| **SMS** | Twilio | - |
-| **Voice** | VAPI | - |
-| **AI** | Anthropic Claude SDK | - |
+| **Email** | Resend (production), Nodemailer (legacy) | - |
+| **SMS** | Telnyx (production), Textbelt (testing), Twilio (legacy) | - |
+| **Voice** | Vapi AI with custom tools | - |
+| **AI** | Anthropic Claude SDK (OCR, risk scoring, forecasting) | - |
 | **PDF** | @react-pdf/renderer, pdfjs-dist | - |
 | **Charts** | Recharts | 3.x |
 | **Testing** | Jest, Playwright | - |
@@ -86,7 +86,8 @@ buy marketing <---- provides labor --------------+
 
 - `firebase` / `firebase-admin` - Client and server Firebase SDK
 - `googleapis` - Google Calendar, Sheets, Drive APIs
-- `nodemailer` - Email sending
+- `resend` - Email sending (production)
+- `nodemailer` - Email sending (legacy)
 - `@react-pdf/renderer` - PDF generation (invoices, contracts)
 - `react-signature-canvas` - Digital signature capture
 - `qrcode.react` - QR code generation (lead capture events)
@@ -134,29 +135,34 @@ User Activated
 | **sales_manager** | Sales team lead (future) | All sales reps, territories, performance |
 | **subscriber** | External contractor | Lead portal, subscription management |
 | **partner** | Partner company user | Labor requests, service tickets |
+| **customer** | End customer | View own jobs, sign contracts remotely, view invoices |
 
 ### Permission Matrix
 
-| Feature | owner | admin | sales_rep | contractor | pm | subscriber | partner |
-|---------|-------|-------|-----------|------------|-----|------------|---------|
-| Dashboard Overview | Full | Full | Limited | Limited | Limited | No | No |
-| KR - All Jobs | Full | Full | No | No | Assigned | No | No |
-| KR - Job Progress (own sales) | Full | Full | Yes | No | Yes | No | No |
-| KTS - All Contractors | Full | Full | No | No | Yes | No | No |
-| KTS - Own Profile | Full | Full | Yes | Yes | Yes | No | No |
-| KTS - Availability | Full | Full | Yes | Yes | Yes | No | No |
-| KTS - Inventory | Full | Full | No | Own | View | No | No |
-| KD - Campaigns | Full | Full | No | No | No | No | No |
-| KD - All Leads | Full | Full | No | No | No | No | No |
-| KD - Assigned Leads | Full | Full | Yes | No | No | Yes | No |
-| Financials - Full P&L | Full | Full | No | No | No | No | No |
-| Financials - Own Earnings | Full | Full | Yes | Yes | Yes | No | No |
-| Financials - Invoices | Full | Full | No | Own | No | View Own | No |
-| Admin - User Management | Full | Full | No | No | No | No | No |
-| Admin - Partners | Full | Full | No | No | No | No | No |
-| Partner Portal | No | No | No | No | No | No | Full |
-| Contractor Portal | No | No | No | Full | No | No | No |
-| Subscriber Portal | No | No | No | No | No | Full | No |
+| Feature | owner | admin | sales_rep | contractor | pm | subscriber | partner | customer |
+|---------|-------|-------|-----------|------------|-----|------------|---------|----------|
+| Dashboard Overview | Full | Full | Limited | Limited | Limited | No | No | No |
+| KR - All Jobs | Full | Full | No | No | Assigned | No | No | No |
+| KR - Job Progress (own sales) | Full | Full | Yes | No | Yes | No | No | No |
+| KR - Own Jobs (customer view) | Full | Full | No | No | No | No | No | Yes |
+| KTS - All Contractors | Full | Full | No | No | Yes | No | No | No |
+| KTS - Own Profile | Full | Full | Yes | Yes | Yes | No | No | No |
+| KTS - Availability | Full | Full | Yes | Yes | Yes | No | No | No |
+| KTS - Inventory | Full | Full | No | Own | View | No | No | No |
+| KTS - Marketplace | Full | Full | No | Bid | Post | No | No | No |
+| KD - Campaigns | Full | Full | No | No | No | No | No | No |
+| KD - All Leads | Full | Full | No | No | No | No | No | No |
+| KD - Assigned Leads | Full | Full | Yes | No | No | Yes | No | No |
+| Financials - Full P&L | Full | Full | No | No | No | No | No | No |
+| Financials - Own Earnings | Full | Full | Yes | Yes | Yes | No | No | No |
+| Financials - Invoices | Full | Full | No | Own | No | View Own | No | View Own |
+| Admin - User Management | Full | Full | No | No | No | No | No | No |
+| Admin - Partners | Full | Full | No | No | No | No | No | No |
+| Enterprise Features | Full | Full | No | No | No | No | No | No |
+| Partner Portal | No | No | No | No | No | No | Full | No |
+| Contractor Portal | No | No | No | Full | No | No | No | No |
+| Subscriber Portal | No | No | No | No | No | Full | No | No |
+| Remote Contract Signing | No | No | No | No | No | No | No | Yes |
 
 ### Role Check Pattern
 
@@ -198,6 +204,24 @@ All Firestore collections are protected by security rules (`firestore.rules`):
 - **Notifications**: Only Cloud Functions (admin SDK) can create. Users can only mark their own as read.
 - **Rating Requests**: Public read (token-based security in app layer). Public update limited to rating fields only.
 - **SMS/Voice**: Only Cloud Functions can create/update (webhook-driven).
+
+**Enterprise collection rules:**
+- **Marketplace Listings**: Active users can read. Admins and PMs can create listings. Contractors can submit bids (update `bids` array only).
+- **Remote Signing Sessions**: Internal users can read, create, and update. Token-based public access at the app layer for signature submission.
+- **Email Templates**: Admin only for read/write.
+- **Email Queue**: Admin only for read/write. Cloud Functions process the queue.
+- **Webhook Endpoints**: Admin only for CRUD.
+- **Webhook Deliveries**: Admin only for read. Cloud Functions create deliveries.
+- **API Keys**: Admin only for CRUD. Key hash stored, never the raw key.
+- **Routing Rules**: Admin only for CRUD.
+- **Saved Reports**: Admin only for CRUD. Users can read their own reports.
+
+### 4.2.1 Enterprise Security Patches
+
+- **SSRF Protection on Webhooks**: Webhook destination URLs are validated against an allowlist; private/internal IP ranges (10.x, 172.16-31.x, 192.168.x, localhost, 127.x) are blocked to prevent server-side request forgery.
+- **PNG Validation on Signatures**: Uploaded signature images are validated for PNG magic bytes and reasonable file size before storage to prevent malicious file uploads.
+- **Signed URLs for Signatures**: Signature images in Firebase Storage are served via time-limited signed URLs rather than public URLs to prevent unauthorized access.
+- **Rate Limiting on Token Verification**: Remote signing token verification endpoints are rate-limited to prevent brute-force token guessing attacks.
 
 ### 4.3 Firebase Storage Security Rules
 
@@ -266,7 +290,7 @@ All uploads are validated by `storage.rules`:
   email: string;
   displayName: string;
   phone: string;
-  role: 'owner' | 'admin' | 'sales_rep' | 'contractor' | 'pm' | 'subscriber' | 'partner';
+  role: 'owner' | 'admin' | 'sales_rep' | 'contractor' | 'pm' | 'subscriber' | 'partner' | 'customer';
   status: 'pending' | 'active' | 'inactive' | 'suspended';
   partnerId?: string; // For partner role users
   createdAt: Timestamp;
@@ -619,6 +643,183 @@ All uploads are validated by `storage.rules`:
 }
 ```
 
+#### Marketplace Listings
+```typescript
+// marketplaceListings/{listingId}
+{
+  id: string;
+  dealerId: string;
+  dealerName: string;
+  title: string;
+  description: string;
+  jobType: string;
+  trade: string;
+  location: { city, state, zip, lat, lng };
+  dateNeeded: Timestamp;
+  timeBlock: string;
+  estimatedDuration: number; // hours
+  payRate: number;
+  payType: 'hourly' | 'flat' | 'per_unit';
+  requiredSkills: string[];
+  crewSize: number;
+  status: 'open' | 'assigned' | 'in_progress' | 'complete' | 'cancelled';
+  bids: {
+    contractorId: string;
+    amount: number;
+    message: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt: Timestamp;
+  }[];
+  expiresAt: Timestamp;
+  createdAt: Timestamp;
+}
+```
+
+#### Remote Signing Sessions
+```typescript
+// remoteSigningSessions/{sessionId}
+{
+  id: string;
+  contractId: string;
+  jobId: string;
+  token: string; // Unique signing token
+  recipientEmail: string;
+  recipientName: string;
+  sentBy: string; // userId
+  status: 'pending' | 'viewed' | 'signed' | 'expired';
+  expiresAt: Timestamp;
+  viewedAt?: Timestamp;
+  signedAt?: Timestamp;
+  signatureUrl?: string; // Firebase Storage URL
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: Timestamp;
+}
+```
+
+#### Email Templates
+```typescript
+// emailTemplates/{templateId}
+{
+  id: string;
+  name: string;
+  subject: string;
+  bodyHtml: string;
+  trigger: string; // e.g., 'job_complete', 'lead_assigned', 'invoice_sent'
+  triggerConditions: Record<string, any>;
+  delayMinutes: number; // Delay before sending after trigger
+  enabled: boolean;
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+#### Email Queue
+```typescript
+// emailQueue/{emailId}
+{
+  id: string;
+  templateId?: string;
+  recipientEmail: string;
+  recipientName: string;
+  subject: string;
+  bodyHtml: string;
+  status: 'queued' | 'sending' | 'sent' | 'failed';
+  scheduledFor: Timestamp;
+  sentAt?: Timestamp;
+  error?: string;
+  metadata: Record<string, any>;
+  createdAt: Timestamp;
+}
+```
+
+#### Webhook Endpoints
+```typescript
+// webhookEndpoints/{endpointId}
+{
+  id: string;
+  name: string;
+  url: string;
+  events: string[]; // e.g., ['job.complete', 'lead.created', 'invoice.paid']
+  secret: string; // HMAC signing secret
+  active: boolean;
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+#### Webhook Deliveries
+```typescript
+// webhookDeliveries/{deliveryId}
+{
+  id: string;
+  endpointId: string;
+  event: string;
+  payload: Record<string, any>;
+  status: 'pending' | 'success' | 'failed';
+  responseCode?: number;
+  responseBody?: string;
+  attemptCount: number;
+  createdAt: Timestamp;
+}
+```
+
+#### API Keys
+```typescript
+// apiKeys/{keyId}
+{
+  id: string;
+  name: string;
+  keyHash: string; // SHA-256 hash of the API key
+  keyPrefix: string; // First 8 chars for identification (e.g., 'kh_live_')
+  permissions: string[]; // e.g., ['leads:read', 'leads:write', 'jobs:read']
+  createdBy: string;
+  lastUsedAt?: Timestamp;
+  expiresAt?: Timestamp;
+  createdAt: Timestamp;
+}
+```
+
+#### Routing Rules
+```typescript
+// routingRules/{ruleId}
+{
+  id: string;
+  name: string;
+  conditions: {
+    trade?: string;
+    market?: string;
+    source?: string;
+    quality?: 'hot' | 'warm' | 'cold';
+  };
+  targetTeam: string[]; // userIds or team identifiers
+  priority: number; // Lower = higher priority
+  active: boolean;
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+#### Saved Reports
+```typescript
+// savedReports/{reportId}
+{
+  id: string;
+  name: string;
+  description: string;
+  metrics: string[]; // e.g., ['revenue', 'lead_count', 'conversion_rate']
+  dateRange: { start: Timestamp; end: Timestamp };
+  filters: { field: string; operator: string; value: any }[];
+  groupBy: string; // e.g., 'market', 'trade', 'sales_rep'
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
 #### Job Postings & Applicants (Future)
 ```typescript
 // jobPostings/{postingId}
@@ -810,6 +1011,84 @@ Lead -> Sold -> Front End Hold -> Production -> Scheduled -> Started -> Complete
 - Notification preferences (push, email, per-category toggles)
 - Quiet hours configuration
 
+### 6.8 Enterprise Module - `/enterprise`
+
+The Enterprise module provides 14 advanced features for scaling operations:
+
+1. **Marketplace** — Job listing marketplace where dealers/PMs post work and contractors bid. Includes bid management, skill matching, and auto-assignment.
+2. **Remote Contract Signing** — Token-based remote signing sessions sent via email. Recipients can view contracts and submit PNG signatures without logging in. Signed documents stored in Firebase Storage with audit trail (IP, user agent, timestamp).
+3. **Email Automation** — Template-based email system with trigger conditions and configurable delays. Queue-based processing for reliability. Templates support HTML with variable interpolation.
+4. **Webhook System** — Outbound webhook delivery for external integrations. HMAC-signed payloads, retry logic, delivery logging, and SSRF-protected URL validation.
+5. **API Key Management** — Self-service API key creation for external integrations. SHA-256 hashed storage, prefix-based identification, granular permission scoping.
+6. **Advanced Lead Routing** — Rule-based lead routing with conditions on trade, market, source, and quality. Priority-ordered rules with team-based targeting.
+7. **Custom Reports** — Saved report configurations with configurable metrics, date ranges, filters, and grouping. Exportable to CSV/PDF.
+8. **Bulk Lead Import** — CSV-based bulk lead import with validation, deduplication, and auto-routing.
+9. **Job History Archive** — Full job package PDF export including contracts, photos, communications, and completion certificates.
+10. **Advanced Analytics Dashboard** — Custom KPI dashboards with drill-down capabilities.
+11. **Multi-Market Management** — Manage operations across multiple geographic markets with market-specific routing and reporting.
+12. **SLA Tracking** — Service level agreement monitoring for response times, completion rates, and customer satisfaction.
+13. **Audit Logging** — Comprehensive audit trail for compliance-sensitive operations.
+14. **White-Label Configuration** — Per-tenant branding configuration (see White-Label section below).
+
+### 6.9 AI Capabilities
+
+**Vapi AI Voice Tools:**
+- **Dispatch Calls** (`/api/voice/dispatch`) — AI-powered outbound calls to dispatch contractors to job sites with schedule details.
+- **Appointment Reminders** (`/api/voice/appointment-reminder`) — Automated reminder calls to customers before scheduled appointments.
+- **Rating Calls** (`/api/voice/rating-call`) — Post-job AI calls to collect customer satisfaction ratings.
+- **Quote Follow-ups** (`/api/voice/quote-followup`) — AI follow-up calls to leads who received quotes but haven't responded.
+- **Compliance Reminders** (`/api/voice/compliance-reminders`) — Automated calls to contractors about expiring documents (insurance, licenses).
+
+**Claude AI Integration:**
+- **OCR Receipt Parsing** (`/api/receipts/parse`) — Anthropic Claude SDK extracts vendor, total, date, and line items from receipt photos.
+- **Risk Scoring** (`/api/ai/risk-score`) — AI-calculated job risk scores based on job type, crew experience, weather, customer history, and project complexity.
+- **Smart Scheduling** — AI-suggested scheduling based on crew availability, travel distance, skill match, and historical performance.
+- **Revenue Forecasting** — Predictive revenue models based on pipeline data, seasonal trends, and conversion rates.
+- **SMS Response Generation** (`lib/sms/ai.ts`) — AI-generated contextual responses for lead SMS conversations.
+
+### 6.10 White-Label System
+
+**Tenant Configuration** (`lib/tenant.ts`):
+- Per-tenant branding: company name, logo URL, primary/secondary colors, favicon
+- Domain mapping for white-label deployments
+- Feature flags per tenant
+- Custom email sender addresses
+
+**White-Label Script:**
+- Build-time script that applies tenant configuration to the application
+- Generates customized PWA manifest, theme colors, and branding assets
+- Environment template (`env.template`) with all required white-label secrets
+
+**Environment Template:**
+- `WHITE_LABEL_COMPANY_NAME` — Display name
+- `WHITE_LABEL_LOGO_URL` — Logo asset URL
+- `WHITE_LABEL_PRIMARY_COLOR` — Brand primary color
+- `WHITE_LABEL_DOMAIN` — Custom domain
+- `WHITE_LABEL_SUPPORT_EMAIL` — Support contact
+- `WHITE_LABEL_SENDER_EMAIL` — Email from address
+
+### 6.11 Offline & PWA
+
+**IndexedDB Cache:**
+- Offline-first data caching for jobs, leads, contractor profiles, and notifications
+- Automatic sync when connectivity is restored
+- Conflict resolution using server-wins strategy with local change queuing
+
+**Background Sync:**
+- Service worker-based background sync for form submissions, photo uploads, and status updates
+- Queued operations persisted in IndexedDB until successful delivery
+
+**Offline Indicator:**
+- Real-time connectivity status indicator in the app header
+- Graceful degradation: read-only mode for cached data when offline
+- Queue visualization showing pending sync operations
+
+**PWA Features:**
+- Installable on iOS, Android, and Desktop
+- App-like navigation with bottom tabs (mobile) and side nav (desktop)
+- Push notifications via Firebase Cloud Messaging
+- Custom splash screens and app icons per platform
+
 ---
 
 ## 7. Cloud Functions
@@ -889,19 +1168,42 @@ Located in `functions/src/`:
 - Expense sync via `/api/sheets/sync-expenses`
 - Daily automated sync via Cloud Function (`scheduled/dailySheetsTasks`)
 
-### Gmail API
-- Auto-send invoices on status change
+### Resend (Email - Production)
+- Primary email delivery service for all outbound emails
+- Template-based email automation via `emailTemplates` and `emailQueue` collections
 - Lead confirmation emails via `/api/email/lead-confirmation`
+- Auto-send invoices on status change
+- Queued email processing via `/api/email/send-queued`
+- Event-triggered emails via `/api/email/trigger`
 
-### Twilio (SMS)
-- Webhook receiver at `/api/webhooks/twilio`
+### Nodemailer (Email - Legacy)
+- Retained for backwards compatibility
+- Used in some Cloud Functions for transactional emails
+
+### Telnyx (SMS - Production)
+- Primary SMS provider for production
+- Webhook receiver at `/api/webhooks/twilio` (shared handler)
 - Scheduled message processing at `/api/sms/process-scheduled`
 - AI-powered response generation (`lib/sms/ai.ts`)
 - SMS conversation tracking in Firestore
 
-### VAPI (Voice)
+### Textbelt (SMS - Testing)
+- Used for development and testing environments
+- Free tier for local development
+
+### Twilio (SMS - Legacy)
+- Legacy SMS provider, retained for migration period
+- Webhook signature verification still supported
+
+### Vapi AI (Voice)
 - Outbound calls via `/api/voice/call`
+- **Dispatch calls** via `/api/voice/dispatch` — AI-powered contractor dispatch
+- **Appointment reminders** via `/api/voice/appointment-reminder` — Customer reminders
+- **Rating calls** via `/api/voice/rating-call` — Post-job satisfaction collection
+- **Quote follow-ups** via `/api/voice/quote-followup` — Lead nurturing
+- **Compliance reminders** via `/api/voice/compliance-reminders` — Document expiration alerts
 - Inbound call capture and transcription
+- Custom Vapi tools for CRM data lookup during calls
 - Call records stored in `voiceCalls` and `inboundCalls` collections
 
 ### Facebook/Meta (Lead Ads)
@@ -910,8 +1212,11 @@ Located in `functions/src/`:
 
 ### Anthropic Claude (AI)
 - Chat endpoint at `/api/chat`
-- Receipt parsing at `/api/receipts/parse`
+- Receipt OCR parsing at `/api/receipts/parse`
+- Job risk scoring at `/api/ai/risk-score`
 - SMS response generation
+- Smart scheduling suggestions
+- Revenue forecasting
 
 ### Checkr (Background Checks) - Planned
 - Webhook-driven status updates
@@ -964,18 +1269,32 @@ Free Contractor -> Connected ($29/mo) -> Pro ($45/mo) -> KD Subscriber ($399+/mo
 |-------|--------|---------|------|
 | `/api/admin/set-role` | POST | Set user role (admin only) | Admin |
 | `/api/admin/sync-claims` | POST | Sync Firebase custom claims | Admin |
+| `/api/ai/risk-score` | POST | Calculate job risk score via Claude AI | Authenticated |
 | `/api/chat` | POST | AI chat endpoint | Authenticated |
+| `/api/contracts/remote-sign` | POST | Create remote signing session | Authenticated |
+| `/api/contracts/remote-sign/verify` | GET | Validate signing token | Public (token-based) |
+| `/api/contracts/remote-sign/complete` | POST | Accept signature submission | Public (token-based) |
 | `/api/email/lead-confirmation` | POST | Send lead confirmation email | Authenticated |
+| `/api/email/send-queued` | POST | Process email queue (batch send) | Server |
+| `/api/email/trigger` | POST | Trigger email automation by event | Authenticated |
 | `/api/google-calendar/auth` | GET | Start Google Calendar OAuth | Authenticated |
 | `/api/google-calendar/callback` | GET | Google Calendar OAuth callback | Authenticated |
 | `/api/google-calendar/disconnect` | POST | Disconnect Google Calendar | Authenticated |
+| `/api/google-calendar/events` | GET | Sync and retrieve calendar events | Authenticated |
+| `/api/leads/import` | POST | Bulk lead import from CSV | Admin |
 | `/api/receipts/parse` | POST | AI receipt parsing | Authenticated |
 | `/api/sheets/sync-expenses` | POST | Sync expenses to Google Sheets | Authenticated |
 | `/api/sms/process-scheduled` | POST | Process scheduled SMS messages | Server |
 | `/api/sms/simulate-reply` | POST | Simulate SMS reply (dev) | Server |
+| `/api/voice/appointment-reminder` | POST | AI appointment reminder calls | Authenticated |
 | `/api/voice/call` | POST | Initiate VAPI voice call | Authenticated |
+| `/api/voice/compliance-reminders` | POST | AI compliance reminder calls | Authenticated |
 | `/api/voice/debug` | GET | Voice call debug info | Authenticated |
+| `/api/voice/dispatch` | POST | AI dispatch calls to contractors | Authenticated |
+| `/api/voice/quote-followup` | POST | AI quote follow-up calls | Authenticated |
+| `/api/voice/rating-call` | POST | AI customer rating calls | Authenticated |
 | `/api/webhooks/facebook` | POST | Facebook/Meta lead webhook | Signature verified |
+| `/api/webhooks/test` | POST | Test webhook endpoint delivery | Admin |
 | `/api/webhooks/twilio` | POST | Twilio SMS webhook | Signature verified |
 
 ---
@@ -1067,16 +1386,37 @@ GOOGLE_CALENDAR_CLIENT_SECRET=
 GMAIL_CLIENT_ID=
 GMAIL_CLIENT_SECRET=
 
-# Twilio (SMS)
+# Resend (Email - Production)
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+
+# Telnyx (SMS - Production)
+TELNYX_API_KEY=
+TELNYX_PHONE_NUMBER=
+TELNYX_MESSAGING_PROFILE_ID=
+
+# Textbelt (SMS - Testing)
+TEXTBELT_API_KEY=
+
+# Twilio (SMS - Legacy)
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=
 
 # VAPI (Voice)
 VAPI_API_KEY=
+VAPI_PHONE_NUMBER_ID=
 
 # Anthropic (AI)
 ANTHROPIC_API_KEY=
+
+# White-Label
+WHITE_LABEL_COMPANY_NAME=
+WHITE_LABEL_LOGO_URL=
+WHITE_LABEL_PRIMARY_COLOR=
+WHITE_LABEL_DOMAIN=
+WHITE_LABEL_SUPPORT_EMAIL=
+WHITE_LABEL_SENDER_EMAIL=
 
 # Payments (Planned)
 STRIPE_SECRET_KEY=
@@ -1135,4 +1475,4 @@ All environment variables are validated at build time using Zod schemas via `@t3
 
 ---
 
-*Document version 2.0 - Consolidated technical reference*
+*Document version 3.0 - Updated with enterprise features, AI capabilities, white-label, and offline/PWA support*
