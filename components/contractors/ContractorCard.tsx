@@ -21,6 +21,10 @@ const tradeLabels: Record<Trade, string> = {
 
 export function ContractorCard({ contractor, className }: ContractorCardProps) {
   const displayName = contractor.businessName || `Contractor ${contractor.id.slice(0, 6)}`;
+  const skills = contractor.skills || [];
+  const trades = contractor.trades || [];
+  const address = contractor.address || { city: '', state: '' };
+  const rating = contractor.rating || { overall: 0 };
 
   return (
     <Link
@@ -38,29 +42,33 @@ export function ContractorCard({ contractor, className }: ContractorCardProps) {
             <StatusBadge status={contractor.status} />
           </div>
 
+          {(address.city || address.state) && (
           <div className="flex items-center gap-1 mt-1 text-sm text-gray-400">
             <MapPin className="w-3 h-3 flex-shrink-0" />
             <span className="truncate">
-              {contractor.address.city}, {contractor.address.state}
+              {address.city}, {address.state}
             </span>
           </div>
+          )}
 
+          {trades.length > 0 && (
           <div className="flex items-center gap-1 mt-1 text-sm text-gray-400">
             <Wrench className="w-3 h-3 flex-shrink-0" />
             <span className="truncate">
-              {contractor.trades.map((t) => tradeLabels[t]).join(', ')}
+              {trades.map((t) => tradeLabels[t]).join(', ')}
             </span>
           </div>
+          )}
         </div>
 
         <div className="flex-shrink-0">
-          <RatingDisplay rating={contractor.rating.overall} size="sm" />
+          <RatingDisplay rating={rating.overall} size="sm" />
         </div>
       </div>
 
-      {contractor.skills.length > 0 && (
+      {skills.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-3">
-          {contractor.skills.slice(0, 3).map((skill) => (
+          {skills.slice(0, 3).map((skill) => (
             <span
               key={skill}
               className="px-2 py-0.5 bg-gray-800 rounded text-xs text-gray-400"
@@ -68,9 +76,9 @@ export function ContractorCard({ contractor, className }: ContractorCardProps) {
               {skill}
             </span>
           ))}
-          {contractor.skills.length > 3 && (
+          {skills.length > 3 && (
             <span className="px-2 py-0.5 text-xs text-gray-500">
-              +{contractor.skills.length - 3} more
+              +{skills.length - 3} more
             </span>
           )}
         </div>
