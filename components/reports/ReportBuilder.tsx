@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { pdf } from '@react-pdf/renderer';
 import { Button, Input, Select } from '@/components/ui';
 import { ReportResultsTable } from './ReportResultsTable';
 import { ReportChart } from './ReportChart';
+import { ReportPDFDocument } from '@/components/pdf/ReportPDFDocument';
 import {
   ReportConfig,
   ReportResult,
@@ -31,6 +33,7 @@ import {
   Play,
   Save,
   Download,
+  FileText,
   BarChart3,
   Filter,
   Layers,
@@ -107,6 +110,7 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
   const [result, setResult] = useState<ReportResult | null>(null);
   const [running, setRunning] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const availableMetricsForSource = catalog[pickerSource] || [];
@@ -267,6 +271,39 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
     link.download = `${reportName || 'report'}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = async () => {
+    if (!result) return;
+    setPdfLoading(true);
+    try {
+      const config: ReportConfig = {
+        id: '',
+        name: reportName || 'Untitled Report',
+        metrics,
+        dateRange,
+        filters,
+        groupBy: groupBy || undefined,
+        createdBy: user?.uid || '',
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+      const doc = <ReportPDFDocument config={config} result={result} />;
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${reportName || 'report'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+      setError('Failed to generate PDF.');
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   return (
@@ -448,24 +485,6 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
         />
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-wrap gap-3">
-        <Button onClick={handleRun} loading={running} disabled={running}>
-          <Play className="w-4 h-4 mr-2" />
-          Run Report
-        </Button>
-        <Button variant="outline" onClick={handleSave} loading={saving} disabled={saving}>
-          <Save className="w-4 h-4 mr-2" />
-          Save Report
-        </Button>
-        {result && (
-          <Button variant="outline" onClick={handleExportCSV}>
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
-          </Button>
-        )}
-      </div>
-
       {/* Error */}
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">
@@ -518,6 +537,30 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
           </div>
         </div>
       )}
+
+      {/* Actions */}
+      <div className="flex flex-wrap gap-3">
+        <Button onClick={handleRun} loading={running} disabled={running}>
+          <Play className="w-4 h-4 mr-2" />
+          Run Report
+        </Button>
+        <Button variant="outline" onClick={handleSave} loading={saving} disabled={saving}>
+          <Save className="w-4 h-4 mr-2" />
+          Save Report
+        </Button>
+        {result && (
+          <Button variant="outline" onClick={handleExportCSV}>
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+        )}
+        {result && (
+          <Button variant="outline" onClick={handleExportPDF} loading={pdfLoading} disabled={pdfLoading}>
+            <FileText className="w-4 h-4 mr-2" />
+            Export PDF
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

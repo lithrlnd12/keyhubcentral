@@ -61,8 +61,8 @@ export default function SignUpPage() {
       return;
     }
 
-    // Validate zip code for sales_rep
-    if (requestedRole === 'sales_rep') {
+    // Validate zip code for sales_rep and contractor
+    if (requestedRole === 'sales_rep' || requestedRole === 'contractor') {
       if (!baseZipCode || !/^\d{5}$/.test(baseZipCode)) {
         setLocalError('Please enter a valid 5-digit zip code');
         return;
@@ -88,7 +88,7 @@ export default function SignUpPage() {
         displayName,
         phone || undefined,
         requestedRole,
-        requestedRole === 'sales_rep' ? baseZipCode : undefined,
+        (requestedRole === 'sales_rep' || requestedRole === 'contractor') ? baseZipCode : undefined,
         requestedRole === 'partner' && selectedPartnerId !== 'other' ? selectedPartnerId : undefined,
         requestedRole === 'partner' && selectedPartnerId === 'other' ? companyName.trim() : undefined
       );
@@ -140,7 +140,7 @@ export default function SignUpPage() {
           onChange={(e) => setRequestedRole(e.target.value as UserRole)}
         />
 
-        {requestedRole === 'sales_rep' && (
+        {(requestedRole === 'sales_rep' || requestedRole === 'contractor') && (
           <Input
             label="Your Base Zip Code"
             type="text"
