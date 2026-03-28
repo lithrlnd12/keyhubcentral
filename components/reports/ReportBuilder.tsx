@@ -37,7 +37,9 @@ import {
   BarChart3,
   Filter,
   Layers,
+  Presentation,
 } from 'lucide-react';
+import { PresentationBuilder } from './PresentationBuilder';
 
 interface ReportBuilderProps {
   /** Pre-populate from a saved report for editing */
@@ -132,6 +134,7 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
   const [running, setRunning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [showPresentation, setShowPresentation] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const availableMetricsForSource = catalog[pickerSource] || [];
@@ -542,6 +545,10 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
               <FileText className="w-4 h-4 mr-2" />
               PDF
             </Button>
+            <Button variant="outline" onClick={() => setShowPresentation(true)}>
+              <Presentation className="w-4 h-4 mr-2" />
+              Presentation
+            </Button>
           </>
         )}
         {result && (
@@ -556,6 +563,26 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">
           {error}
         </div>
+      )}
+
+      {/* Presentation Builder modal */}
+      {showPresentation && result && (
+        <PresentationBuilder
+          config={{
+            id: initialConfig?.id || '',
+            name: reportName || 'Untitled Report',
+            description,
+            metrics,
+            dateRange,
+            filters,
+            groupBy: groupBy || undefined,
+            createdBy: user?.uid || '',
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          }}
+          result={result}
+          onClose={() => setShowPresentation(false)}
+        />
       )}
 
       {/* Results */}
