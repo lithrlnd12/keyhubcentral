@@ -44,7 +44,7 @@ export interface SmsSendResult {
   success: boolean;
   messageSid?: string;
   error?: string;
-  provider: 'textbelt' | 'twilio';
+  provider: 'textbelt' | 'twilio' | 'telnyx';
 }
 
 // Textbelt response

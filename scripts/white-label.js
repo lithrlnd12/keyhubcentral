@@ -449,6 +449,16 @@ GOOGLE_CALENDAR_CLIENT_SECRET=
 CRON_SECRET=
 
 # ========================================
+# SMS Provider (choose: textbelt, twilio, or telnyx)
+# ========================================
+SMS_PROVIDER=textbelt
+# Telnyx (recommended for production)
+TELNYX_API_KEY=
+TELNYX_PHONE_NUMBER=
+# Textbelt (testing only — 1 free SMS/day)
+TEXTBELT_API_KEY=textbelt
+
+# ========================================
 # App
 # ========================================
 NEXT_PUBLIC_APP_URL=https://${cfg.domain}
