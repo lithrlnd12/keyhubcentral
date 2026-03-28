@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     // Send via Resend
     const resend = getResend();
     const { error: emailError } = await resend.emails.send({
-      from: `${tenant.appName} <${tenant.fromEmail}>`,
+      from: `${tenant.appName} <${tenant.noreplyEmail}>`,
       to: [recipientEmail],
       subject: `Contract Ready for Your Signature - ${tenant.appName}`,
       html: emailHtml,
