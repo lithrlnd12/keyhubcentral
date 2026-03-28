@@ -681,6 +681,82 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
+    // ========================================
+    // ENTERPRISE COLLECTIONS
+    // ========================================
+
+    // Marketplace Listings — cross-dealer labor sharing
+    match /marketplaceListings/{listingId} {
+      allow read: if isActiveUser();
+      allow create: if isAdmin() ||
+        (isActiveUser() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'pm');
+      allow update: if isAdmin() ||
+        (isActiveUser() && resource.data.dealerId == request.auth.uid) ||
+        // Contractors can update to place bids (bids array)
+        (isContractor() && isActiveUser());
+      allow delete: if isAdmin();
+    }
+
+    // Remote Signing Sessions — e-signature tokens
+    match /remoteSigningSessions/{sessionId} {
+      // Public read via token query (verify endpoint uses admin SDK)
+      // Internal users can list sessions for their contracts
+      allow read: if isInternalUser();
+      allow create: if isInternalUser() && isActiveUser();
+      allow update: if isAdmin() ||
+        (isInternalUser() && isActiveUser());
+      allow delete: if isAdmin();
+    }
+
+    // Email Templates — automation config
+    match /emailTemplates/{templateId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Email Queue — pending/sent emails
+    match /emailQueue/{emailId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isOwner();
+    }
+
+    // Webhook Endpoints — outbound webhook config
+    match /webhookEndpoints/{endpointId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Webhook Deliveries — delivery logs
+    match /webhookDeliveries/{deliveryId} {
+      allow read: if isAdmin();
+      allow create: if false; // Only admin SDK (dispatcher)
+      allow delete: if isOwner();
+    }
+
+    // API Keys — external API access
+    match /apiKeys/{keyId} {
+      allow read: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin();
+    }
+
+    // Routing Rules — AI call routing config (developer-managed)
+    match /routingRules/{ruleId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Saved Reports — report builder configs
+    match /savedReports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() ||
+        (isActiveUser() && resource.data.createdBy == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
     // Internal messaging - conversations
     match /conversations/{conversationId} {
       // Participants can read their own conversations
