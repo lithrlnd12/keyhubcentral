@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { ContractUploadModal } from '@/components/contracts/ContractUploadModal';
+import { RemoteSigningButton } from '@/components/contracts/RemoteSigningButton';
 import { AddendumForm } from '@/components/contracts/AddendumForm';
 import {
   FileText,
@@ -174,6 +175,12 @@ export function JobContracts({ job, userId, userRole }: JobContractsProps) {
                     Sign Digitally
                   </Button>
                 </Link>
+                <RemoteSigningButton
+                  contractId={signedContracts[0]?.id || job.id}
+                  jobId={job.id}
+                  recipientEmail={job.customer.email || undefined}
+                  recipientName={job.customer.name}
+                />
                 <Button size="sm" variant="outline" onClick={() => setShowUploadModal(true)}>
                   <Upload className="w-4 h-4 mr-2" />
                   Upload
@@ -308,6 +315,12 @@ export function JobContracts({ job, userId, userRole }: JobContractsProps) {
                     Sign Digitally
                   </Button>
                 </Link>
+                <RemoteSigningButton
+                  contractId={job.id}
+                  jobId={job.id}
+                  recipientEmail={job.customer.email || undefined}
+                  recipientName={job.customer.name}
+                />
                 <Button variant="outline" onClick={() => setShowUploadModal(true)}>
                   <Upload className="w-4 h-4 mr-2" />
                   Upload Signed Contract
