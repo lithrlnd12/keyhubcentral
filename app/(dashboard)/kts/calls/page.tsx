@@ -237,7 +237,6 @@ export default function CallCenterPage() {
           <TabsTrigger value="inbound">Inbound Calls</TabsTrigger>
           <TabsTrigger value="live">Live Calls</TabsTrigger>
           <TabsTrigger value="queue">Call Queue</TabsTrigger>
-          <TabsTrigger value="history">Call History</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inbound">
@@ -252,13 +251,9 @@ export default function CallCenterPage() {
           <CallQueueView />
         </TabsContent>
 
-        {/* Routing Rules: configured by developer via Firestore routingRules collection.
-            The AI routing tools (checkTeamAvailability) read these rules in the background.
-            SkillsRoutingConfig component is available at /components/calls/ if needed. */}
-
-        <TabsContent value="history">
-          <CallHistoryTab />
-        </TabsContent>
+        {/* Call History and Routing Rules removed from tabs:
+            - Call history is now shown in context on each job's Activity tab
+            - Routing rules are developer config via Firestore routingRules collection */}
       </Tabs>
     </div>
   );
