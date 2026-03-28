@@ -10,6 +10,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useInboundCalls, useNewCallsCount } from '@/lib/hooks';
+import { InboundCallFilters, InboundCallList } from '@/components/inboundCalls';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -156,8 +158,46 @@ function CallHistoryTab() {
   );
 }
 
+function InboundCallsTab() {
+  const {
+    calls,
+    loading,
+    error,
+    filters,
+    setStatus,
+    setSearch,
+    setFilters,
+  } = useInboundCalls({
+    realtime: true,
+    initialFilters: {
+      excludeStatuses: ['converted', 'closed'],
+    },
+  });
+
+  const handleClearFilters = () => {
+    setFilters({});
+  };
+
+  return (
+    <div className="space-y-4">
+      <InboundCallFilters
+        filters={filters}
+        onStatusChange={setStatus}
+        onSearchChange={setSearch}
+        onClear={handleClearFilters}
+      />
+      <InboundCallList
+        calls={calls}
+        loading={loading}
+        error={error}
+      />
+    </div>
+  );
+}
+
 export default function CallCenterPage() {
   const { user } = useAuth();
+  const { count: newCallsCount } = useNewCallsCount();
 
   const userRole = (user as Record<string, unknown> | null)?.role as string | undefined;
   const isAdmin = userRole === 'owner' || userRole === 'admin';
@@ -176,21 +216,35 @@ export default function CallCenterPage() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div>
-        <h2 className="text-xl font-bold text-white">Call Center</h2>
-        <p className="text-gray-400 mt-1">
-          Monitor live calls, manage the call queue, and configure routing rules.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold text-white">Inbound Calls</h2>
+            {newCallsCount > 0 && (
+              <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-sm font-medium rounded-full">
+                {newCallsCount} new
+              </span>
+            )}
+          </div>
+          <p className="text-gray-400 mt-1">
+            Review incoming calls, manage the queue, and configure routing.
+          </p>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="live">
+      {/* Tabs — Inbound Calls is the default view */}
+      <Tabs defaultValue="inbound">
         <TabsList>
+          <TabsTrigger value="inbound">Inbound Calls</TabsTrigger>
           <TabsTrigger value="live">Live Calls</TabsTrigger>
           <TabsTrigger value="queue">Call Queue</TabsTrigger>
           {isAdmin && <TabsTrigger value="routing">Routing Rules</TabsTrigger>}
           <TabsTrigger value="history">Call History</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="inbound">
+          <InboundCallsTab />
+        </TabsContent>
 
         <TabsContent value="live">
           <LiveCallDashboard />

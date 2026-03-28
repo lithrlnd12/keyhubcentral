@@ -4,48 +4,48 @@ import { test as base, Page, expect } from '@playwright/test';
 // In production, use environment variables or a test seed script
 export const TEST_USERS = {
   owner: {
-    email: 'owner@keyhub.test',
-    password: 'TestPassword123!',
+    email: 'pentest-owner@keyhubcentral.com',
+    password: 'PentestKH2026!',
     role: 'owner',
   },
   admin: {
-    email: 'admin@keyhub.test',
-    password: 'TestPassword123!',
+    email: 'pentest-admin@keyhubcentral.com',
+    password: 'PentestKH2026!',
     role: 'admin',
   },
   sales_rep: {
-    email: 'salesrep@keyhub.test',
-    password: 'TestPassword123!',
+    email: 'pentest-salesrep@keyhubcentral.com',
+    password: 'PentestKH2026!',
     role: 'sales_rep',
   },
   contractor: {
-    email: 'contractor@keyhub.test',
-    password: 'TestPassword123!',
+    email: 'pentest-contractor@keyhubcentral.com',
+    password: 'PentestKH2026!',
     role: 'contractor',
   },
   pm: {
-    email: 'pm@keyhub.test',
-    password: 'TestPassword123!',
+    email: 'pentest-pm@keyhubcentral.com',
+    password: 'PentestKH2026!',
     role: 'pm',
   },
   subscriber: {
-    email: 'subscriber@keyhub.test',
-    password: 'TestPassword123!',
+    email: 'pentest-subscriber@keyhubcentral.com',
+    password: 'PentestKH2026!',
     role: 'subscriber',
   },
   partner: {
-    email: 'partner@keyhub.test',
-    password: 'TestPassword123!',
+    email: 'pentest-partner@keyhubcentral.com',
+    password: 'PentestKH2026!',
     role: 'partner',
   },
   customer: {
-    email: 'customer@keyhub.test',
-    password: 'TestPassword123!',
+    email: 'pentest-customer@keyhubcentral.com',
+    password: 'PentestKH2026!',
     role: 'customer',
   },
   pending: {
-    email: 'pending@keyhub.test',
-    password: 'TestPassword123!',
+    email: 'pentest-pending@keyhubcentral.com',
+    password: 'PentestKH2026!',
     role: 'pending',
   },
 } as const;
