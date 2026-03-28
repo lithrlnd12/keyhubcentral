@@ -181,6 +181,7 @@ export default function ReceiptDetailPage() {
           parLevel: receiptItem.quantity,
           cost: receiptItem.unitPrice || undefined,
           createdBy: user.uid,
+          contractorId: receipt.contractorId || user.uid,
         });
         inventoryItemId = newItemId;
         inventoryItemName = receiptItem.description;
