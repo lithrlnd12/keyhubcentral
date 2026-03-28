@@ -19,7 +19,6 @@ import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LiveCallDashboard } from '@/components/calls/LiveCallDashboard';
 import { CallQueueView } from '@/components/calls/CallQueueView';
-import { SkillsRoutingConfig } from '@/components/calls/SkillsRoutingConfig';
 import { CallRecordingPlayer } from '@/components/calls/CallRecordingPlayer';
 import { Phone, History, ShieldAlert } from 'lucide-react';
 
@@ -227,7 +226,7 @@ export default function CallCenterPage() {
             )}
           </div>
           <p className="text-gray-400 mt-1">
-            Review incoming calls, manage the queue, and configure routing.
+            Review incoming calls, manage the queue, and view call history.
           </p>
         </div>
       </div>
@@ -238,7 +237,6 @@ export default function CallCenterPage() {
           <TabsTrigger value="inbound">Inbound Calls</TabsTrigger>
           <TabsTrigger value="live">Live Calls</TabsTrigger>
           <TabsTrigger value="queue">Call Queue</TabsTrigger>
-          {isAdmin && <TabsTrigger value="routing">Routing Rules</TabsTrigger>}
           <TabsTrigger value="history">Call History</TabsTrigger>
         </TabsList>
 
@@ -254,11 +252,9 @@ export default function CallCenterPage() {
           <CallQueueView />
         </TabsContent>
 
-        {isAdmin && (
-          <TabsContent value="routing">
-            <SkillsRoutingConfig />
-          </TabsContent>
-        )}
+        {/* Routing Rules: configured by developer via Firestore routingRules collection.
+            The AI routing tools (checkTeamAvailability) read these rules in the background.
+            SkillsRoutingConfig component is available at /components/calls/ if needed. */}
 
         <TabsContent value="history">
           <CallHistoryTab />
