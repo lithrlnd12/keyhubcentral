@@ -135,8 +135,12 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
           <TabsTrigger value="costs">Costs</TabsTrigger>
           <TabsTrigger value="crew">Crew</TabsTrigger>
           <TabsTrigger value="comms">Notes</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-          <TabsTrigger value="risk">Risk</TabsTrigger>
+          {['owner', 'admin'].includes(user?.role || '') && (
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+          )}
+          {['owner', 'admin'].includes(user?.role || '') && (
+            <TabsTrigger value="risk">Risk</TabsTrigger>
+          )}
           {['complete', 'paid_in_full'].includes(job.status) && (
             <TabsTrigger value="completion">
               {job.documents?.completionCert ? 'Certificate' : 'Completion'}
@@ -208,17 +212,21 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
           />
         </TabsContent>
 
-        <TabsContent value="activity">
-          <JobActivityFeed
-            jobId={job.id}
-            jobNumber={job.jobNumber}
-            contractorIds={job.crewIds}
-          />
-        </TabsContent>
+        {['owner', 'admin'].includes(user?.role || '') && (
+          <TabsContent value="activity">
+            <JobActivityFeed
+              jobId={job.id}
+              jobNumber={job.jobNumber}
+              contractorIds={job.crewIds}
+            />
+          </TabsContent>
+        )}
 
-        <TabsContent value="risk">
-          <RiskScoreDisplay jobId={job.id} />
-        </TabsContent>
+        {['owner', 'admin'].includes(user?.role || '') && (
+          <TabsContent value="risk">
+            <RiskScoreDisplay jobId={job.id} />
+          </TabsContent>
+        )}
 
         {['complete', 'paid_in_full'].includes(job.status) && (
           <TabsContent value="completion">

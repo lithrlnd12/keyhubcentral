@@ -97,7 +97,7 @@ async function checkTeamAvailabilityHandler(
 
   // Step 2: Fall back to finding the closest available contractor
   try {
-    let contractorsQuery = db
+    const contractorsQuery = db
       .collection('contractors')
       .where('status', '==', 'active');
 
@@ -137,8 +137,8 @@ async function checkTeamAvailabilityHandler(
       }
 
       // Calculate distance if caller has location
-      let distance: number | null = null;
-      const address = data.address as { lat?: number; lng?: number } | undefined;
+      const distance: number | null = null;
+      const _address = data.address as { lat?: number; lng?: number } | undefined;
       // We don't have caller lat/lng directly, but we could geocode city/zip in the future
       // For now, distance remains null unless address coordinates are available
 

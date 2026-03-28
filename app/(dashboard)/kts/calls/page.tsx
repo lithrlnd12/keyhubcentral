@@ -52,7 +52,8 @@ function formatDuration(seconds?: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function CallHistoryTab() {
+// Retained for future use — call history now shown on job Activity tabs
+function _CallHistoryTab() {
   const [calls, setCalls] = useState<VoiceCallRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
