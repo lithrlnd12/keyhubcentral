@@ -106,31 +106,196 @@ A fully automated home services operations platform that runs under any brand. L
 ## Phase 3 — White-Label Control Panel
 
 *Goal: Manage all white-label customers from one dashboard without logging into each one separately.*
-*Full architecture documented in `SUPER_ADMIN_PLAN.md`.*
 
-### Foundation
-- 📋 **Move feature flags to Firestore** — flags must live in each tenant's database, not in code, so they can be changed without redeployment
-- 📋 **Runtime feature flag reading** — app reads flags at startup and gates nav items, routes, and API endpoints accordingly
-- 📋 **KeyHub master Firebase project** — separate Firebase project for the control panel itself
+### Why It's Needed
 
-### Tenant Registry
-- 📋 **Tenant registry schema** — Firestore collection storing all customers: name, domain, tier, features, Firebase project ID, service account key (encrypted), usage stats
-- 📋 **Service account connection layer** — Firebase Admin SDK connections to each tenant's Firebase using stored service account credentials
+Each white-label customer currently has their own Vercel deployment, their own Firebase project, and their own isolated user database. There's no way to manage them centrally without logging into each one individually. The control panel solves this.
 
-### Control Panel UI (`admin.keyhubcentral.com`)
-- 📋 **Tenant list dashboard** — all customers in a table with tier, seat usage, Vapi minutes, status, next billing date
-- 📋 **Tenant detail page** — feature flag toggles, seat management, billing summary, activity log
-- 📋 **Onboarding wizard** — step-by-step flow to add a new white-label customer (see full checklist in `SUPER_ADMIN_PLAN.md`)
-- 📋 **One-click feature flag updates** — flip a module on/off and it takes effect immediately, no redeployment
+### Architecture
 
-### Usage Monitoring
-- 📋 **Vapi minute sync** — scheduled pull of voice usage per tenant with alerts when approaching limits
-- 📋 **Seat usage tracking** — monitor actual active users vs. tier limit (upsell trigger)
-- 📋 **Usage history charts** — monthly usage trends per tenant
+#### The Control Panel App
+- **URL:** `admin.keyhubcentral.com`
+- **Access:** KeyHub team only — completely separate from any tenant
+- **Tech:** Next.js, same stack as the main app
+- **Auth:** KeyHub's own Firebase project (not any tenant's)
 
-### Billing
-- 📋 **Stripe integration** — automated monthly invoicing per tenant based on tier + extra seats + overage
-- 📋 **Bulk actions** — suspend, reactivate, upgrade/downgrade tier
+#### KeyHub Master Firebase — Tenant Registry Schema
+```
+tenants/
+  {tenantId}/
+    name: string
+    domain: string
+    tier: "starter" | "growth" | "business" | "enterprise"
+    status: "active" | "suspended" | "onboarding"
+    firebaseProjectId: string
+    serviceAccountKey: string (encrypted)
+    seats:
+      included: number
+      extra: number
+      total: number
+    billing:
+      monthlyRate: number
+      extraSeatRate: number
+      onboardingFee: number
+      nextBillingDate: timestamp
+    usage:
+      vapiMinutesUsed: number
+      vapiMinutesLimit: number
+      lastSyncedAt: timestamp
+    features:
+      leadEngine: boolean
+      voiceAI: boolean
+      marketplace: boolean
+      predictiveAnalytics: boolean
+      renovationsModule: boolean
+      reportBuilder: boolean
+      emailAutomation: boolean
+      customerPortal: boolean
+    createdAt: timestamp
+    updatedAt: timestamp
+```
+
+#### Feature Flags in Each Tenant's Firestore (Critical)
+Flags must live in the tenant's database — not in code — so the control panel can update them instantly without redeployment.
+```
+config/
+  features/
+    leadEngine: boolean
+    voiceAI: boolean
+    marketplace: boolean
+    predictiveAnalytics: boolean
+    renovationsModule: boolean
+    reportBuilder: boolean
+    emailAutomation: boolean
+    customerPortal: boolean
+```
+
+#### Service Account Per Tenant
+When onboarding a new customer:
+1. Their Firebase project is created
+2. A service account key is generated in their project
+3. The key is stored encrypted in the master registry
+4. The control panel uses this key to read usage data and write feature flag changes to their Firebase
+
+### Module → Feature Flag Mapping
+
+#### Main Branch Tiers — All Features On
+Starter, Growth, Business customers get everything enabled. No flag management needed.
+
+#### Enterprise — Module-Based
+
+| Module | What It Includes | Default |
+|---|---|---|
+| **Core** | Jobs, contractors, scheduling, dispatch, documents, portal | Always on |
+| **Lead Engine** | KD leads, campaigns, bulk import, ROI tracking | Add-on |
+| **Voice & AI** | Vapi inbound/outbound, call center, AI routing | Add-on |
+| **Marketplace** | Cross-dealer labor exchange, bidding | Add-on |
+| **Predictive Analytics** | Revenue forecast, demand forecast, lead predictions | Add-on |
+| **Renovations Module** | KR contracts, e-signature, risk scoring | Add-on |
+| **Report Builder** | Configurable metrics, PDF/CSV export | Add-on |
+| **Email Automation** | Templates, triggers, queue | Add-on |
+| **Customer Portal** | Real-time job tracking, booking, service requests | Add-on |
+
+#### Dependency Rules
+- Voice & AI requires Core (always true)
+- Marketplace requires Core (always true)
+- Lead Engine is standalone
+- Predictive Analytics works better with Lead Engine (warn but don't block)
+
+### Build Order
+
+#### Step 1 — Foundation
+- 📋 Move feature flags from tenant config file into each tenant's Firestore
+- 📋 Update tenant app to read flags from Firestore at runtime
+- 📋 Add flag-based module gating to nav, routes, and API endpoints
+
+#### Step 2 — Tenant Registry
+- 📋 Create KeyHub master Firebase project
+- 📋 Build tenant registry Firestore schema
+- 📋 Build service account connection layer (encrypted key storage + Firebase Admin SDK)
+
+#### Step 3 — Control Panel UI
+- 📋 Tenant list dashboard — all customers, tier, seat usage, Vapi minutes, status, billing date
+- 📋 Tenant detail page — feature flag toggles (instant, no redeploy), seat management, billing summary, activity log
+- 📋 Onboarding wizard (see checklist below)
+- 📋 Seat and billing management
+
+#### Step 4 — Usage Monitoring
+- 📋 Scheduled sync of Vapi minutes per tenant
+- 📋 Seat usage tracking with upsell alerts
+- 📋 Alerts when tenant approaches Vapi minute limit
+- 📋 Usage history charts per tenant
+
+#### Step 5 — Polish
+- 📋 Activity log per tenant
+- 📋 Bulk actions (suspend, reactivate, upgrade/downgrade tier)
+- 📋 Stripe integration for automated monthly invoicing
+
+### White-Label Customer Onboarding Checklist
+
+Complete these steps for every new white-label customer. Covered by the onboarding fee.
+
+#### 1. Initial Setup
+- [ ] Collect company info: name, domain, brand colors, logo files, contact emails
+- [ ] Select tier and confirm feature modules (enterprise) or confirm all-in (main)
+- [ ] Create their Firebase project and enable Firestore, Auth, Storage, Functions
+- [ ] Generate Firebase service account key → store encrypted in tenant registry
+
+#### 2. Configure & Deploy
+- [ ] Run white-label script: `node scripts/white-label.js tenant.json`
+- [ ] Replace placeholder PWA icons in `/public/icons/` with customer logos
+- [ ] Copy `.env.local.template` → `.env.local` and fill in all secrets
+- [ ] Push to Vercel, connect custom domain
+- [ ] Deploy Firestore rules: `npx firebase deploy --only firestore:rules`
+
+#### 3. Email (Resend)
+- [ ] Customer creates Resend account (or KeyHub manages it)
+- [ ] Verify their sending domain in Resend
+- [ ] Add `RESEND_API_KEY` to Vercel env vars
+- [ ] Set `NEXT_PUBLIC_FROM_EMAIL` to their noreply address
+- [ ] Test a transactional email (new user signup flow)
+
+#### 4. Voice / AI (Vapi) — if Voice module enabled
+- [ ] Customer creates Vapi account (or KeyHub manages it)
+- [ ] Purchase phone number in Vapi
+- [ ] Run Vapi setup script: `npx tsx scripts/setup-vapi.mjs`
+- [ ] Add `VAPI_API_KEY`, `VAPI_PHONE_NUMBER_ID`, `VAPI_ASSISTANT_ID` to Vercel env vars
+- [ ] Register phone number with Free Caller Registry, Hiya, and CNAM for caller ID
+- [ ] Test inbound call routing
+
+#### 5. SMS (Telnyx) — if SMS features enabled
+- [ ] Purchase Telnyx number
+- [ ] Add `TELNYX_API_KEY`, `TELNYX_PHONE_NUMBER` to Vercel env vars
+- [ ] Set `SMS_PROVIDER=telnyx`
+- [ ] Test SMS send/receive
+
+#### 6. Lead Integrations — if Lead Engine module enabled
+- [ ] Generate a random webhook secret (e.g. `openssl rand -hex 32`)
+- [ ] Add `LEADSBRIDGE_WEBHOOK_SECRET=<secret>` to Vercel env vars
+- [ ] Provide customer their webhook URL:
+  ```
+  https://theirdomain.com/api/leads/webhook?token=<secret>&campaignId=CAMPAIGN_ID
+  ```
+- [ ] Walk customer through LeadsBridge setup for each ad platform:
+  - Facebook Lead Ads → webhook URL (with their Meta campaign's campaignId)
+  - Google Lead Form → webhook URL (with their Google campaign's campaignId)
+  - TikTok Lead Gen → webhook URL (with their TikTok campaign's campaignId)
+- [ ] Test a lead submission end-to-end (verify it appears in their KD leads)
+- [ ] Show customer how to create campaigns in KD before going live so campaignId params are ready
+
+#### 7. Google Calendar — if scheduling features enabled
+- [ ] Customer sets up Google OAuth app or uses KeyHub's shared OAuth client
+- [ ] Add `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET` to Vercel env vars
+- [ ] Test calendar sync
+
+#### 8. Final Checks
+- [ ] Create owner account and confirm role-based access works
+- [ ] Seed sample data if requested
+- [ ] Confirm PWA installs correctly on mobile (iOS + Android)
+- [ ] Confirm custom domain SSL is active
+- [ ] Add tenant to KeyHub super-admin registry
+- [ ] Set feature flags in registry to match their tier
+- [ ] Hand off login credentials and documentation
 
 ---
 
@@ -235,6 +400,5 @@ Extra seats: $75/seat. AI voice overage: $0.12/min.
 
 ---
 
-*For white-label onboarding checklist and control panel architecture, see `SUPER_ADMIN_PLAN.md`*
 *For voice AI feature details, see `VOICE_ENHANCEMENTS.md`*
 *For pricing breakdown and competitive analysis, see `PRICING.md`*
