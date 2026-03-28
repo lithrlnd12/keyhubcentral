@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { createLeadsBatch } from '@/lib/firebase/leads';
+import { getCampaigns } from '@/lib/firebase/campaigns';
 import { ParsedLead, LeadImportParseResponse } from '@/types/leadImport';
-import { LeadSource, LeadQuality } from '@/types/lead';
+import { LeadSource, LeadQuality, Campaign } from '@/types/lead';
 import { X, Upload, FileText, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface LeadImportModalProps {
@@ -31,6 +32,14 @@ export function LeadImportModal({ isOpen, onClose, onImportComplete }: LeadImpor
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
+
+  useEffect(() => {
+    if (isOpen) {
+      getCampaigns().then(setCampaigns).catch(() => setCampaigns([]));
+    }
+  }, [isOpen]);
 
   const reset = useCallback(() => {
     setFile(null);
@@ -39,6 +48,7 @@ export function LeadImportModal({ isOpen, onClose, onImportComplete }: LeadImpor
     setParseResult(null);
     setSelectedLeads(new Set());
     setError(null);
+    setSelectedCampaignId('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -162,7 +172,7 @@ export function LeadImportModal({ isOpen, onClose, onImportComplete }: LeadImpor
         .filter((_, i) => selectedLeads.has(i))
         .map((parsed) => ({
           source: (parsed.source || 'other') as LeadSource,
-          campaignId: null,
+          campaignId: selectedCampaignId || null,
           market: parsed.market || '',
           trade: parsed.trade || '',
           customer: {
@@ -330,6 +340,30 @@ export function LeadImportModal({ isOpen, onClose, onImportComplete }: LeadImpor
                 <Button variant="ghost" size="sm" onClick={reset}>
                   Upload different file
                 </Button>
+              </div>
+
+              {/* Campaign Assignment */}
+              <div className="bg-gray-800 rounded-lg p-4">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Assign to Campaign <span className="text-gray-500 font-normal">(optional)</span>
+                </label>
+                <select
+                  value={selectedCampaignId}
+                  onChange={(e) => setSelectedCampaignId(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold focus:border-transparent"
+                >
+                  <option value="">— No campaign —</option>
+                  {campaigns.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.platform.replace('_', ' ')})
+                    </option>
+                  ))}
+                </select>
+                {selectedCampaignId && (
+                  <p className="text-xs text-brand-gold mt-1">
+                    All imported leads will be tagged to this campaign for ROI tracking.
+                  </p>
+                )}
               </div>
 
               {/* Duplicate Warnings */}
