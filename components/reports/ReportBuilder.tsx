@@ -53,7 +53,7 @@ const SOURCE_OPTIONS = [
 ];
 
 const GROUP_BY_OPTIONS = [
-  { value: '', label: 'None' },
+  { value: '', label: 'No Grouping' },
   { value: 'month', label: 'Month' },
   { value: 'week', label: 'Week' },
   { value: 'status', label: 'Status' },
@@ -63,6 +63,27 @@ const GROUP_BY_OPTIONS = [
   { value: 'trade', label: 'Trade' },
   { value: 'salesRep', label: 'Sales Rep' },
 ];
+
+const DATE_PRESETS = [
+  { label: '7d', days: 7 },
+  { label: '30d', days: 30 },
+  { label: '90d', days: 90 },
+  { label: 'YTD', days: 0 },
+];
+
+function applyDatePreset(preset: { label: string; days: number }) {
+  const end = new Date();
+  const start = new Date();
+  if (preset.label === 'YTD') {
+    start.setMonth(0, 1);
+  } else {
+    start.setDate(start.getDate() - preset.days);
+  }
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+  };
+}
 
 const OPERATOR_OPTIONS = [
   { value: '==', label: '=' },
@@ -307,9 +328,9 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Report Name & Description */}
-      <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-4 space-y-4">
+      <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label="Report Name"
@@ -326,45 +347,67 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
         </div>
       </div>
 
-      {/* Date Range */}
+      {/* Date Range + Group By — compact single row */}
       <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-4">
-        <h4 className="text-sm font-medium text-gray-300 mb-3">Date Range</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-medium text-gray-300">Date Range &amp; Grouping</h4>
+          <div className="flex gap-1">
+            {DATE_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                onClick={() => setDateRange(applyDatePreset(preset))}
+                className="px-2.5 py-1 text-xs font-medium rounded-md bg-gray-800 text-gray-400 hover:bg-brand-gold/10 hover:text-brand-gold border border-gray-700 hover:border-brand-gold/40 transition-colors"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Input
             label="Start Date"
             type="date"
             value={dateRange.start}
-            onChange={(e) =>
-              setDateRange((prev) => ({ ...prev, start: e.target.value }))
-            }
+            onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value }))}
           />
           <Input
             label="End Date"
             type="date"
             value={dateRange.end}
-            onChange={(e) =>
-              setDateRange((prev) => ({ ...prev, end: e.target.value }))
-            }
+            onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value }))}
           />
+          <div className="col-span-2">
+            <Select
+              label="Group By"
+              options={GROUP_BY_OPTIONS}
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as GroupBy | '')}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Metric Picker */}
+      {/* Metric Picker — source tabs + full-width metric grid */}
       <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-4">
         <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-brand-gold" />
           Metrics
+          {metrics.length > 0 && (
+            <span className="ml-1 text-xs font-normal text-gray-500">
+              ({metrics.length} selected)
+            </span>
+          )}
         </h4>
 
         {/* Selected Metrics */}
         {metrics.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-gray-800">
             {metrics.map((m, i) => (
               <span
                 key={`${m.source}-${m.field}-${i}`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-gold/10 text-brand-gold text-sm rounded-lg border border-brand-gold/30"
               >
-                <span className="text-xs text-gray-400">{m.source}:</span>
+                <span className="text-xs text-gray-500 capitalize">{m.source}:</span>
                 {m.label}
                 <button
                   onClick={() => removeMetric(i)}
@@ -377,41 +420,48 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
           </div>
         )}
 
-        {/* Add Metric */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Select
-            label="Source"
-            options={SOURCE_OPTIONS}
-            value={pickerSource}
-            onChange={(e) => setPickerSource(e.target.value as MetricSource)}
-          />
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-300 mb-1.5">
-              Available Metrics
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {availableMetricsForSource.map((def) => {
-                const alreadyAdded = metrics.some(
-                  (m) => m.source === pickerSource && m.field === def.field
-                );
-                return (
-                  <button
-                    key={def.field}
-                    onClick={() => addMetric(def)}
-                    disabled={alreadyAdded}
-                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                      alreadyAdded
-                        ? 'border-gray-700 text-gray-600 cursor-not-allowed'
-                        : 'border-gray-600 text-gray-300 hover:border-brand-gold hover:text-brand-gold'
-                    }`}
-                  >
-                    <Plus className="w-3.5 h-3.5 inline mr-1" />
-                    {def.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        {/* Source tab pills */}
+        <div className="flex gap-1 mb-4 p-1 bg-gray-900/60 rounded-lg w-full">
+          {SOURCE_OPTIONS.map((src) => (
+            <button
+              key={src.value}
+              onClick={() => setPickerSource(src.value as MetricSource)}
+              className={`flex-1 px-2 py-1.5 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                pickerSource === src.value
+                  ? 'bg-brand-gold text-black shadow'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              {src.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Available metrics — full-width wrapping grid */}
+        <div className="flex flex-wrap gap-2">
+          {availableMetricsForSource.length === 0 && (
+            <p className="text-sm text-gray-500">No metrics available for this source.</p>
+          )}
+          {availableMetricsForSource.map((def) => {
+            const alreadyAdded = metrics.some(
+              (m) => m.source === pickerSource && m.field === def.field
+            );
+            return (
+              <button
+                key={def.field}
+                onClick={() => addMetric(def)}
+                disabled={alreadyAdded}
+                className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
+                  alreadyAdded
+                    ? 'border-brand-gold/30 bg-brand-gold/5 text-brand-gold/50 cursor-not-allowed'
+                    : 'border-gray-700 text-gray-300 hover:border-brand-gold hover:text-brand-gold hover:bg-brand-gold/5'
+                }`}
+              >
+                {!alreadyAdded && <Plus className="w-3.5 h-3.5 inline mr-1 opacity-70" />}
+                {def.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -421,6 +471,9 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
           <h4 className="text-sm font-medium text-gray-300 flex items-center gap-2">
             <Filter className="w-4 h-4 text-brand-gold" />
             Filters
+            {filters.length > 0 && (
+              <span className="text-xs text-gray-500">({filters.length} active)</span>
+            )}
           </h4>
           <Button size="sm" variant="ghost" onClick={addFilter}>
             <Plus className="w-4 h-4 mr-1" />
@@ -429,7 +482,7 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
         </div>
 
         {filters.length === 0 && (
-          <p className="text-sm text-gray-500">No filters applied.</p>
+          <p className="text-sm text-gray-600 italic">No filters — showing all records in date range.</p>
         )}
 
         <div className="space-y-2">
@@ -443,15 +496,13 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
                 className="flex-1"
               />
               <Select
-                label={i === 0 ? 'Operator' : undefined}
+                label={i === 0 ? 'Op' : undefined}
                 options={OPERATOR_OPTIONS}
                 value={filter.operator}
                 onChange={(e) =>
-                  updateFilter(i, {
-                    operator: e.target.value as ReportFilter['operator'],
-                  })
+                  updateFilter(i, { operator: e.target.value as ReportFilter['operator'] })
                 }
-                className="w-24"
+                className="w-20"
               />
               <Input
                 label={i === 0 ? 'Value' : undefined}
@@ -471,18 +522,33 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
         </div>
       </div>
 
-      {/* Group By */}
-      <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-4">
-        <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
-          <Layers className="w-4 h-4 text-brand-gold" />
-          Group By
-        </h4>
-        <Select
-          options={GROUP_BY_OPTIONS}
-          value={groupBy}
-          onChange={(e) => setGroupBy(e.target.value as GroupBy | '')}
-          placeholder="No grouping"
-        />
+      {/* Actions row — always visible at top of output area */}
+      <div className="flex flex-wrap items-center gap-3 py-2">
+        <Button onClick={handleRun} loading={running} disabled={running}>
+          <Play className="w-4 h-4 mr-2" />
+          Run Report
+        </Button>
+        <Button variant="outline" onClick={handleSave} loading={saving} disabled={saving}>
+          <Save className="w-4 h-4 mr-2" />
+          Save
+        </Button>
+        {result && (
+          <>
+            <Button variant="outline" onClick={handleExportCSV}>
+              <Download className="w-4 h-4 mr-2" />
+              CSV
+            </Button>
+            <Button variant="outline" onClick={handleExportPDF} loading={pdfLoading} disabled={pdfLoading}>
+              <FileText className="w-4 h-4 mr-2" />
+              PDF
+            </Button>
+          </>
+        )}
+        {result && (
+          <span className="ml-auto text-xs text-gray-500">
+            Generated {new Date(result.generatedAt).toLocaleString()}
+          </span>
+        )}
       </div>
 
       {/* Error */}
@@ -494,9 +560,12 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
 
       {/* Results */}
       {result && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-4">
-            <h4 className="text-sm font-medium text-gray-300 mb-4">Chart</h4>
+            <h4 className="text-sm font-medium text-gray-300 mb-4 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-brand-gold" />
+              Chart
+            </h4>
             <ReportChart
               result={result}
               config={{
@@ -514,11 +583,9 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
           </div>
 
           <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-4">
-            <h4 className="text-sm font-medium text-gray-300 mb-4">
-              Results
-              <span className="ml-2 text-xs text-gray-500">
-                Generated {new Date(result.generatedAt).toLocaleString()}
-              </span>
+            <h4 className="text-sm font-medium text-gray-300 mb-4 flex items-center gap-2">
+              <Layers className="w-4 h-4 text-brand-gold" />
+              Data Table
             </h4>
             <ReportResultsTable
               result={result}
@@ -537,30 +604,6 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
           </div>
         </div>
       )}
-
-      {/* Actions */}
-      <div className="flex flex-wrap gap-3">
-        <Button onClick={handleRun} loading={running} disabled={running}>
-          <Play className="w-4 h-4 mr-2" />
-          Run Report
-        </Button>
-        <Button variant="outline" onClick={handleSave} loading={saving} disabled={saving}>
-          <Save className="w-4 h-4 mr-2" />
-          Save Report
-        </Button>
-        {result && (
-          <Button variant="outline" onClick={handleExportCSV}>
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
-          </Button>
-        )}
-        {result && (
-          <Button variant="outline" onClick={handleExportPDF} loading={pdfLoading} disabled={pdfLoading}>
-            <FileText className="w-4 h-4 mr-2" />
-            Export PDF
-          </Button>
-        )}
-      </div>
     </div>
   );
 }
