@@ -32,6 +32,140 @@ const ROOT = path.resolve(__dirname, '..');
 
 // ---------- Example / current export ----------
 
+// ---------- Admin registration (keyhub-system) ----------
+
+async function registerTenantInAdmin(cfg) {
+  // Only run if keyhub-system service account path is provided
+  const adminKeyPath = cfg.adminServiceAccountPath || process.env.KEYHUB_ADMIN_SERVICE_ACCOUNT;
+  if (!adminKeyPath) {
+    console.log('  ⚠ No adminServiceAccountPath or KEYHUB_ADMIN_SERVICE_ACCOUNT — skipping admin registration');
+    console.log('    To auto-register, add "adminServiceAccountPath" to your tenant JSON');
+    return false;
+  }
+
+  try {
+    const adminLib = require('firebase-admin');
+    const fsLib = require('fs');
+
+    // Init admin app for keyhub-system
+    const adminKey = JSON.parse(fsLib.readFileSync(adminKeyPath, 'utf8'));
+    const adminApp = adminLib.apps.find(a => a?.name === 'keyhub-admin')
+      || adminLib.initializeApp({ credential: adminLib.credential.cert(adminKey) }, 'keyhub-admin');
+    const adminDb = adminApp.firestore();
+
+    // Check if tenant already exists
+    const existing = await adminDb.collection('tenants')
+      .where('firebaseProjectId', '==', cfg.firebaseProjectId)
+      .get();
+
+    const DEFAULT_FLAGS = {
+      core: true, leadEngine: true, voiceAI: true, communications: true,
+      marketplace: true, reportBuilder: true, presentationBuilder: true,
+      predictiveAnalytics: true, smartScheduling: true, customerPortal: true,
+      contracts: true, remoteSignature: true, financials: true,
+      emailAutomation: true, webhooksAPI: true, callCenter: true,
+      riskScoring: true, offlinePWA: true, inventory: true,
+    };
+
+    // Apply tier-based defaults if specified
+    const flags = { ...DEFAULT_FLAGS };
+    if (cfg.disabledModules && Array.isArray(cfg.disabledModules)) {
+      for (const mod of cfg.disabledModules) {
+        if (mod in flags && mod !== 'core') flags[mod] = false;
+      }
+    }
+
+    const tenantData = {
+      name: cfg.appName,
+      domain: cfg.domain,
+      tier: cfg.tier || 'enterprise',
+      status: cfg.tenantStatus || 'onboarding',
+      firebaseProjectId: cfg.firebaseProjectId,
+      featureFlags: flags,
+      contacts: {
+        primary: {
+          name: cfg.primaryContactName || cfg.adminEmails[0],
+          email: cfg.primaryContactEmail || cfg.adminEmails[0],
+          phone: cfg.phone || '',
+        },
+      },
+      billing: {
+        platformFee: cfg.platformFee || 0,
+        perSeatFee: cfg.perSeatFee || 0,
+        voiceRate: cfg.voiceRate || 0.20,
+        smsRate: cfg.smsRate || 0.02,
+        seatCount: cfg.seatCount || 0,
+        contractStartDate: cfg.contractStartDate || new Date().toISOString().split('T')[0],
+      },
+      updatedAt: adminLib.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Store tenant's service account key if provided
+    if (cfg.tenantServiceAccountPath) {
+      tenantData.serviceAccountKey = fsLib.readFileSync(cfg.tenantServiceAccountPath, 'utf8');
+    }
+
+    if (!existing.empty) {
+      // Update existing tenant
+      await existing.docs[0].ref.update(tenantData);
+      ok(`Updated tenant in keyhub-admin: ${cfg.appName} (${existing.docs[0].id})`);
+    } else {
+      // Create new tenant
+      tenantData.createdAt = adminLib.firestore.FieldValue.serverTimestamp();
+      const ref = await adminDb.collection('tenants').add(tenantData);
+      ok(`Registered tenant in keyhub-admin: ${cfg.appName} (${ref.id})`);
+    }
+
+    return true;
+  } catch (err) {
+    console.error('  ⚠ Admin registration failed:', err.message);
+    return false;
+  }
+}
+
+async function seedFeatureFlags(cfg) {
+  // Seed config/features in the TENANT's Firestore
+  const tenantKeyPath = cfg.tenantServiceAccountPath;
+  if (!tenantKeyPath) {
+    console.log('  ⚠ No tenantServiceAccountPath — skipping feature flag seeding');
+    console.log('    Run: node scripts/seed-feature-flags.js manually after setting up credentials');
+    return false;
+  }
+
+  try {
+    const adminLib = require('firebase-admin');
+    const fsLib = require('fs');
+
+    const tenantKey = JSON.parse(fsLib.readFileSync(tenantKeyPath, 'utf8'));
+    const tenantApp = adminLib.apps.find(a => a?.name === 'tenant-seed')
+      || adminLib.initializeApp({ credential: adminLib.credential.cert(tenantKey) }, 'tenant-seed');
+    const tenantDb = tenantApp.firestore();
+
+    const DEFAULT_FLAGS = {
+      core: true, leadEngine: true, voiceAI: true, communications: true,
+      marketplace: true, reportBuilder: true, presentationBuilder: true,
+      predictiveAnalytics: true, smartScheduling: true, customerPortal: true,
+      contracts: true, remoteSignature: true, financials: true,
+      emailAutomation: true, webhooksAPI: true, callCenter: true,
+      riskScoring: true, offlinePWA: true, inventory: true,
+    };
+
+    const flags = { ...DEFAULT_FLAGS };
+    if (cfg.disabledModules && Array.isArray(cfg.disabledModules)) {
+      for (const mod of cfg.disabledModules) {
+        if (mod in flags && mod !== 'core') flags[mod] = false;
+      }
+    }
+
+    await tenantDb.collection('config').doc('features').set(flags, { merge: true });
+    ok(`Seeded config/features in tenant Firestore (${cfg.firebaseProjectId})`);
+    return true;
+  } catch (err) {
+    console.error('  ⚠ Feature flag seeding failed:', err.message);
+    return false;
+  }
+}
+
 const EXAMPLE = {
   appName: 'Acme Pro',
   shortName: 'Acme',
@@ -70,6 +204,21 @@ const EXAMPLE = {
     background: '#0F172A',
     surface: '#1E293B',
   },
+  // Optional — Admin registration (keyhub-system)
+  // adminServiceAccountPath: '/path/to/keyhub-system-service-account.json',
+  // tenantServiceAccountPath: '/path/to/tenant-firebase-service-account.json',
+  // tier: 'enterprise',          // regional | mid-market | enterprise
+  // tenantStatus: 'onboarding',  // active | pilot | onboarding
+  // primaryContactName: 'John Smith',
+  // primaryContactEmail: 'john@acmepro.com',
+  // platformFee: 8000,           // monthly
+  // perSeatFee: 30,
+  // voiceRate: 0.20,             // per minute
+  // smsRate: 0.02,               // per message
+  // seatCount: 50,
+  // contractStartDate: '2026-04-01',
+  // disabledModules: ['marketplace', 'predictiveAnalytics'],  // modules to turn OFF
+
   // Optional — VAPI AI voice config
   vapi: {
     webhookUrl: 'https://acmepro.com/api/webhooks/vapi',
@@ -666,7 +815,12 @@ if (updateVapiConfig(cfg)) {
   console.log('  ⚠ VAPI config provided but webhookUrl is missing or setup-vapi.mjs not found — skipped');
 }
 
-console.log(`
+// Register tenant in keyhub-admin and seed feature flags (async)
+(async () => {
+  const registered = await registerTenantInAdmin(cfg);
+  const seeded = await seedFeatureFlags(cfg);
+
+  console.log(`
 \x1b[1m\x1b[32mDone!\x1b[0m Config updated for \x1b[1m${cfg.appName}\x1b[0m.
 
 \x1b[1mFiles updated:\x1b[0m
@@ -706,6 +860,7 @@ console.log(`
 
 \x1b[1m🔒 Firestore Security Rules (Enterprise Collections):\x1b[0m
   14. Update firestore.rules to add rules for these new collections:
+      • config                 (feature flags — authenticated read, owner write)
       • remoteSigningSessions  (public read via token, admin write)
       • emailQueue             (admin read/write, cron processing)
       • emailTemplates         (admin read/write)
@@ -717,6 +872,14 @@ console.log(`
       • savedReports           (admin read/write)
   15. Deploy rules: npx firebase deploy --only firestore:rules
 
+\x1b[1m🏢 System Admin Registration:\x1b[0m${registered ? '\n  ✅ Tenant registered in keyhub-admin' : `
+  16. Add to tenant JSON:
+      "adminServiceAccountPath": "/path/to/keyhub-system-service-account.json"
+      "tenantServiceAccountPath": "/path/to/tenant-firebase-service-account.json"
+      Then re-run this script to auto-register.`}
+${seeded ? '  ✅ Feature flags seeded in tenant Firestore' : `  17. Seed feature flags: GOOGLE_APPLICATION_CREDENTIALS=./service-account.json node scripts/seed-feature-flags.js`}
+
 \x1b[1m⚠ Note:\x1b[0m A2P 10DLC registration is for SMS only, NOT voice calls.
   Voice spam prevention uses CNAM + Free Caller Registry + Hiya.
 `);
+})();
