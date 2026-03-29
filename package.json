@@ -22,6 +22,7 @@
     "@t3-oss/env-nextjs": "^0.13.10",
     "@types/nodemailer": "^7.0.4",
     "clsx": "^2.1.1",
+    "docx": "^9.6.1",
     "firebase": "^12.7.0",
     "firebase-admin": "^13.6.0",
     "googleapis": "^140.0.1",

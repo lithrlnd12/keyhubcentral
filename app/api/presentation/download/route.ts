@@ -28,16 +28,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const blob = await buildPresentationPptx(config, result, slideContent);
-    const buffer = Buffer.from(await blob.arrayBuffer());
+    const nodeBuffer = await buildPresentationPptx(config, result, slideContent);
     const filename = `${(config.name || 'presentation').replace(/[^a-z0-9]/gi, '_')}.pptx`;
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(nodeBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Length': buffer.length.toString(),
+        'Content-Length': nodeBuffer.length.toString(),
       },
     });
   } catch (err) {

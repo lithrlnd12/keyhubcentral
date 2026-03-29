@@ -61,8 +61,9 @@ export async function POST(request: NextRequest) {
 
     await sessionRef.set(session);
 
-    // Build signing URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://keyhubcentral.com';
+    // Build signing URL — prefer NEXT_PUBLIC_APP_URL, fall back to Vercel system URL
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://keyhubcentral.com');
     const signingUrl = `${appUrl}/sign/${token}`;
 
     // Sanitize recipient name for HTML

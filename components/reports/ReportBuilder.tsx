@@ -64,6 +64,8 @@ const GROUP_BY_OPTIONS = [
   { value: 'market', label: 'Market' },
   { value: 'trade', label: 'Trade' },
   { value: 'salesRep', label: 'Sales Rep' },
+  { value: 'product', label: 'Product' },
+  { value: 'color', label: 'Color' },
 ];
 
 const DATE_PRESETS = [
@@ -256,7 +258,7 @@ export function ReportBuilder({ initialConfig }: ReportBuilderProps) {
     try {
       await saveReport({
         name: reportName.trim(),
-        description: description.trim() || undefined,
+        description: description.trim() || '',
         metrics,
         dateRange,
         filters,

@@ -81,3 +81,6 @@ export {
   getEventsForDate,
 } from './useGoogleCalendarEvents';
 export type { GoogleCalendarEvent } from './useGoogleCalendarEvents';
+
+// Feature flags
+export { useFeatureFlags } from './useFeatureFlags';

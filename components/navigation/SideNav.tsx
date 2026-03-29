@@ -35,12 +35,13 @@ import {
   Webhook,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
-import { useAuth, useNewCallsCount } from '@/lib/hooks';
+import { useAuth, useNewCallsCount, useFeatureFlags } from '@/lib/hooks';
 import { useUnreadMessageCount } from '@/lib/hooks/useMessages';
 import { useSidebar } from '@/lib/contexts';
 import { cn } from '@/lib/utils';
 import { canManageUsers, canViewFinancials, canManageCampaigns, canManagePartnerRequests, isPartner, canViewInventory, UserRole } from '@/types/user';
 import { tenant } from '@/lib/config/tenant';
+import type { FeatureFlags } from '@/types/featureFlags';
 
 // Role helpers
 const isContractor = (role: UserRole): boolean => role === 'contractor';
@@ -57,6 +58,7 @@ interface NavItem {
   permission?: (role: UserRole) => boolean;
   badgeKey?: 'newCalls' | 'unreadMessages';
   section: 'main' | 'work' | 'communicate' | 'finance' | 'admin';
+  featureFlag?: keyof FeatureFlags;
 }
 
 const navItems: NavItem[] = [
@@ -69,20 +71,20 @@ const navItems: NavItem[] = [
 
   // ── WORK ──
   { label: tenant.entities.kts.label, href: '/kts', icon: Wrench, permission: isInternalStaff, section: 'work' },
-  { label: 'Calls', href: '/kts/calls', icon: Phone, permission: isInternalStaff, badgeKey: 'newCalls', section: 'work' },
-  { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work' },
-  { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work' },
-  { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff, section: 'work' },
-  { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: canManageCampaigns, section: 'work' },
+  { label: 'Calls', href: '/kts/calls', icon: Phone, permission: isInternalStaff, badgeKey: 'newCalls', section: 'work', featureFlag: 'callCenter' },
+  { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work', featureFlag: 'inventory' },
+  { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work', featureFlag: 'inventory' },
+  { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff, section: 'work', featureFlag: 'contracts' },
+  { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: canManageCampaigns, section: 'work', featureFlag: 'leadEngine' },
   { label: 'Calendar', href: '/calendar', icon: Calendar, permission: isInternalStaff, section: 'work' },
-  { label: 'Smart Schedule', href: '/calendar/smart-schedule', icon: Zap, permission: (r) => ['owner', 'admin', 'pm'].includes(r), section: 'work' },
-  { label: 'Marketplace', href: '/kts/marketplace', icon: Store, permission: (r) => ['owner', 'admin', 'pm'].includes(r), section: 'work' },
+  { label: 'Smart Schedule', href: '/calendar/smart-schedule', icon: Zap, permission: (r) => ['owner', 'admin', 'pm'].includes(r), section: 'work', featureFlag: 'smartScheduling' },
+  { label: 'Marketplace', href: '/kts/marketplace', icon: Store, permission: (r) => ['owner', 'admin', 'pm'].includes(r), section: 'work', featureFlag: 'marketplace' },
   // Contractor work
   { label: 'Available Jobs', href: '/portal/leads', icon: Target, permission: isContractor, section: 'work' },
   { label: 'Calendar', href: '/portal/calendar', icon: Calendar, permission: isContractor, section: 'work' },
   { label: 'My Jobs', href: '/portal/jobs', icon: Briefcase, permission: isContractor, section: 'work' },
-  { label: 'Inventory', href: '/portal/inventory', icon: Package, permission: isContractor, section: 'work' },
-  { label: 'Marketplace', href: '/portal/marketplace', icon: Store, permission: isContractor, section: 'work' },
+  { label: 'Inventory', href: '/portal/inventory', icon: Package, permission: isContractor, section: 'work', featureFlag: 'inventory' },
+  { label: 'Marketplace', href: '/portal/marketplace', icon: Store, permission: isContractor, section: 'work', featureFlag: 'marketplace' },
   // Partner work
   { label: 'Labor Requests', href: '/partner/labor-requests', icon: Wrench, permission: isPartner, section: 'work' },
   { label: 'Service Tickets', href: '/partner/service-tickets', icon: ClipboardList, permission: isPartner, section: 'work' },
@@ -90,25 +92,25 @@ const navItems: NavItem[] = [
   // Subscriber work
   { label: 'Subscription', href: '/subscriber/subscription', icon: CreditCard, permission: isSubscriber, section: 'work' },
   // Customer work
-  { label: 'Find Pros', href: '/customer/find', icon: Target, permission: isCustomerRole, section: 'work' },
-  { label: 'My Projects', href: '/customer/projects', icon: Briefcase, permission: isCustomerRole, section: 'work' },
-  { label: 'Book a Pro', href: '/customer/book', icon: ClipboardList, permission: isCustomerRole, section: 'work' },
+  { label: 'Find Pros', href: '/customer/find', icon: Target, permission: isCustomerRole, section: 'work', featureFlag: 'customerPortal' },
+  { label: 'My Projects', href: '/customer/projects', icon: Briefcase, permission: isCustomerRole, section: 'work', featureFlag: 'customerPortal' },
+  { label: 'Book a Pro', href: '/customer/book', icon: ClipboardList, permission: isCustomerRole, section: 'work', featureFlag: 'customerPortal' },
 
   // ── COMMUNICATE ──
-  { label: 'Messages', href: '/messages', icon: MessageSquare, badgeKey: 'unreadMessages', section: 'communicate' },
+  { label: 'Messages', href: '/messages', icon: MessageSquare, badgeKey: 'unreadMessages', section: 'communicate', featureFlag: 'communications' },
 
   // ── FINANCE ──
-  { label: 'Financials', href: '/financials', icon: FileText, permission: canViewFinancials, section: 'finance' },
-  { label: 'Financials', href: '/portal/financials', icon: DollarSign, permission: isContractor, section: 'finance' },
+  { label: 'Financials', href: '/financials', icon: FileText, permission: canViewFinancials, section: 'finance', featureFlag: 'financials' },
+  { label: 'Financials', href: '/portal/financials', icon: DollarSign, permission: isContractor, section: 'finance', featureFlag: 'financials' },
 
   // ── ADMIN ──
   { label: 'Partners', href: '/admin/partners', icon: Briefcase, permission: canManagePartnerRequests, section: 'admin' },
   { label: 'Partner Requests', href: '/admin/partner-requests', icon: Users, permission: canManagePartnerRequests, section: 'admin' },
   { label: 'Job History', href: '/admin/job-history', icon: FolderOpen, permission: canManageUsers, section: 'admin' },
-  { label: 'Reports', href: '/admin/reports', icon: BarChart3, permission: canManageUsers, section: 'admin' },
-  { label: 'Analytics', href: '/admin/analytics', icon: Brain, permission: canManageUsers, section: 'admin' },
-  { label: 'Email', href: '/settings/email', icon: Mail, permission: canManageUsers, section: 'admin' },
-  { label: 'Webhooks', href: '/settings/webhooks', icon: Webhook, permission: canManageUsers, section: 'admin' },
+  { label: 'Reports', href: '/admin/reports', icon: BarChart3, permission: canManageUsers, section: 'admin', featureFlag: 'reportBuilder' },
+  { label: 'Analytics', href: '/admin/analytics', icon: Brain, permission: canManageUsers, section: 'admin', featureFlag: 'predictiveAnalytics' },
+  { label: 'Email', href: '/settings/email', icon: Mail, permission: canManageUsers, section: 'admin', featureFlag: 'emailAutomation' },
+  { label: 'Webhooks', href: '/settings/webhooks', icon: Webhook, permission: canManageUsers, section: 'admin', featureFlag: 'webhooksAPI' },
   { label: 'Admin', href: '/admin', icon: Settings, permission: canManageUsers, section: 'admin' },
 ];
 
@@ -141,15 +143,20 @@ export function SideNav() {
   const { isCollapsed, isMobileOpen, toggleCollapsed, closeMobile } = useSidebar();
   const { count: newCallsCount } = useNewCallsCount();
   const unreadMessages = useUnreadMessageCount();
+  const { flags } = useFeatureFlags();
 
   const badgeCounts: Record<string, number> = {
     newCalls: newCallsCount,
     unreadMessages,
   };
 
-  const filteredNavItems = navItems.filter(
-    (item) => !item.permission || (user?.role && item.permission(user.role))
-  );
+  const filteredNavItems = navItems.filter((item) => {
+    // Check role permission
+    if (item.permission && (!user?.role || !item.permission(user.role))) return false;
+    // Check feature flag
+    if (item.featureFlag && !flags[item.featureFlag]) return false;
+    return true;
+  });
 
   const filteredFooterItems = footerItems.filter(
     (item) => !item.permission || (user?.role && item.permission(user.role))

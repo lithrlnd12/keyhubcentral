@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Presentation, Sparkles, Download, ChevronRight } from 'lucide-react';
+import { X, Presentation, Sparkles, Download, ChevronRight, ChevronLeft, BarChart3, PieChart, TrendingUp, Table2, Lightbulb, Quote } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { ReportConfig, ReportResult } from '@/types/report';
 import type { PresentationSlideContent } from '@/app/api/ai/presentation/route';
@@ -217,76 +217,317 @@ export function PresentationBuilder({ config, result, onClose }: PresentationBui
             </div>
           )}
 
-          {/* Ready state */}
+          {/* Ready state — Slide Preview */}
           {step === 'ready' && slideContent && (
-            <div className="space-y-4">
-              {/* Preview of generated content */}
-              <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-4 space-y-3">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Title</p>
-                  <p className="text-white font-semibold">{slideContent.title}</p>
-                  <p className="text-sm text-brand-gold">{slideContent.subtitle}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Executive Summary</p>
-                  <ul className="space-y-1">
-                    {slideContent.executiveSummary.map((b, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-gold flex-shrink-0" />
-                        {b}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Insights</p>
-                    <ol className="space-y-1">
-                      {slideContent.insights.map((ins, i) => (
-                        <li key={i} className="text-xs text-gray-400">
-                          <span className="text-brand-gold font-bold mr-1">{i + 1}.</span>
-                          {ins}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Recommendations</p>
-                    <ol className="space-y-1">
-                      {slideContent.recommendations.map((rec, i) => (
-                        <li key={i} className="text-xs text-gray-400">
-                          <span className="text-brand-gold font-bold mr-1">{i + 1}.</span>
-                          {rec}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => { setStep('prompt'); setSlideContent(null); }}
-                  className="flex-1"
-                >
-                  Regenerate
-                </Button>
-                <Button
-                  onClick={handleDownload}
-                  loading={downloading}
-                  disabled={downloading}
-                  className="flex-1"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download .pptx
-                </Button>
-              </div>
-            </div>
+            <SlidePreview
+              slideContent={slideContent}
+              config={config}
+              result={result}
+              onRegenerate={() => { setStep('prompt'); setSlideContent(null); }}
+              onDownload={handleDownload}
+              downloading={downloading}
+            />
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Slide Preview Component ──────────────────────────────────────────────────
+
+interface SlidePreviewProps {
+  slideContent: PresentationSlideContent;
+  config: ReportConfig;
+  result: ReportResult;
+  onRegenerate: () => void;
+  onDownload: () => void;
+  downloading: boolean;
+}
+
+function SlidePreview({ slideContent, config, result, onRegenerate, onDownload, downloading }: SlidePreviewProps) {
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  const slides = [
+    { label: 'Title', icon: <Presentation className="w-3.5 h-3.5" /> },
+    { label: 'Summary', icon: <Quote className="w-3.5 h-3.5" /> },
+    { label: 'Key Metrics', icon: <BarChart3 className="w-3.5 h-3.5" /> },
+    { label: 'Bar Chart', icon: <BarChart3 className="w-3.5 h-3.5" /> },
+    { label: 'Distribution', icon: <PieChart className="w-3.5 h-3.5" /> },
+    { label: 'Trends', icon: <TrendingUp className="w-3.5 h-3.5" /> },
+    { label: 'Data Table', icon: <Table2 className="w-3.5 h-3.5" /> },
+    { label: 'Insights', icon: <Lightbulb className="w-3.5 h-3.5" /> },
+    { label: 'Closing', icon: <Presentation className="w-3.5 h-3.5" /> },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Slide navigator */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setActiveSlide((s) => Math.max(0, s - 1))}
+          disabled={activeSlide === 0}
+          className="p-1.5 rounded-md bg-gray-800 text-gray-400 hover:text-white disabled:opacity-30 transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <div className="flex-1 flex gap-1 overflow-x-auto scrollbar-thin">
+          {slides.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveSlide(i)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
+                activeSlide === i
+                  ? 'bg-brand-gold text-brand-black'
+                  : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+              }`}
+            >
+              {s.icon}
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setActiveSlide((s) => Math.min(slides.length - 1, s + 1))}
+          disabled={activeSlide === slides.length - 1}
+          className="p-1.5 rounded-md bg-gray-800 text-gray-400 hover:text-white disabled:opacity-30 transition-colors"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Slide preview area — 16:9 aspect ratio */}
+      <div className="relative bg-gray-950 rounded-xl border border-gray-800 overflow-hidden" style={{ aspectRatio: '16/9' }}>
+        {/* Slide 0: Title */}
+        {activeSlide === 0 && (
+          <div className="absolute inset-0 bg-[#1a1a2e] flex flex-col items-center justify-center p-8">
+            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-brand-gold" />
+            <p className="text-[10px] text-brand-gold tracking-[3px] uppercase mb-8 self-end">
+              {config.name || 'KEYHUB CENTRAL'}
+            </p>
+            <h2 className="text-2xl md:text-3xl font-bold text-white text-center">{slideContent.title}</h2>
+            <p className="text-sm text-brand-gold mt-2 text-center">{slideContent.subtitle}</p>
+            <p className="text-xs text-gray-500 mt-4">
+              {config.dateRange.start} — {config.dateRange.end}
+            </p>
+            <div className="absolute bottom-6 w-24 h-0.5 bg-brand-gold" />
+          </div>
+        )}
+
+        {/* Slide 1: Executive Summary */}
+        {activeSlide === 1 && (
+          <div className="absolute inset-0 bg-white flex flex-col">
+            <div className="bg-[#1a1a2e] px-6 py-3">
+              <h3 className="text-lg font-bold text-white">Executive Summary</h3>
+            </div>
+            <div className="h-0.5 bg-brand-gold" />
+            <div className="flex-1 p-6 space-y-4">
+              {slideContent.executiveSummary.map((b, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-2 h-2 mt-1.5 bg-brand-gold flex-shrink-0" />
+                  <p className="text-sm text-gray-700">{b}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Slide 2: Key Metrics */}
+        {activeSlide === 2 && (
+          <div className="absolute inset-0 bg-white flex flex-col">
+            <div className="bg-[#1a1a2e] px-6 py-3">
+              <h3 className="text-lg font-bold text-white">Key Metrics</h3>
+            </div>
+            <div className="h-0.5 bg-brand-gold" />
+            <div className="flex-1 p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+              {slideContent.kpiNarratives.map((kpi, i) => (
+                <div key={i} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <div className="h-1 bg-brand-gold rounded-full mb-2" />
+                  <p className="text-[9px] text-gray-400 uppercase tracking-wider">{kpi.label}</p>
+                  <p className="text-xl font-bold text-gray-900 mt-1">{kpi.value}</p>
+                  <p className="text-[10px] text-gray-500 mt-2 line-clamp-2">{kpi.narrative}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Slide 3: Bar Chart placeholder */}
+        {activeSlide === 3 && (
+          <div className="absolute inset-0 bg-white flex flex-col">
+            <div className="bg-[#1a1a2e] px-6 py-3">
+              <h3 className="text-lg font-bold text-white">Data by {config.groupBy || 'Category'}</h3>
+            </div>
+            <div className="h-0.5 bg-brand-gold" />
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="flex items-end gap-2 h-32">
+                {(result.data || []).slice(0, 8).map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-8 rounded-t"
+                    style={{
+                      height: `${30 + Math.random() * 70}%`,
+                      backgroundColor: i === 0 ? 'var(--color-brand-gold, #D4A84B)' : '#E5E7EB',
+                      opacity: 0.6 + (i === 0 ? 0.4 : 0),
+                    }}
+                  />
+                ))}
+              </div>
+              <p className="absolute bottom-4 text-xs text-gray-400">Editable native bar chart in PowerPoint</p>
+            </div>
+          </div>
+        )}
+
+        {/* Slide 4: Distribution (Donut) */}
+        {activeSlide === 4 && (
+          <div className="absolute inset-0 bg-white flex flex-col">
+            <div className="bg-[#1a1a2e] px-6 py-3">
+              <h3 className="text-lg font-bold text-white">Distribution Breakdown</h3>
+            </div>
+            <div className="h-0.5 bg-brand-gold" />
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-28 h-28 rounded-full border-[12px] border-brand-gold relative">
+                <div className="absolute inset-0 rounded-full border-[12px] border-blue-500 border-t-transparent border-l-transparent" />
+              </div>
+              <p className="absolute bottom-4 text-xs text-gray-400">Editable native donut chart in PowerPoint</p>
+            </div>
+          </div>
+        )}
+
+        {/* Slide 5: Trends (Line) */}
+        {activeSlide === 5 && (
+          <div className="absolute inset-0 bg-white flex flex-col">
+            <div className="bg-[#1a1a2e] px-6 py-3">
+              <h3 className="text-lg font-bold text-white">Trend Analysis</h3>
+            </div>
+            <div className="h-0.5 bg-brand-gold" />
+            <div className="flex-1 flex items-center justify-center p-6">
+              <svg viewBox="0 0 200 80" className="w-64 h-20">
+                <polyline
+                  points="10,60 40,45 70,50 100,30 130,35 160,20 190,15"
+                  fill="none"
+                  stroke="var(--color-brand-gold, #D4A84B)"
+                  strokeWidth="2.5"
+                  strokeLinejoin="round"
+                />
+                <polyline
+                  points="10,65 40,55 70,58 100,48 130,52 160,42 190,38"
+                  fill="none"
+                  stroke="#3B82F6"
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                  opacity="0.6"
+                />
+              </svg>
+              <p className="absolute bottom-4 text-xs text-gray-400">Editable native line chart in PowerPoint</p>
+            </div>
+          </div>
+        )}
+
+        {/* Slide 6: Data Table */}
+        {activeSlide === 6 && (
+          <div className="absolute inset-0 bg-white flex flex-col">
+            <div className="bg-[#1a1a2e] px-6 py-3">
+              <h3 className="text-lg font-bold text-white">Data Breakdown</h3>
+            </div>
+            <div className="h-0.5 bg-brand-gold" />
+            <div className="flex-1 p-4 overflow-hidden">
+              {result.data.length > 0 ? (
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-[#1a1a2e]">
+                      {Object.keys(result.data[0]).slice(0, 5).map((col) => (
+                        <th key={col} className="px-2 py-1.5 text-white font-bold text-center uppercase text-[9px]">{col}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.data.slice(0, 5).map((row, ri) => (
+                      <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        {Object.values(row).slice(0, 5).map((val, ci) => (
+                          <td key={ci} className="px-2 py-1 text-center text-gray-700 text-[10px]">
+                            {val != null ? String(val) : '—'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-gray-400 text-center mt-8">No data rows to display</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Slide 7: Insights & Recommendations */}
+        {activeSlide === 7 && (
+          <div className="absolute inset-0 bg-white flex flex-col">
+            <div className="bg-[#1a1a2e] px-6 py-3">
+              <h3 className="text-lg font-bold text-white">Insights & Recommendations</h3>
+            </div>
+            <div className="h-0.5 bg-brand-gold" />
+            <div className="flex-1 p-4 grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div className="bg-[#1a1a2e] rounded px-2 py-1 mb-2">
+                  <p className="text-[9px] text-brand-gold font-bold tracking-wider text-center">KEY INSIGHTS</p>
+                </div>
+                {slideContent.insights.map((ins, i) => (
+                  <div key={i} className="flex items-start gap-2 mb-2">
+                    <div className="w-0.5 h-6 bg-brand-gold flex-shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-gray-600">{ins}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div className="bg-brand-gold rounded px-2 py-1 mb-2">
+                  <p className="text-[9px] text-[#1a1a2e] font-bold tracking-wider text-center">RECOMMENDATIONS</p>
+                </div>
+                {slideContent.recommendations.map((rec, i) => (
+                  <div key={i} className="flex items-start gap-2 mb-2">
+                    <span className="w-4 h-4 rounded-full bg-[#1a1a2e] text-white text-[8px] flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">{i + 1}</span>
+                    <p className="text-[10px] text-gray-600">{rec}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Slide 8: Closing */}
+        {activeSlide === 8 && (
+          <div className="absolute inset-0 bg-[#1a1a2e] flex flex-col items-center justify-center p-8">
+            <p className="text-lg font-bold text-white text-center max-w-lg">{slideContent.closingStatement}</p>
+            <div className="w-16 h-0.5 bg-brand-gold mt-4" />
+            <p className="text-sm font-bold text-brand-gold mt-3">{config.name || 'KeyHub Central'}</p>
+            <div className="absolute bottom-0 left-0 right-0 h-4 bg-brand-gold" />
+          </div>
+        )}
+
+        {/* Slide number badge */}
+        <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/50 rounded text-[10px] text-gray-400">
+          {activeSlide + 1} / {slides.length}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-3">
+        <Button
+          variant="outline"
+          onClick={onRegenerate}
+          className="flex-1"
+        >
+          Regenerate
+        </Button>
+        <Button
+          onClick={onDownload}
+          loading={downloading}
+          disabled={downloading}
+          className="flex-1"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Download .pptx
+        </Button>
       </div>
     </div>
   );

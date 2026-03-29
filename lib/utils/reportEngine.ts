@@ -326,6 +326,10 @@ function getGroupKey(
       return String(item.trade || 'Unknown');
     case 'salesRep':
       return String(item.salesRepId || item.assignedTo || 'Unassigned');
+    case 'product':
+      return String(item.productName || item.product || item.itemName || item.name || 'Unknown');
+    case 'color':
+      return String(item.color || item.productColor || 'Unknown');
     default:
       return 'All';
   }

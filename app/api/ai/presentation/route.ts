@@ -52,9 +52,18 @@ export async function POST(request: NextRequest) {
     )
     .join('\n');
 
-  const systemPrompt = `You are a business intelligence analyst who creates executive presentations.
+  const systemPrompt = `You are a business intelligence analyst who creates executive PowerPoint presentations.
 You receive report data and a user prompt, and return structured slide content as JSON.
-Be concise, professional, and data-driven. Use the actual numbers from the report in your narratives.
+
+IMPORTANT: This content will be exported as an editable .pptx PowerPoint file with native charts (bar, donut, line).
+Design your content for PowerPoint slide constraints:
+- Titles: punchy, max 8 words — they appear in large bold text on dark header bars
+- KPI values: use formatted numbers ($12.5K, 87%, 142) — they render at 30pt font in card layouts
+- Narratives: 1 short sentence per KPI — these appear in small text below each metric card
+- Bullets: max 2 lines each — they display with accent-colored markers on white slides
+- Insights/recommendations: concise, action-oriented, max 2 sentences each — displayed in side-by-side columns
+
+Be data-driven. Use the actual numbers from the report. Make every word count for slide readability.
 Always return valid JSON matching the exact schema requested — no extra keys, no markdown fences.`;
 
   const userMessage = `Report: "${config.name}"

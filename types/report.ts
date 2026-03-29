@@ -2,7 +2,7 @@ import { Timestamp } from 'firebase/firestore';
 
 export type MetricSource = 'jobs' | 'leads' | 'campaigns' | 'invoices' | 'contractors';
 export type Aggregation = 'count' | 'sum' | 'avg' | 'min' | 'max';
-export type GroupBy = 'month' | 'week' | 'status' | 'type' | 'source' | 'market' | 'trade' | 'salesRep';
+export type GroupBy = 'month' | 'week' | 'status' | 'type' | 'source' | 'market' | 'trade' | 'salesRep' | 'product' | 'color';
 
 export interface MetricSelection {
   source: MetricSource;
