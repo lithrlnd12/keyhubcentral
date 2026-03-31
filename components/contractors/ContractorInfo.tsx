@@ -94,7 +94,7 @@ export function ContractorInfo({ contractor }: ContractorInfoProps) {
           <InfoRow
             icon={<Wrench className="w-4 h-4" />}
             label="Trades"
-            value={formatTrades(contractor.trades)}
+            value={formatTrades(contractor.trades || [])}
           />
           <InfoRow
             icon={<Target className="w-4 h-4" />}
@@ -116,7 +116,7 @@ export function ContractorInfo({ contractor }: ContractorInfoProps) {
               </div>
             </div>
           )}
-          {contractor.skills.length > 0 && (
+          {contractor.skills?.length > 0 && (
             <div className="py-3">
               <p className="text-sm text-gray-500 mb-2">Skills</p>
               <div className="flex flex-wrap gap-2">
