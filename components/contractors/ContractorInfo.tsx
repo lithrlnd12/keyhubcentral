@@ -116,11 +116,11 @@ export function ContractorInfo({ contractor }: ContractorInfoProps) {
               </div>
             </div>
           )}
-          {contractor.skills.length > 0 && (
+          {(contractor.skills?.length ?? 0) > 0 && (
             <div className="py-3">
               <p className="text-sm text-gray-500 mb-2">Skills</p>
               <div className="flex flex-wrap gap-2">
-                {contractor.skills.map((skill) => (
+                {(contractor.skills ?? []).map((skill) => (
                   <span
                     key={skill}
                     className="px-2 py-1 bg-gray-800 rounded text-sm text-gray-300"

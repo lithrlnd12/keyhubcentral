@@ -8,7 +8,11 @@
       "Bash(find:*)",
       "Bash(SKIP_ENV_VALIDATION=1 npm test:*)",
       "Bash(ls:*)",
-      "Bash(npm run test:e2e:*)"
+      "Bash(npm run test:e2e:*)",
+      "mcp__plugin_firebase_firebase__firestore_delete_document",
+      "mcp__plugin_firebase_firebase__firestore_add_document",
+      "Bash(npm install:*)",
+      "mcp__plugin_firebase_firebase__firestore_update_document"
     ]
   }
 }
