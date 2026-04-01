@@ -43,7 +43,7 @@ export function calculateContractorEarnings(
   );
 
   // Get commission rate based on rating
-  const tier = getRatingTier(contractor.rating.overall);
+  const tier = getRatingTier(contractor.rating?.overall ?? 0);
   const commissionRate = getCommissionRate(tier);
 
   // Calculate labor earnings (for installers)
@@ -58,7 +58,7 @@ export function calculateContractorEarnings(
 
   // Calculate commission earnings (for sales reps)
   let totalCommission = 0;
-  if (contractor.trades.includes('sales_rep')) {
+  if ((contractor.trades ?? []).includes('sales_rep')) {
     const salesJobs = completedJobs.filter((job) => job.salesRepId === userId);
     salesJobs.forEach((job) => {
       const jobValue =
@@ -95,7 +95,7 @@ export function calculateContractorEarnings(
     totalEarnings: totalLabor + totalCommission,
     pendingPayments,
     paidPayments,
-    rating: contractor.rating.overall,
+    rating: contractor.rating?.overall ?? 0,
     commissionRate,
   };
 }

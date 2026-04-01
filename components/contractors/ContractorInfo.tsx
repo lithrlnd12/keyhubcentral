@@ -36,7 +36,7 @@ function InfoRow({ icon, label, value }: InfoRowProps) {
 
 export function ContractorInfo({ contractor }: ContractorInfoProps) {
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(
-    contractor.address.lat && contractor.address.lng
+    contractor.address?.lat && contractor.address?.lng
       ? { lat: contractor.address.lat, lng: contractor.address.lng }
       : null
   );

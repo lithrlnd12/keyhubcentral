@@ -43,7 +43,7 @@ function RatingBar({ label, value, icon }: RatingBarProps) {
 }
 
 export function ContractorPerformance({ contractor }: ContractorPerformanceProps) {
-  const { rating } = contractor;
+  const rating = contractor.rating ?? { overall: 0, customer: 0, speed: 0, warranty: 0, internal: 0 };
   const tier = getRatingTier(rating.overall);
   const commissionRate = getCommissionRate(tier);
 

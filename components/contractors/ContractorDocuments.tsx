@@ -113,9 +113,9 @@ export function ContractorDocuments({ contractor }: ContractorDocumentsProps) {
           <CardTitle>Licenses</CardTitle>
         </CardHeader>
         <CardContent>
-          {contractor.licenses.length > 0 ? (
+          {(contractor.licenses ?? []).length > 0 ? (
             <div className="space-y-3">
-              {contractor.licenses.map((license, index) => {
+              {(contractor.licenses ?? []).map((license, index) => {
                 const status = getExpirationStatus(license.expiration);
                 return (
                   <div
