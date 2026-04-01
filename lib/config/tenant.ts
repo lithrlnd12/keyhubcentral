@@ -1,5 +1,6 @@
 // Tenant configuration — centralized brand, entity, and business constants.
 // To white-label: change values here. All UI, PDFs, emails, and logic read from this file.
+// AUTO-GENERATED — do not edit manually.
 
 export type EntityKey = 'kd' | 'kts' | 'kr';
 
@@ -32,9 +33,6 @@ export interface TenantConfig {
 
   // Admin notification emails
   adminEmails: string[];
-
-  // Google Review URL
-  googleReviewUrl: string;
 
   // Firebase project
   firebaseProjectId: string;
@@ -76,41 +74,37 @@ export interface TenantConfig {
 
 export const tenant: TenantConfig = {
   // Brand
-  appName: 'KeyHub Central',
-  shortName: 'KeyHub',
-  tagline: 'Unified Business Management',
-  description:
-    'Unified business management for Keynote Digital, Key Trade Solutions, and Key Renovations',
-  copyright: 'KeyHub Central',
-  logoPath: '/logo.png',
+  appName: "Keystone",
+  shortName: "Keystone",
+  tagline: "The Strength You Can Stand On.",
+  description: "A premier structural contracting firm specializing in high-integrity residential and commercial builds across the Midwest.",
+  copyright: "© 2026 Keystone Contracting Group, LLC.",
+  logoPath: "/logo.png",
   logoIconPath: '/logo.svg',
-  logoIconText: 'KH',
-  faviconPath: '/favicon.ico',
+  logoIconText: "KC",
+  faviconPath: "/favicon.ico",
 
   // Contact
-  supportEmail: 'support@keyrenovations.com',
-  billingEmail: 'billing@keyhubcentral.com',
-  noreplyEmail: 'noreply@keyhubcentral.com',
-  phone: '8127766215',
-  domain: 'keyhubcentral.com',
+  supportEmail: "aaron@innovativeaiconsulting.com",
+  billingEmail: "aaron@innovativeaiconsulting.com",
+  noreplyEmail: "noreply@keystonebuilds.com",
+  phone: "8128906303",
+  domain: "keystonebuilds.com",
 
   // Service area
-  serviceArea: 'Oklahoma City Metro Area',
+  serviceArea: '',
 
   // Admin notification emails
-  adminEmails: ['aaron@innovativeaiconsulting.com'],
+  adminEmails: ["aaron@innovativeaiconsulting.com"],
 
   // Firebase project
-  firebaseProjectId: 'key-hub-central',
-
-  // Google Review URL (replace with your actual Google review link)
-  googleReviewUrl: 'https://g.page/r/YOUR_GOOGLE_REVIEW_LINK/review',
+  firebaseProjectId: "aaron@innovativeaiconsulting.com",
 
   // Business entities
   entities: {
-    kd: { label: 'Leads', shortLabel: 'KD' },
-    kts: { label: 'My Team', shortLabel: 'KTS' },
-    kr: { label: 'Jobs', shortLabel: 'KR' },
+    kd: { label: "Keystone Development & Strategy", shortLabel: "Development" },
+    kts: { label: "Keystone Technical Solutions", shortLabel: "Tech Network" },
+    kr: { label: "Keystone Residential Services", shortLabel: "Residential" },
   },
 
   // Commission rates
@@ -137,11 +131,11 @@ export const tenant: TenantConfig = {
 
   // Colors (for inline styles, emails, PDFs — not Tailwind classes)
   colors: {
-    primary: '#D4A84B',
-    primaryLight: '#E5C77A',
-    primaryDark: '#C9A227',
-    background: '#1A1A1A',
-    surface: '#2D2D2D',
+    primary: "#475c6c",
+    primaryLight: "#85939d",
+    primaryDark: "#222f3a",
+    background: "#0A0A0F",
+    surface: "#1E1E2E",
   },
 };
 
