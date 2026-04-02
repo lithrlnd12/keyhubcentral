@@ -32,14 +32,37 @@ export async function signUp(
   // Customers are auto-activated — no admin approval needed
   const isCustomer = requestedRole === 'customer';
 
+  // First-user-is-owner: if no users exist yet, auto-promote to owner
+  let isFirstUser = false;
+  if (!isCustomer) {
+    try {
+      const usersSnapshot = await getDocs(query(collection(db, 'users'), where('role', 'in', ['owner', 'admin'])));
+      isFirstUser = usersSnapshot.empty;
+    } catch {
+      // If we can't check (e.g. rules block it), fall through to normal flow
+    }
+  }
+
+  // Determine role and status
+  let assignedRole: UserRole = 'pending';
+  let assignedStatus: UserStatus = 'pending';
+
+  if (isFirstUser) {
+    assignedRole = 'owner';
+    assignedStatus = 'active';
+  } else if (isCustomer) {
+    assignedRole = 'customer';
+    assignedStatus = 'active';
+  }
+
   // Create user profile in Firestore
   await setDoc(doc(db, 'users', userCredential.user.uid), {
     uid: userCredential.user.uid,
     email,
     displayName,
     phone: phone || null,
-    role: isCustomer ? ('customer' as UserRole) : ('pending' as UserRole),
-    status: isCustomer ? ('active' as UserStatus) : ('pending' as UserStatus),
+    role: assignedRole,
+    status: assignedStatus,
     requestedRole: requestedRole || null,
     selectedPartnerId: selectedPartnerId || null,
     companyName: companyName || null,
@@ -47,6 +70,7 @@ export async function signUp(
     baseCoordinates: null, // Will be geocoded by Cloud Function
     serviceAddress: serviceAddress || null,
     createdAt: serverTimestamp(),
+    ...(isFirstUser ? { approvedAt: serverTimestamp(), approvedBy: 'auto-first-user' } : {}),
     ...(isCustomer ? { approvedAt: serverTimestamp(), approvedBy: 'auto' } : {}),
   });
 

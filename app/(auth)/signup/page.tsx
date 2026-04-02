@@ -92,6 +92,17 @@ export default function SignUpPage() {
         requestedRole === 'partner' && selectedPartnerId !== 'other' ? selectedPartnerId : undefined,
         requestedRole === 'partner' && selectedPartnerId === 'other' ? companyName.trim() : undefined
       );
+      // First user is auto-promoted to owner — send them to dashboard, not pending
+      const { auth: firebaseAuth } = await import('@/lib/firebase/config');
+      const { getUserProfile } = await import('@/lib/firebase/auth');
+      const uid = firebaseAuth.currentUser?.uid;
+      if (uid) {
+        const profile = await getUserProfile(uid);
+        if (profile?.role === 'owner' && profile?.status === 'active') {
+          router.push('/overview');
+          return;
+        }
+      }
       router.push('/pending');
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Sign up failed';
