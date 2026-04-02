@@ -70,6 +70,12 @@ service cloud.firestore {
           (request.resource.data.status == 'active' &&
            request.resource.data.role == 'customer' &&
            request.resource.data.requestedRole == 'customer')
+          ||
+          // First-user-is-owner: auto-promoted when no admins exist
+          // The client checks if users collection has any owner/admin before setting this
+          (request.resource.data.status == 'active' &&
+           request.resource.data.role == 'owner' &&
+           request.resource.data.get('approvedBy', '') == 'auto-first-user')
         );
 
       // Active users can read user profiles (needed for messaging contacts, user lookups)
