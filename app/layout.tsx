@@ -4,6 +4,7 @@ import { AuthProvider } from '@/lib/hooks';
 import { ToastProvider } from '@/components/ui/Toast';
 import OfflineIndicator from '@/components/ui/OfflineIndicator';
 import './globals.css';
+import './globals-brand.css';
 import { tenant } from '@/lib/config/tenant';
 
 const inter = Inter({ subsets: ['latin'] });
