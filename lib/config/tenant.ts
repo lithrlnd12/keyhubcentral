@@ -77,37 +77,41 @@ export interface TenantConfig {
 
 export const tenant: TenantConfig = {
   // Brand
-  appName: "Keystone",
-  shortName: "Keystone",
-  tagline: "The Strength You Can Stand On.",
-  description: "A premier structural contracting firm specializing in high-integrity residential and commercial builds across the Midwest.",
-  copyright: "© 2026 Keystone Contracting Group, LLC.",
-  logoPath: "/logo.png",
+  appName: 'KeyHub Central',
+  shortName: 'KeyHub',
+  tagline: 'Unified Business Management',
+  description:
+    'Unified business management for Keynote Digital, Key Trade Solutions, and Key Renovations',
+  copyright: 'KeyHub Central',
+  logoPath: '/logo.png',
   logoIconPath: '/logo.svg',
-  logoIconText: "KC",
-  faviconPath: "/favicon.ico",
+  logoIconText: 'KH',
+  faviconPath: '/favicon.ico',
 
   // Contact
-  supportEmail: "aaron@innovativeaiconsulting.com",
-  billingEmail: "aaron@innovativeaiconsulting.com",
-  noreplyEmail: "noreply@keystonebuilds.com",
-  phone: "8128906303",
-  domain: "keystonebuilds.com",
+  supportEmail: 'support@keyrenovations.com',
+  billingEmail: 'billing@keyhubcentral.com',
+  noreplyEmail: 'noreply@keyhubcentral.com',
+  phone: '8127766215',
+  domain: 'keyhubcentral.com',
 
   // Service area
-  serviceArea: '',
+  serviceArea: 'Oklahoma City Metro Area',
 
   // Admin notification emails
-  adminEmails: ["aaron@innovativeaiconsulting.com"],
+  adminEmails: ['aaron@innovativeaiconsulting.com'],
+
+  // Google Review URL
+  googleReviewUrl: 'https://g.page/r/YOUR_GOOGLE_REVIEW_LINK/review',
 
   // Firebase project
-  firebaseProjectId: "aaron@innovativeaiconsulting.com",
+  firebaseProjectId: 'key-hub-central',
 
   // Business entities
   entities: {
-    kd: { label: "Keystone Development & Strategy", shortLabel: "Development" },
-    kts: { label: "Keystone Technical Solutions", shortLabel: "Tech Network" },
-    kr: { label: "Keystone Residential Services", shortLabel: "Residential" },
+    kd: { label: 'Leads', shortLabel: 'KD' },
+    kts: { label: 'My Team', shortLabel: 'KTS' },
+    kr: { label: 'Jobs', shortLabel: 'KR' },
   },
 
   // Commission rates
@@ -134,11 +138,11 @@ export const tenant: TenantConfig = {
 
   // Colors (for inline styles, emails, PDFs — not Tailwind classes)
   colors: {
-    primary: "#475c6c",
-    primaryLight: "#85939d",
-    primaryDark: "#222f3a",
-    background: "#0A0A0F",
-    surface: "#1E1E2E",
+    primary: '#D4A84B',
+    primaryLight: '#E5C77A',
+    primaryDark: '#C9A227',
+    background: '#1A1A1A',
+    surface: '#2D2D2D',
   },
 };
 
