@@ -14,7 +14,8 @@ import {
   updateNetworkConfig,
   getNetworksForTenant,
 } from '@/lib/firebase/network';
-import { NetworkConnections } from './NetworkConnections';
+// NetworkConnections is available for self-service but connections are now
+// managed by the KeyHub admin. Keeping the component for future use.
 
 // Toggle switch — matches NotificationSettings pattern
 function Toggle({
@@ -82,7 +83,6 @@ export function NetworkSettings() {
   const [config, setConfig] = useState<TenantNetworkConfig>(DEFAULT_NETWORK_CONFIG);
   const [saving, setSaving] = useState(false);
   const [membersCount, setMembersCount] = useState(0);
-  const [showConnections, setShowConnections] = useState(false);
 
   const isOwnerOrAdmin = user?.role && ['owner', 'admin'].includes(user.role);
 
@@ -144,10 +144,6 @@ export function NetworkSettings() {
 
   if (!isOwnerOrAdmin) return null;
 
-  if (showConnections) {
-    return <NetworkConnections onClose={() => setShowConnections(false)} />;
-  }
-
   return (
     <Card>
       <div className="flex items-center justify-between mb-4">
@@ -205,18 +201,14 @@ export function NetworkSettings() {
           </div>
 
           {/* Connected members */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-700">
+          <div className="pt-4 border-t border-gray-700">
             <div>
               <p className="text-sm text-gray-400">Connected network members</p>
               <p className="text-2xl font-bold text-white">{membersCount}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Network connections are managed by your KeyHub administrator.
+              </p>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowConnections(true)}
-            >
-              Manage Connections
-            </Button>
           </div>
 
           {/* Info box */}
