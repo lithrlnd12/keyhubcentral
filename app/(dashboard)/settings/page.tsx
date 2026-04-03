@@ -5,14 +5,17 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { GoogleCalendarConnect } from '@/components/integrations';
 import { NotificationSettings } from '@/components/settings';
+import { NetworkSettings } from '@/components/settings/NetworkSettings';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/lib/hooks';
+import { useFeatureFlags } from '@/lib/hooks/useFeatureFlags';
 import { tenant } from '@/lib/config/tenant';
 
 export default function SettingsPage() {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const { user } = useAuth();
+  const { flags } = useFeatureFlags();
 
   // Check if user has a role that can use calendar sync
   const canUseCalendarSync = user?.role && ['owner', 'admin', 'pm', 'sales_rep', 'contractor'].includes(user.role);
@@ -81,6 +84,14 @@ export default function SettingsPage() {
         <h2 className="text-lg font-semibold text-white mb-4">Notifications</h2>
         <NotificationSettings />
       </section>
+
+      {/* KeyHub Network Section */}
+      {flags.keyhubNetwork && (
+        <section>
+          <h2 className="text-lg font-semibold text-white mb-4">Network</h2>
+          <NetworkSettings />
+        </section>
+      )}
 
       {/* Integrations Section */}
       {canUseCalendarSync && (

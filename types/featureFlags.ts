@@ -25,6 +25,7 @@ export interface FeatureFlags {
   riskScoring: boolean;
   offlinePWA: boolean;
   inventory: boolean;
+  keyhubNetwork: boolean;
 }
 
 // ── Module Dependencies ──────────────────────────────────────────────────────
@@ -38,6 +39,8 @@ export const MODULE_DEPENDENCIES: Partial<Record<keyof FeatureFlags, (keyof Feat
   remoteSignature: ['contracts'],
   // Marketplace requires Core (always true, but explicit)
   marketplace: ['core'],
+  // KeyHub Network requires Marketplace (network sharing extends marketplace)
+  keyhubNetwork: ['marketplace'],
   // Smart Scheduling requires Core
   smartScheduling: ['core'],
   // Call Center requires Voice AI
@@ -104,6 +107,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   riskScoring: true,
   offlinePWA: true,
   inventory: true,
+  keyhubNetwork: true,
 };
 
 // ── Module Display Info (for admin UI) ───────────────────────────────────────
@@ -128,4 +132,5 @@ export const MODULE_INFO: Record<keyof FeatureFlags, { label: string; descriptio
   riskScoring: { label: 'AI Risk Scoring', description: '6-factor weighted model, recommendations' },
   offlinePWA: { label: 'Offline PWA', description: 'IndexedDB queue, background sync' },
   inventory: { label: 'Inventory', description: 'Items, locations, stock levels, counts, receipts' },
+  keyhubNetwork: { label: 'KeyHub Network', description: 'Cross-tenant contractor sharing and labor marketplace' },
 };

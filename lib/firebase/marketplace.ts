@@ -24,9 +24,11 @@ const COLLECTION = 'marketplaceListings';
 
 /**
  * Create a new marketplace listing with a 7-day default expiry.
+ * Optionally includes networkId and sourceTenantId for network sharing.
  */
 export async function createListing(
-  data: Omit<MarketplaceListing, 'id' | 'status' | 'bids' | 'acceptedBidId' | 'expiresAt' | 'createdAt' | 'updatedAt'>
+  data: Omit<MarketplaceListing, 'id' | 'status' | 'bids' | 'acceptedBidId' | 'expiresAt' | 'createdAt' | 'updatedAt'>,
+  networkOptions?: { networkId: string; sourceTenantId: string }
 ): Promise<string> {
   const expiresAt = Timestamp.fromDate(
     new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
@@ -37,6 +39,7 @@ export async function createListing(
     status: 'open',
     bids: [],
     acceptedBidId: null,
+    ...(networkOptions ? { networkId: networkOptions.networkId, sourceTenantId: networkOptions.sourceTenantId } : {}),
     expiresAt,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -47,9 +50,12 @@ export async function createListing(
 
 /**
  * Get all open listings, optionally filtered by trade and/or location.
+ * When networkIds are provided, also includes network-scoped listings
+ * (but strips sourceTenantId before returning).
  */
 export async function getOpenListings(
-  filters?: MarketplaceFilters
+  filters?: MarketplaceFilters,
+  networkIds?: string[]
 ): Promise<MarketplaceListing[]> {
   const constraints: QueryConstraint[] = [
     where('status', '==', 'open'),
@@ -67,6 +73,29 @@ export async function getOpenListings(
     id: d.id,
     ...d.data(),
   })) as MarketplaceListing[];
+
+  // If network sharing is active, include network-scoped listings
+  // but filter to only those with a matching networkId
+  if (networkIds && networkIds.length > 0) {
+    listings = listings.filter((l) =>
+      // Local listings (no networkId) always show
+      !l.networkId ||
+      // Network listings only if they match one of our networks
+      networkIds.includes(l.networkId)
+    );
+  } else {
+    // No network — only show local listings (no networkId)
+    listings = listings.filter((l) => !l.networkId);
+  }
+
+  // Strip sourceTenantId from results — never exposed to UI
+  listings = listings.map((l) => {
+    if (l.sourceTenantId) {
+      const { sourceTenantId: _, ...rest } = l;
+      return rest as MarketplaceListing;
+    }
+    return l;
+  });
 
   // Client-side filters
   listings = applyClientFilters(listings, filters);
@@ -94,11 +123,13 @@ export async function getMyListings(dealerId: string): Promise<MarketplaceListin
 /**
  * Get listings matching a contractor's trades.
  * Optionally filter by contractor location for distance.
+ * When networkIds are provided, includes network-scoped listings.
  */
 export async function getListingsForContractor(
   contractorId: string,
   trades: string[],
-  _location?: { lat: number; lng: number }
+  _location?: { lat: number; lng: number },
+  networkIds?: string[]
 ): Promise<MarketplaceListing[]> {
   // Firestore array-contains only supports a single value,
   // so we query for 'open' status and filter trades client-side
@@ -114,13 +145,28 @@ export async function getListingsForContractor(
     ...d.data(),
   })) as MarketplaceListing[];
 
+  // Filter by network scope
+  if (networkIds && networkIds.length > 0) {
+    listings = listings.filter((l) =>
+      !l.networkId || networkIds.includes(l.networkId)
+    );
+  } else {
+    listings = listings.filter((l) => !l.networkId);
+  }
+
+  // Strip sourceTenantId — never exposed to UI
+  listings = listings.map((l) => {
+    if (l.sourceTenantId) {
+      const { sourceTenantId: _, ...rest } = l;
+      return rest as MarketplaceListing;
+    }
+    return l;
+  });
+
   // Filter by contractor's trades
   if (trades.length > 0) {
     listings = listings.filter((l) => trades.includes(l.trade));
   }
-
-  // Exclude listings the contractor already bid on (optional — keep for visibility)
-  // listings = listings.filter(l => !l.bids.some(b => b.contractorId === contractorId));
 
   return listings;
 }
@@ -213,10 +259,12 @@ export async function cancelListing(id: string): Promise<void> {
 
 /**
  * Real-time subscription to open listings with optional filters.
+ * When networkIds are provided, includes network-scoped listings.
  */
 export function subscribeToOpenListings(
   callback: (listings: MarketplaceListing[]) => void,
-  filters?: MarketplaceFilters
+  filters?: MarketplaceFilters,
+  networkIds?: string[]
 ): () => void {
   const constraints: QueryConstraint[] = [
     where('status', '==', 'open'),
@@ -236,6 +284,24 @@ export function subscribeToOpenListings(
         id: d.id,
         ...d.data(),
       })) as MarketplaceListing[];
+
+      // Filter by network scope
+      if (networkIds && networkIds.length > 0) {
+        listings = listings.filter((l) =>
+          !l.networkId || networkIds.includes(l.networkId)
+        );
+      } else {
+        listings = listings.filter((l) => !l.networkId);
+      }
+
+      // Strip sourceTenantId — never exposed to UI
+      listings = listings.map((l) => {
+        if (l.sourceTenantId) {
+          const { sourceTenantId: _, ...rest } = l;
+          return rest as MarketplaceListing;
+        }
+        return l;
+      });
 
       listings = applyClientFilters(listings, filters);
       callback(listings);

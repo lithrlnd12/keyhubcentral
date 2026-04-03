@@ -85,6 +85,8 @@ export interface Contractor {
   serviceRadius: number; // in miles
   rating: Rating;
   status: ContractorStatus;
+  // KeyHub Network — opt-in array of networkIds this contractor is visible in
+  sharedNetworks?: string[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

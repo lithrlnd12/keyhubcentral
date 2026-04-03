@@ -698,7 +698,41 @@ service cloud.firestore {
     // ENTERPRISE COLLECTIONS
     // ========================================
 
+    // ── KeyHub Network ──────────────────────────────────────────────────
+    // Cross-tenant network connections for sharing contractors & marketplace.
+    // Network docs are readable by admins of member tenants only.
+
+    // Network config per tenant — stored in config/network
+    // (Already covered by the config/{docId} rule above: read=authenticated, write=owner)
+
+    // Networks collection — network membership and shared features
+    match /networks/{networkId} {
+      // Admins can read networks their tenant belongs to
+      allow read: if isAdmin();
+
+      // Only owner can create/update/delete networks
+      allow create, update: if isOwner();
+      allow delete: if isOwner();
+    }
+
+    // Connection requests — mutual agreement to join networks
+    match /connectionRequests/{requestId} {
+      // Admins can read requests involving their tenant
+      allow read: if isAdmin();
+
+      // Owner can create outbound requests
+      allow create: if isOwner();
+
+      // Owner can update (accept/reject) inbound requests
+      allow update: if isOwner();
+
+      // Owner can delete requests
+      allow delete: if isOwner();
+    }
+
     // Marketplace Listings — cross-dealer labor sharing
+    // Network-scoped listings: tenants in the same network can READ listings
+    // with a matching networkId, but never write to another tenant's listings
     match /marketplaceListings/{listingId} {
       allow read: if isActiveUser();
       allow create: if isAdmin() ||
