@@ -534,13 +534,13 @@ service cloud.firestore {
       // Users can read their own notifications
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
-      // Only Cloud Functions (admin SDK) can create notifications
-      allow create: if false;
+      // Active users can create notifications (in-app notification system)
+      allow create: if isActiveUser();
 
       // Users can update their own notifications (mark as read)
       allow update: if isAuthenticated() &&
         resource.data.userId == request.auth.uid &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'readAt', 'deliveredAt']);
 
       // Users can delete their own notifications
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
