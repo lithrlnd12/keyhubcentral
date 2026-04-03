@@ -525,6 +525,40 @@
         { "fieldPath": "requestId", "order": "ASCENDING" },
         { "fieldPath": "participants", "arrayConfig": "CONTAINS" }
       ]
+    },
+    {
+      "collectionGroup": "networks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenants", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "connectionRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "toTenantId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "connectionRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fromTenantId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contractors",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sharedNetworks", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
