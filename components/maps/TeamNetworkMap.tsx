@@ -15,6 +15,7 @@ export interface TeamMapEntry {
   state: string;
   serviceRadius: number;
   detail: string;
+  specialties?: string[];
   shippingAddress?: string;
 }
 
@@ -129,6 +130,13 @@ export function TeamNetworkMap({
     partner: true,
   });
 
+  // Service specialty filter
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string>('');
+
+  const availableSpecialties = Array.from(
+    new Set(entries.flatMap((e) => e.specialties ?? []))
+  ).sort();
+
   // Zip search state
   const [zipInput, setZipInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -150,10 +158,12 @@ export function TeamNetworkMap({
     return activeRoles[0];
   }
 
-  // Filter entries by visible roles — check all roles so multi-trade members stay visible
+  // Filter entries by visible roles and selected specialty
   const filteredEntries = entries.filter((e) => {
     const entryRoles = e.roles && e.roles.length > 0 ? e.roles : [e.role];
-    return entryRoles.some((r) => visibleRoles[r]);
+    if (!entryRoles.some((r) => visibleRoles[r])) return false;
+    if (selectedSpecialty && !(e.specialties ?? []).includes(selectedSpecialty)) return false;
+    return true;
   });
 
   const handleZipSearch = useCallback(async () => {
@@ -214,21 +224,23 @@ export function TeamNetworkMap({
 
       map.fitBounds(searchCircleRef.current.getBounds()!);
 
+      const serviceLabel = selectedSpecialty ? ` for ${selectedSpecialty}` : '';
       setSearchResult({
         count: nearby.length,
         label: nearby.length === 1
-          ? '1 team member services this area'
-          : `${nearby.length} team members service this area`,
+          ? `1 team member services this area${serviceLabel}`
+          : `${nearby.length} team members service this area${serviceLabel}`,
       });
     } catch {
       setSearchError('Could not geocode zip code');
     } finally {
       setSearching(false);
     }
-  }, [zipInput, filteredEntries]);
+  }, [zipInput, filteredEntries, selectedSpecialty]);
 
   const clearSearch = useCallback(() => {
     setZipInput('');
+    setSelectedSpecialty('');
     setSearchResult(null);
     setSearchError(null);
 
@@ -407,6 +419,7 @@ export function TeamNetworkMap({
             </div>
             ${location ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">${location}</div>` : ''}
             <div style="font-size: 12px; color: #888; margin-top: 4px;">${entry.detail}</div>
+            ${entry.specialties && entry.specialties.length > 0 ? `<div style="font-size: 11px; color: #aaa; margin-top: 4px;">${entry.specialties.join(' · ')}</div>` : ''}
             ${entry.shippingAddress ? `<div style="font-size: 11px; color: #999; margin-top: 4px;">Ships to: ${entry.shippingAddress}</div>` : ''}
             ${entry.serviceRadius ? `<div style="font-size: 11px; color: #999; margin-top: 4px;">Service radius: ${entry.serviceRadius} mi</div>` : ''}
           </div>
@@ -445,7 +458,7 @@ export function TeamNetworkMap({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredEntries, visibleRoles, showServiceAreas]);
+  }, [filteredEntries, visibleRoles, showServiceAreas, selectedSpecialty]);
 
   const isLoading = mapLoading || externalLoading;
 
@@ -504,14 +517,14 @@ export function TeamNetworkMap({
         </button>
       </div>
 
-      {/* Zip Code Search */}
+      {/* Zip Code + Service Search */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[180px] max-w-xs">
+        <div className="relative flex-1 min-w-[180px] max-w-[160px]">
           <input
             type="text"
             inputMode="numeric"
             maxLength={5}
-            placeholder="Search by zip code"
+            placeholder="Zip code"
             value={zipInput}
             onChange={(e) => setZipInput(e.target.value.replace(/\D/g, ''))}
             onKeyDown={(e) => e.key === 'Enter' && handleZipSearch()}
@@ -519,6 +532,21 @@ export function TeamNetworkMap({
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
         </div>
+        {availableSpecialties.length > 0 && (
+          <select
+            value={selectedSpecialty}
+            onChange={(e) => {
+              setSelectedSpecialty(e.target.value);
+              setSearchResult(null);
+            }}
+            className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gold/60 min-w-[160px]"
+          >
+            <option value="">All Services</option>
+            {availableSpecialties.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        )}
         <button
           onClick={handleZipSearch}
           disabled={searching || isLoading}

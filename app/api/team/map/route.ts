@@ -14,6 +14,7 @@ interface TeamMapEntry {
   state: string;
   serviceRadius: number;
   detail: string;
+  specialties: string[];
   shippingAddress?: string;
 }
 
@@ -105,6 +106,7 @@ export async function GET(request: NextRequest) {
           state: data.address?.state || '',
           serviceRadius: data.serviceRadius || 50,
           detail: trades.join(', ') || 'No trades listed',
+          specialties: data.specialties || [],
           shippingAddress: shippingAddr,
         });
       } else {
@@ -138,6 +140,7 @@ export async function GET(request: NextRequest) {
           state: '',
           serviceRadius: 50,
           detail: data.email || '',
+          specialties: [],
         });
       } else if (data.baseZipCode) {
         userGeoNeeded.push({ doc, zip: data.baseZipCode });
@@ -164,6 +167,7 @@ export async function GET(request: NextRequest) {
           state: data.address?.state || '',
           serviceRadius: 50,
           detail: data.companyName || '',
+          specialties: [],
         });
       } else {
         const parts = [data.address?.street, data.address?.city, data.address?.state, data.address?.zip].filter(Boolean);
@@ -199,6 +203,7 @@ export async function GET(request: NextRequest) {
           state: data.address?.state || '',
           serviceRadius: data.serviceRadius || 50,
           detail: trades.join(', ') || 'No trades listed',
+          specialties: data.specialties || [],
           shippingAddress: shippingAddr,
         };
       }),
@@ -221,6 +226,7 @@ export async function GET(request: NextRequest) {
           state: '',
           serviceRadius: 50,
           detail: data.email || '',
+          specialties: [],
         };
       }),
       // Partners
@@ -243,6 +249,7 @@ export async function GET(request: NextRequest) {
           state: data.address?.state || '',
           serviceRadius: 50,
           detail: data.companyName || '',
+          specialties: [],
         };
       }),
     ]);
