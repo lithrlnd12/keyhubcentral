@@ -34,6 +34,9 @@ export interface TenantConfig {
   // Admin notification emails
   adminEmails: string[];
 
+  // Google Review URL (optional — not all tenants have one)
+  googleReviewUrl?: string;
+
   // Firebase project
   firebaseProjectId: string;
 
