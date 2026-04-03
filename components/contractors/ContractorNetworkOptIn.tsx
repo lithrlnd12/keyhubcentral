@@ -120,7 +120,8 @@ export function ContractorNetworkOptIn({
   };
 
   return (
-    <Card className="p-6" id="network">
+    <div id="network">
+    <Card className="p-6">
       <CardTitle>Network Visibility</CardTitle>
 
       {/* Opt-in prompt for contractors who haven't decided */}
@@ -217,5 +218,6 @@ export function ContractorNetworkOptIn({
         </>
       )}
     </Card>
+    </div>
   );
 }
