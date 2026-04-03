@@ -87,6 +87,8 @@ export interface Contractor {
   status: ContractorStatus;
   // KeyHub Network — opt-in array of networkIds this contractor is visible in
   sharedNetworks?: string[];
+  networkOptOut?: boolean;
+  networkOptInDismissedAt?: Timestamp;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

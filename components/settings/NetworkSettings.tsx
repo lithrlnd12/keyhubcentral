@@ -14,8 +14,7 @@ import {
   updateNetworkConfig,
   getNetworksForTenant,
 } from '@/lib/firebase/network';
-// NetworkConnections is available for self-service but connections are now
-// managed by the KeyHub admin. Keeping the component for future use.
+import { sendNetworkOptInNotifications } from '@/lib/firebase/networkNotifications';
 
 // Toggle switch — matches NotificationSettings pattern
 function Toggle({
@@ -109,6 +108,13 @@ export function NetworkSettings() {
     setSaving(true);
     try {
       await updateNetworkConfig({ enabled });
+      // When enabling, notify all contractors to opt in
+      if (enabled) {
+        const sent = await sendNetworkOptInNotifications();
+        if (sent > 0) {
+          console.log(`Sent network opt-in notifications to ${sent} contractors`);
+        }
+      }
     } catch (err) {
       console.error('Failed to update network config:', err);
     } finally {

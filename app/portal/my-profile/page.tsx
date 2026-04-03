@@ -725,6 +725,8 @@ export default function PortalProfilePage() {
         <ContractorNetworkOptIn
           contractorId={contractor.id}
           sharedNetworks={contractor.sharedNetworks}
+          networkOptOut={contractor.networkOptOut}
+          networkOptInDismissedAt={contractor.networkOptInDismissedAt}
         />
       )}
 

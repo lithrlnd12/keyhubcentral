@@ -53,7 +53,9 @@ export type NotificationType =
   | 'partner_ticket_status_changed'
   // Messages
   | 'new_direct_message'
-  | 'new_group_message';
+  | 'new_group_message'
+  // Network
+  | 'network_opt_in';
 
 // Map notification types to categories
 export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCategory> = {
@@ -97,6 +99,8 @@ export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCateg
   // Messages
   new_direct_message: 'messages',
   new_group_message: 'messages',
+  // Network
+  network_opt_in: 'admin',
 };
 
 // Map notification types to priorities
@@ -141,6 +145,8 @@ export const NOTIFICATION_PRIORITIES: Record<NotificationType, NotificationPrior
   // Messages
   new_direct_message: 'high',
   new_group_message: 'medium',
+  // Network
+  network_opt_in: 'medium',
 };
 
 // Quiet hours configuration
@@ -624,6 +630,12 @@ export function getNotificationTemplate(
       body: data.messageText || 'Sent a message',
       actionUrl: data.conversationId ? `/messages/${data.conversationId}` : '/messages',
     },
+    // Network
+    network_opt_in: {
+      title: 'KeyHub Network — Share Your Availability?',
+      body: 'Your company has joined KeyHub Network. Would you like to be visible for cross-network job opportunities?',
+      actionUrl: '/portal/my-profile#network',
+    },
   };
 
   return templates[type];
@@ -713,6 +725,8 @@ export function isNotificationEnabled(
         case 'partner_ticket_new':
         case 'partner_ticket_status_changed':
           return preferences.admin.partnerRequests;
+        case 'network_opt_in':
+          return true; // Always deliver network opt-in notifications
       }
       break;
 
