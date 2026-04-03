@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/hooks';
 import { tenant } from '@/lib/config/tenant';
 import {
@@ -12,9 +11,9 @@ import {
 import {
   subscribeToNetworkConfig,
   updateNetworkConfig,
-  getNetworksForTenant,
 } from '@/lib/firebase/network';
 import { sendNetworkOptInNotifications } from '@/lib/firebase/networkNotifications';
+import { NetworkConnections } from './NetworkConnections';
 
 // Toggle switch — matches NotificationSettings pattern
 function Toggle({
@@ -81,7 +80,6 @@ export function NetworkSettings() {
   const { user } = useAuth();
   const [config, setConfig] = useState<TenantNetworkConfig>(DEFAULT_NETWORK_CONFIG);
   const [saving, setSaving] = useState(false);
-  const [membersCount, setMembersCount] = useState(0);
 
   const isOwnerOrAdmin = user?.role && ['owner', 'admin'].includes(user.role);
 
@@ -90,19 +88,6 @@ export function NetworkSettings() {
     const unsubscribe = subscribeToNetworkConfig(setConfig);
     return () => unsubscribe();
   }, []);
-
-  // Get connected members count
-  useEffect(() => {
-    if (config.enabled && config.networkId) {
-      getNetworksForTenant(tenant.firebaseProjectId).then((networks) => {
-        const total = networks.reduce((sum, n) => sum + n.tenants.length, 0);
-        // Subtract 1 for self
-        setMembersCount(Math.max(0, total - 1));
-      });
-    } else {
-      setMembersCount(0);
-    }
-  }, [config.enabled, config.networkId]);
 
   const handleToggleNetwork = async (enabled: boolean) => {
     setSaving(true);
@@ -206,15 +191,9 @@ export function NetworkSettings() {
             </div>
           </div>
 
-          {/* Connected members */}
+          {/* Network Connections */}
           <div className="pt-4 border-t border-gray-700">
-            <div>
-              <p className="text-sm text-gray-400">Connected network members</p>
-              <p className="text-2xl font-bold text-white">{membersCount}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                Network connections are managed by your KeyHub administrator.
-              </p>
-            </div>
+            <NetworkConnections />
           </div>
 
           {/* Info box */}

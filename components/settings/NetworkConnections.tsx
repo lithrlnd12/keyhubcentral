@@ -1,339 +1,187 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
-import { useToast } from '@/components/ui/Toast';
-import { tenant } from '@/lib/config/tenant';
-import { Network, ConnectionRequest } from '@/types/network';
-import {
-  createNetwork,
-  getNetworksForTenant,
-  getInboundRequests,
-  getOutboundRequests,
-  sendConnectionRequest,
-  acceptConnectionRequest,
-  rejectConnectionRequest,
-  removeTenantFromNetwork,
-  updateNetworkConfig,
-} from '@/lib/firebase/network';
+import { useNetworkInvites } from '@/lib/hooks/useNetworkInvites';
+import { NetworkInvite } from '@/types/network';
 
-interface NetworkConnectionsProps {
-  onClose: () => void;
-}
+export function NetworkConnections() {
+  const { registry, inbound, outbound, loading, refresh } = useNetworkInvites(true);
+  const [showRegistry, setShowRegistry] = useState(false);
+  const [sendingTo, setSendingTo] = useState<string | null>(null);
+  const [respondingTo, setRespondingTo] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
 
-export function NetworkConnections({ onClose }: NetworkConnectionsProps) {
-  const { showToast } = useToast();
-  const tenantId = tenant.firebaseProjectId;
+  // Filter registry: exclude companies with pending/accepted invites
+  const connectedOrPendingIds = new Set([
+    ...inbound
+      .filter((i) => i.status === 'pending' || i.status === 'accepted')
+      .map((i) => i.fromTenantId),
+    ...outbound
+      .filter((i) => i.status === 'pending' || i.status === 'accepted')
+      .map((i) => i.toTenantId),
+  ]);
+  const availableRegistry = registry.filter((r) => !connectedOrPendingIds.has(r.tenantId));
 
-  const [networks, setNetworks] = useState<Network[]>([]);
-  const [inbound, setInbound] = useState<ConnectionRequest[]>([]);
-  const [outbound, setOutbound] = useState<ConnectionRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const pendingInbound = inbound.filter((i) => i.status === 'pending');
+  const pendingOutbound = outbound.filter((i) => i.status === 'pending');
+  const activeConnections = [
+    ...inbound.filter((i) => i.status === 'accepted'),
+    ...outbound.filter((i) => i.status === 'accepted'),
+  ];
 
-  // Create network form
-  const [showCreate, setShowCreate] = useState(false);
-  const [networkName, setNetworkName] = useState('');
-
-  // Send request form
-  const [showInvite, setShowInvite] = useState(false);
-  const [inviteTenantId, setInviteTenantId] = useState('');
-  const [inviteNetworkId, setInviteNetworkId] = useState('');
-  const [inviteMessage, setInviteMessage] = useState('');
-
-  const loadData = async () => {
-    setLoading(true);
+  const handleSendInvite = async (toTenantId: string, toTenantName: string) => {
+    setSendingTo(toTenantId);
     try {
-      const [nets, inReqs, outReqs] = await Promise.all([
-        getNetworksForTenant(tenantId),
-        getInboundRequests(tenantId),
-        getOutboundRequests(tenantId),
-      ]);
-      setNetworks(nets);
-      setInbound(inReqs);
-      setOutbound(outReqs);
-    } catch (err) {
-      console.error('Failed to load network data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleCreateNetwork = async () => {
-    if (!networkName.trim()) return;
-    setActionLoading('create');
-    try {
-      const networkId = await createNetwork(networkName.trim(), tenantId, {
-        contractors: true,
-        marketplace: true,
+      const res = await fetch('/api/network/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ toTenantId, toTenantName }),
       });
-      await updateNetworkConfig({ networkId });
-      showToast(`Network "${networkName}" created`, 'success');
-      setNetworkName('');
-      setShowCreate(false);
-      await loadData();
+      if (res.ok) {
+        await refresh();
+      }
     } catch (err) {
-      showToast('Failed to create network', 'error');
-      console.error(err);
+      console.error('Failed to send invite:', err);
     } finally {
-      setActionLoading(null);
+      setSendingTo(null);
     }
   };
 
-  const handleSendInvite = async () => {
-    if (!inviteTenantId.trim() || !inviteNetworkId) return;
-    setActionLoading('invite');
+  const handleRespond = async (inviteId: string, action: 'accept' | 'reject') => {
+    setRespondingTo(inviteId);
     try {
-      await sendConnectionRequest(
-        inviteNetworkId,
-        tenantId,
-        inviteTenantId.trim(),
-        inviteMessage.trim() || undefined
-      );
-      showToast('Connection request sent', 'success');
-      setInviteTenantId('');
-      setInviteMessage('');
-      setShowInvite(false);
-      await loadData();
+      const res = await fetch(`/api/network/invite/${inviteId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        await refresh();
+      }
     } catch (err) {
-      showToast('Failed to send request', 'error');
-      console.error(err);
+      console.error('Failed to respond to invite:', err);
     } finally {
-      setActionLoading(null);
+      setRespondingTo(null);
     }
   };
 
-  const handleAccept = async (requestId: string) => {
-    setActionLoading(requestId);
+  const handleDisconnect = async (inviteId: string) => {
+    setDisconnecting(inviteId);
     try {
-      await acceptConnectionRequest(requestId);
-      showToast('Connection accepted', 'success');
-      await loadData();
+      const res = await fetch(`/api/network/invite/${inviteId}/disconnect`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        setConfirmDisconnect(null);
+        await refresh();
+      }
     } catch (err) {
-      showToast('Failed to accept', 'error');
-      console.error(err);
+      console.error('Failed to disconnect:', err);
     } finally {
-      setActionLoading(null);
+      setDisconnecting(null);
     }
   };
 
-  const handleReject = async (requestId: string) => {
-    setActionLoading(requestId);
-    try {
-      await rejectConnectionRequest(requestId);
-      showToast('Connection rejected', 'success');
-      await loadData();
-    } catch (err) {
-      showToast('Failed to reject', 'error');
-      console.error(err);
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleLeaveNetwork = async (networkId: string) => {
-    setActionLoading(networkId);
-    try {
-      await removeTenantFromNetwork(networkId, tenantId);
-      showToast('Left network', 'success');
-      await loadData();
-    } catch (err) {
-      showToast('Failed to leave network', 'error');
-      console.error(err);
-    } finally {
-      setActionLoading(null);
-    }
+  const getPartnerName = (invite: NetworkInvite, perspective: 'inbound' | 'outbound') => {
+    return perspective === 'inbound' ? invite.fromTenantName : invite.toTenantName;
   };
 
   if (loading) {
     return (
-      <Card>
-        <div className="flex items-center justify-center py-8">
-          <Spinner />
-        </div>
-      </Card>
+      <div className="flex items-center justify-center py-8">
+        <Spinner size="md" />
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Manage Connections</h3>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          Back to Settings
-        </Button>
-      </div>
-
-      {/* My Networks */}
+    <div className="space-y-4 mt-4">
+      {/* Browse & Invite */}
       <Card>
-        <div className="flex items-center justify-between mb-4">
-          <CardTitle>My Networks</CardTitle>
-          {!showCreate && (
-            <Button size="sm" onClick={() => setShowCreate(true)}>
-              Create Network
-            </Button>
-          )}
+        <div className="flex items-center justify-between mb-2">
+          <CardTitle>Browse & Invite</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowRegistry(!showRegistry)}
+          >
+            {showRegistry ? 'Hide' : 'Find Companies'}
+          </Button>
         </div>
-
-        {showCreate && (
-          <div className="flex gap-2 mb-4 p-3 bg-gray-800/50 rounded-lg">
-            <input
-              type="text"
-              value={networkName}
-              onChange={(e) => setNetworkName(e.target.value)}
-              placeholder="Network name"
-              className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold"
-            />
-            <Button
-              size="sm"
-              onClick={handleCreateNetwork}
-              loading={actionLoading === 'create'}
-            >
-              Create
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowCreate(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
-
-        {networks.length === 0 ? (
-          <p className="text-sm text-gray-500">
-            Not part of any network yet. Create one or wait for an invite.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {networks.map((network) => (
-              <div
-                key={network.id}
-                className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg"
-              >
-                <div>
-                  <p className="text-white font-medium">{network.name}</p>
-                  <p className="text-sm text-gray-400">
-                    {network.tenants.length} member{network.tenants.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
+        {showRegistry && (
+          <div className="mt-4 space-y-3">
+            {availableRegistry.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No companies available to invite at this time.
+              </p>
+            ) : (
+              availableRegistry.map((company) => (
+                <div
+                  key={company.tenantId}
+                  className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-white">{company.name}</p>
+                    {company.domain && (
+                      <p className="text-xs text-gray-400">{company.domain}</p>
+                    )}
+                  </div>
                   <Button
+                    variant="primary"
                     size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setInviteNetworkId(network.id);
-                      setShowInvite(true);
-                    }}
+                    loading={sendingTo === company.tenantId}
+                    disabled={sendingTo !== null}
+                    onClick={() => handleSendInvite(company.tenantId, company.name)}
                   >
-                    Invite
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => handleLeaveNetwork(network.id)}
-                    loading={actionLoading === network.id}
-                  >
-                    Leave
+                    Send Invite
                   </Button>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         )}
       </Card>
 
-      {/* Invite to Network */}
-      {showInvite && (
+      {/* Inbound Invites */}
+      {pendingInbound.length > 0 && (
         <Card>
-          <CardTitle>Invite Tenant to Network</CardTitle>
+          <CardTitle>Inbound Invites</CardTitle>
           <div className="mt-4 space-y-3">
-            <div>
-              <label className="text-sm text-gray-400 block mb-1">
-                Tenant Project ID
-              </label>
-              <input
-                type="text"
-                value={inviteTenantId}
-                onChange={(e) => setInviteTenantId(e.target.value)}
-                placeholder="e.g. keyhub-acme"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-gray-400 block mb-1">
-                Message (optional)
-              </label>
-              <input
-                type="text"
-                value={inviteMessage}
-                onChange={(e) => setInviteMessage(e.target.value)}
-                placeholder="Would you like to join our network?"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={handleSendInvite}
-                loading={actionLoading === 'invite'}
-              >
-                Send Invite
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowInvite(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Inbound Requests */}
-      {inbound.length > 0 && (
-        <Card>
-          <CardTitle>Pending Requests</CardTitle>
-          <div className="mt-4 space-y-3">
-            {inbound.map((req) => (
+            {pendingInbound.map((invite) => (
               <div
-                key={req.id}
+                key={invite.id}
                 className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg"
               >
                 <div>
-                  <p className="text-white text-sm">
-                    From: <span className="font-medium">{req.fromTenantId}</span>
+                  <p className="text-sm font-medium text-white">
+                    {getPartnerName(invite, 'inbound')}
                   </p>
-                  {req.message && (
-                    <p className="text-sm text-gray-400 mt-1">{req.message}</p>
+                  {invite.message && (
+                    <p className="text-xs text-gray-400 mt-1">{invite.message}</p>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <Button
+                    variant="primary"
                     size="sm"
-                    onClick={() => handleAccept(req.id)}
-                    loading={actionLoading === req.id}
+                    loading={respondingTo === invite.id}
+                    disabled={respondingTo !== null}
+                    onClick={() => handleRespond(invite.id, 'accept')}
                   >
                     Accept
                   </Button>
                   <Button
+                    variant="ghost"
                     size="sm"
-                    variant="danger"
-                    onClick={() => handleReject(req.id)}
-                    loading={actionLoading === req.id}
+                    loading={respondingTo === invite.id}
+                    disabled={respondingTo !== null}
+                    onClick={() => handleRespond(invite.id, 'reject')}
                   >
-                    Reject
+                    Deny
                   </Button>
                 </div>
               </div>
@@ -342,34 +190,89 @@ export function NetworkConnections({ onClose }: NetworkConnectionsProps) {
         </Card>
       )}
 
-      {/* Outbound Requests */}
-      {outbound.length > 0 && (
+      {/* Outbound Invites */}
+      {pendingOutbound.length > 0 && (
         <Card>
-          <CardTitle>Sent Requests</CardTitle>
+          <CardTitle>Outbound Invites</CardTitle>
           <div className="mt-4 space-y-3">
-            {outbound.map((req) => (
+            {pendingOutbound.map((invite) => (
               <div
-                key={req.id}
+                key={invite.id}
                 className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg"
               >
                 <div>
-                  <p className="text-white text-sm">
-                    To: <span className="font-medium">{req.toTenantId}</span>
+                  <p className="text-sm font-medium text-white">
+                    {getPartnerName(invite, 'outbound')}
                   </p>
                 </div>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full ${
-                    req.status === 'pending'
-                      ? 'bg-yellow-500/10 text-yellow-400'
-                      : req.status === 'accepted'
-                      ? 'bg-green-500/10 text-green-400'
-                      : 'bg-red-500/10 text-red-400'
-                  }`}
-                >
-                  {req.status}
+                <span className="text-xs font-medium text-brand-gold bg-brand-gold/10 px-2 py-1 rounded-full">
+                  Pending
                 </span>
               </div>
             ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Active Connections */}
+      {activeConnections.length > 0 && (
+        <Card>
+          <CardTitle>Active Connections</CardTitle>
+          <div className="mt-4 space-y-3">
+            {activeConnections.map((invite) => {
+              const isInbound = inbound.some((i) => i.id === invite.id);
+              const partnerName = getPartnerName(
+                invite,
+                isInbound ? 'inbound' : 'outbound'
+              );
+              const connectedDate = invite.respondedAt
+                ? new Date(invite.respondedAt as unknown as string).toLocaleDateString()
+                : '';
+
+              return (
+                <div
+                  key={invite.id}
+                  className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-white">{partnerName}</p>
+                    {connectedDate && (
+                      <p className="text-xs text-gray-400">
+                        Connected {connectedDate}
+                      </p>
+                    )}
+                  </div>
+                  {confirmDisconnect === invite.id ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400">Disconnect?</span>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        loading={disconnecting === invite.id}
+                        onClick={() => handleDisconnect(invite.id)}
+                      >
+                        Yes
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfirmDisconnect(null)}
+                      >
+                        No
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setConfirmDisconnect(invite.id)}
+                    >
+                      Disconnect
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}

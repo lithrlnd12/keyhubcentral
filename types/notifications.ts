@@ -55,7 +55,10 @@ export type NotificationType =
   | 'new_direct_message'
   | 'new_group_message'
   // Network
-  | 'network_opt_in';
+  | 'network_opt_in'
+  | 'network_invite_received'
+  | 'network_invite_accepted'
+  | 'network_invite_rejected';
 
 // Map notification types to categories
 export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCategory> = {
@@ -101,6 +104,9 @@ export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCateg
   new_group_message: 'messages',
   // Network
   network_opt_in: 'admin',
+  network_invite_received: 'admin',
+  network_invite_accepted: 'admin',
+  network_invite_rejected: 'admin',
 };
 
 // Map notification types to priorities
@@ -147,6 +153,9 @@ export const NOTIFICATION_PRIORITIES: Record<NotificationType, NotificationPrior
   new_group_message: 'medium',
   // Network
   network_opt_in: 'medium',
+  network_invite_received: 'high',
+  network_invite_accepted: 'high',
+  network_invite_rejected: 'high',
 };
 
 // Quiet hours configuration
@@ -636,6 +645,21 @@ export function getNotificationTemplate(
       body: 'Your company has joined KeyHub Network. Would you like to be visible for cross-network job opportunities?',
       actionUrl: '/portal/my-profile#network',
     },
+    network_invite_received: {
+      title: `Network Invite from ${data.tenantName || 'a company'}`,
+      body: `${data.tenantName || 'A company'} wants to connect with you on KeyHub Network.`,
+      actionUrl: '/settings',
+    },
+    network_invite_accepted: {
+      title: `${data.tenantName || 'A company'} Accepted Your Invite`,
+      body: `You are now connected with ${data.tenantName || 'a company'} on KeyHub Network.`,
+      actionUrl: '/settings',
+    },
+    network_invite_rejected: {
+      title: `Network Invite Declined`,
+      body: `${data.tenantName || 'A company'} declined your network invite.`,
+      actionUrl: '/settings',
+    },
   };
 
   return templates[type];
@@ -726,7 +750,10 @@ export function isNotificationEnabled(
         case 'partner_ticket_status_changed':
           return preferences.admin.partnerRequests;
         case 'network_opt_in':
-          return true; // Always deliver network opt-in notifications
+        case 'network_invite_received':
+        case 'network_invite_accepted':
+        case 'network_invite_rejected':
+          return true; // Always deliver network notifications
       }
       break;
 

@@ -37,6 +37,27 @@ export interface ConnectionRequest {
   respondedAt?: Timestamp;
 }
 
+// ── Network Invites ────────────────────────────────────────────────────────
+// Tenant-to-tenant invite flow managed via keyhub-system Firestore.
+
+export interface NetworkInvite {
+  id: string;
+  fromTenantId: string;
+  fromTenantName: string;
+  toTenantId: string;
+  toTenantName: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'disconnected';
+  message?: string;
+  createdAt: Timestamp;
+  respondedAt?: Timestamp;
+}
+
+export interface RegistryTenant {
+  tenantId: string;
+  name: string;
+  domain: string;
+}
+
 // ── Tenant Network Config ───────────────────────────────────────────────────
 // Stored in config/network doc per tenant. Controls what this tenant shares
 // and pulls from the network.
