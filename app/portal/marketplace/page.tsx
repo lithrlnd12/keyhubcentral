@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Store, X } from 'lucide-react';
+import { Store, X, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { BackButton } from '@/components/ui/BackButton';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -199,6 +200,14 @@ export default function PortalMarketplacePage() {
                       Listed: {formatCurrency(listing.payRate)}{PAY_TYPE_LABELS[listing.payType]}
                     </span>
                   </div>
+                  {bid.status === 'accepted' && listing.jobId && (
+                    <Link
+                      href={`/kr/${listing.jobId}`}
+                      className="inline-flex items-center gap-1 mt-2 text-sm text-blue-400 hover:text-blue-300"
+                    >
+                      View Job <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </Card>
               );
             })}

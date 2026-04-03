@@ -27,6 +27,7 @@ export interface MarketplaceListing {
   status: MarketplaceListingStatus;
   bids: MarketplaceBid[];
   acceptedBidId?: string | null;
+  jobId?: string | null;  // Job created when bid accepted
   // KeyHub Network fields — track origin for cross-network listings
   networkId?: string;         // network this listing is shared to
   sourceTenantId?: string;    // originating tenant (never exposed in UI)

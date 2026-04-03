@@ -9,7 +9,8 @@ import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { MarketplaceListingCard } from './MarketplaceListingCard';
-import { subscribeToMyListings, acceptBid, rejectBid } from '@/lib/firebase/marketplace';
+import { subscribeToMyListings, rejectBid } from '@/lib/firebase/marketplace';
+import { acceptBidAndCreateJob } from '@/lib/firebase/marketplaceJobBridge';
 import {
   MarketplaceListing,
   MarketplaceBid,
@@ -47,11 +48,11 @@ export function MarketplaceDashboard({ dealerId, onCreateListing }: MarketplaceD
     setExpandedListingId((prev) => (prev === listingId ? null : listingId));
   };
 
-  const handleAcceptBid = async (listingId: string, bidId: string) => {
+  const handleAcceptBid = async (listing: MarketplaceListing, bidId: string) => {
     setProcessingBid(bidId);
     try {
-      await acceptBid(listingId, bidId);
-      showToast('Bid accepted successfully', 'success');
+      const result = await acceptBidAndCreateJob(listing, bidId, dealerId);
+      showToast(`Bid accepted! Job ${result.jobNumber} created.`, 'success');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to accept bid', 'error');
     } finally {
@@ -169,7 +170,7 @@ export function MarketplaceDashboard({ dealerId, onCreateListing }: MarketplaceD
                                 bid={bid}
                                 listing={listing}
                                 processing={processingBid === bid.id}
-                                onAccept={() => handleAcceptBid(listing.id, bid.id)}
+                                onAccept={() => handleAcceptBid(listing, bid.id)}
                                 onReject={() => handleRejectBid(listing.id, bid.id)}
                               />
                             ))

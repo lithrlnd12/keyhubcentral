@@ -29,6 +29,7 @@ export type NotificationType =
   | 'job_status_updated'
   | 'job_completed'
   | 'service_ticket_created'
+  | 'bid_accepted'
   // Leads
   | 'lead_assigned'
   | 'lead_accepted'
@@ -77,6 +78,7 @@ export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCateg
   job_status_updated: 'jobs',
   job_completed: 'jobs',
   service_ticket_created: 'jobs',
+  bid_accepted: 'jobs',
   // Leads
   lead_assigned: 'leads',
   lead_accepted: 'leads',
@@ -126,6 +128,7 @@ export const NOTIFICATION_PRIORITIES: Record<NotificationType, NotificationPrior
   job_status_updated: 'low',
   job_completed: 'medium',
   service_ticket_created: 'high',
+  bid_accepted: 'high',
   // Leads
   lead_assigned: 'high',
   lead_accepted: 'high',
@@ -529,6 +532,11 @@ export function getNotificationTemplate(
       body: `Service ticket created for ${data.address}: ${data.issue}.`,
       actionUrl: data.ticketId ? `/kr/service/${data.ticketId}` : '/kr',
     },
+    bid_accepted: {
+      title: 'Bid Accepted — Job Created',
+      body: `Your bid on "${data.listingTitle}" was accepted! Job ${data.jobNumber} at ${data.address} scheduled for ${data.date}.`,
+      actionUrl: data.jobId ? `/kr/${data.jobId}` : '/portal/jobs',
+    },
 
     // Leads
     lead_assigned: {
@@ -694,6 +702,7 @@ export function isNotificationEnabled(
     case 'jobs':
       switch (type) {
         case 'job_assigned':
+        case 'bid_accepted':
           return preferences.jobs.newAssignments;
         case 'job_schedule_changed':
           return preferences.jobs.scheduleChanges;
