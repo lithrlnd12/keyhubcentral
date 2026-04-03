@@ -14,6 +14,7 @@ import {
   updateNetworkConfig,
   getNetworksForTenant,
 } from '@/lib/firebase/network';
+import { NetworkConnections } from './NetworkConnections';
 
 // Toggle switch — matches NotificationSettings pattern
 function Toggle({
@@ -81,6 +82,7 @@ export function NetworkSettings() {
   const [config, setConfig] = useState<TenantNetworkConfig>(DEFAULT_NETWORK_CONFIG);
   const [saving, setSaving] = useState(false);
   const [membersCount, setMembersCount] = useState(0);
+  const [showConnections, setShowConnections] = useState(false);
 
   const isOwnerOrAdmin = user?.role && ['owner', 'admin'].includes(user.role);
 
@@ -141,6 +143,10 @@ export function NetworkSettings() {
   };
 
   if (!isOwnerOrAdmin) return null;
+
+  if (showConnections) {
+    return <NetworkConnections onClose={() => setShowConnections(false)} />;
+  }
 
   return (
     <Card>
@@ -207,11 +213,7 @@ export function NetworkSettings() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => {
-                // Navigate to manage connections — for now open a section below
-                // Future: dedicated /settings/network page
-                window.location.hash = 'network-connections';
-              }}
+              onClick={() => setShowConnections(true)}
             >
               Manage Connections
             </Button>

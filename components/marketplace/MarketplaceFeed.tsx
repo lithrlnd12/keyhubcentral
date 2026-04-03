@@ -23,6 +23,7 @@ interface MarketplaceFeedProps {
   contractorLocation?: { lat: number; lng: number } | null;
   onPlaceBid?: (listing: MarketplaceListing) => void;
   mode?: 'contractor' | 'dealer';
+  networkIds?: string[];
 }
 
 export function MarketplaceFeed({
@@ -30,6 +31,7 @@ export function MarketplaceFeed({
   contractorLocation,
   onPlaceBid,
   mode = 'contractor',
+  networkIds,
 }: MarketplaceFeedProps) {
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,10 +54,11 @@ export function MarketplaceFeed({
     const unsubscribe = subscribeToOpenListings((data) => {
       setListings(data);
       setLoading(false);
-    }, filters);
+    }, filters, networkIds);
 
     return () => unsubscribe();
-  }, [tradeFilter, search, minPay]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tradeFilter, search, minPay, networkIds?.join(',')]);
 
   // Compute distances and apply distance + trade filters client-side
   const filteredAndSorted = useMemo(() => {

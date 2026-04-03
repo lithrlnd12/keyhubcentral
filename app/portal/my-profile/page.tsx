@@ -15,6 +15,7 @@ import { deleteField, Timestamp } from 'firebase/firestore';
 import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
 import { Contractor, getRatingTier, SPECIALTIES } from '@/types/contractor';
 import { MultiSelect } from '@/components/ui/MultiSelect';
+import { ContractorNetworkOptIn } from '@/components/contractors/ContractorNetworkOptIn';
 
 const usStates = [
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
@@ -717,6 +718,14 @@ export default function PortalProfilePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Network Opt-In — only shown when not editing and contractor exists */}
+      {!editing && contractor && (
+        <ContractorNetworkOptIn
+          contractorId={contractor.id}
+          sharedNetworks={contractor.sharedNetworks}
+        />
       )}
 
       {!editing && (

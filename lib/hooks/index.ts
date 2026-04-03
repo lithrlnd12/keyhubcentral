@@ -84,3 +84,4 @@ export type { GoogleCalendarEvent } from './useGoogleCalendarEvents';
 
 // Feature flags
 export { useFeatureFlags } from './useFeatureFlags';
+export { useNetworkConfig } from './useNetworkConfig';

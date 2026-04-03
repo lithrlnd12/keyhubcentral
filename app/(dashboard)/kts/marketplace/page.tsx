@@ -7,9 +7,12 @@ import { MarketplaceFeed } from '@/components/marketplace/MarketplaceFeed';
 import { MarketplaceDashboard } from '@/components/marketplace/MarketplaceDashboard';
 import { CreateListingForm } from '@/components/marketplace/CreateListingForm';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useNetworkConfig } from '@/lib/hooks/useNetworkConfig';
+import { tenant } from '@/lib/config/tenant';
 
 export default function KTSMarketplacePage() {
   const { user } = useAuth();
+  const { networkIds, canPullMarketplace, sharingMarketplace } = useNetworkConfig();
   const [activeTab, setActiveTab] = useState('browse');
 
   // Only owner, admin, and pm can access this page
@@ -49,7 +52,10 @@ export default function KTSMarketplacePage() {
         </TabsList>
 
         <TabsContent value="browse">
-          <MarketplaceFeed mode="dealer" />
+          <MarketplaceFeed
+            mode="dealer"
+            networkIds={canPullMarketplace ? networkIds : undefined}
+          />
         </TabsContent>
 
         <TabsContent value="my-listings">
@@ -64,6 +70,11 @@ export default function KTSMarketplacePage() {
             dealerId={user?.uid || ''}
             dealerName={user?.displayName || user?.email || 'Unknown Dealer'}
             onSuccess={handleListingCreated}
+            networkOptions={
+              sharingMarketplace && networkIds.length > 0
+                ? { networkId: networkIds[0], sourceTenantId: tenant.firebaseProjectId }
+                : undefined
+            }
           />
         </TabsContent>
       </Tabs>

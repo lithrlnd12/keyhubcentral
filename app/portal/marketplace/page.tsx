@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { MarketplaceFeed } from '@/components/marketplace/MarketplaceFeed';
 import { BidForm } from '@/components/marketplace/BidForm';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useNetworkConfig } from '@/lib/hooks/useNetworkConfig';
 import { findAndLinkContractor } from '@/lib/firebase/contractors';
 import { getOpenListings } from '@/lib/firebase/marketplace';
 import { Contractor, getRatingTier } from '@/types/contractor';
@@ -21,6 +22,7 @@ import { useToast } from '@/components/ui/Toast';
 export default function PortalMarketplacePage() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { networkIds, canPullMarketplace } = useNetworkConfig();
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -212,6 +214,7 @@ export default function PortalMarketplacePage() {
           contractorLocation={contractorLocation}
           onPlaceBid={handlePlaceBid}
           mode="contractor"
+          networkIds={canPullMarketplace ? networkIds : undefined}
         />
       </div>
     </div>

@@ -20,9 +20,10 @@ interface CreateListingFormProps {
   dealerId: string;
   dealerName: string;
   onSuccess: () => void;
+  networkOptions?: { networkId: string; sourceTenantId: string };
 }
 
-export function CreateListingForm({ dealerId, dealerName, onSuccess }: CreateListingFormProps) {
+export function CreateListingForm({ dealerId, dealerName, onSuccess, networkOptions }: CreateListingFormProps) {
   const { showToast } = useToast();
   const [submitting, setSubmitting] = useState(false);
 
@@ -88,7 +89,7 @@ export function CreateListingForm({ dealerId, dealerName, onSuccess }: CreateLis
         payType,
         requiredSkills,
         crewSize,
-      });
+      }, networkOptions);
       showToast('Listing created successfully', 'success');
       onSuccess();
     } catch (err) {
