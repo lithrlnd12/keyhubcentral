@@ -82,6 +82,16 @@ export async function getStockForLocation(locationId: string): Promise<Inventory
   return getInventoryStock({ locationId });
 }
 
+export async function deleteStockForItem(itemId: string): Promise<void> {
+  const stockDocs = await getDocs(
+    query(collection(db, COLLECTION), where('itemId', '==', itemId))
+  );
+  if (stockDocs.empty) return;
+  const batch = writeBatch(db);
+  stockDocs.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+}
+
 export async function getStockEntry(
   itemId: string,
   locationId: string

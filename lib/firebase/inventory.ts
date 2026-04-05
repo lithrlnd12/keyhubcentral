@@ -92,6 +92,10 @@ export async function updateInventoryItem(
 }
 
 export async function deleteInventoryItem(id: string): Promise<void> {
+  // Delete associated stock records first
+  const { deleteStockForItem } = await import('./inventoryStock');
+  await deleteStockForItem(id);
+  // Then delete the item itself
   const docRef = doc(db, COLLECTION, id);
   await deleteDoc(docRef);
 }
