@@ -38,14 +38,16 @@ export function Logo({ size = 'md', showText = false, variant = 'full', classNam
     );
   }
 
+  // Use SVG if available (scales perfectly), fall back to PNG
+  const logoSrc = tenant.logoIconPath?.endsWith('.svg') ? tenant.logoIconPath : tenant.logoPath;
+
   return (
-    <Image
-      src={tenant.logoPath}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={logoSrc}
       alt={tenant.appName}
       width={sizes[size].width}
       height={sizes[size].height}
-      priority
-      style={{ height: 'auto' }}
       className={cn('object-contain', className)}
     />
   );
