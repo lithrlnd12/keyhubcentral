@@ -14,40 +14,12 @@ export function initializeMessaging(): Messaging | null {
   if (!messaging) {
     try {
       messaging = getMessaging(app);
-      // Send config to service worker on every init so it can handle
-      // background pushes even after SW restarts
-      sendConfigToServiceWorker();
     } catch (error) {
       console.error('Failed to initialize Firebase Messaging:', error);
       return null;
     }
   }
   return messaging;
-}
-
-// Send Firebase config to the service worker so it can initialize.
-// Service workers cannot access NEXT_PUBLIC_* env vars directly.
-async function sendConfigToServiceWorker(): Promise<void> {
-  if (!('serviceWorker' in navigator)) return;
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    const sw = registration.active ?? registration.waiting;
-    if (sw) {
-      sw.postMessage({
-        type: 'FIREBASE_CONFIG',
-        config: {
-          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-          messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-          appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Failed to send config to service worker:', error);
-  }
 }
 
 // Request notification permission and get FCM token
@@ -65,12 +37,33 @@ export async function requestNotificationPermission(userId: string): Promise<str
       return null;
     }
 
-    // Initialize the service worker with Firebase config before requesting token
-    await sendConfigToServiceWorker();
+    // Register firebase-messaging-sw.js explicitly so getToken doesn't hang
+    // looking for it (next-pwa registers sw.js which is a different SW)
+    const swRegistration = await navigator.serviceWorker.register(
+      '/firebase-messaging-sw.js',
+      { scope: '/' }
+    );
 
-    // Get FCM token
+    // Send Firebase config to the SW so it can initialize
+    const sw = swRegistration.active ?? swRegistration.installing ?? swRegistration.waiting;
+    if (sw) {
+      sw.postMessage({
+        type: 'FIREBASE_CONFIG',
+        config: {
+          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        },
+      });
+    }
+
+    // Get FCM token using the explicit SW registration
     const token = await getToken(messagingInstance, {
       vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+      serviceWorkerRegistration: swRegistration,
     });
 
     if (token) {
