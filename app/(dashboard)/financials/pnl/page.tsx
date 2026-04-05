@@ -10,6 +10,7 @@ const PnLPDFButton = dynamic(
   () => import('@/components/pdf/PnLPDFButton').then((mod) => mod.PnLPDFButton),
   { ssr: false, loading: () => null }
 );
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { useInvoices } from '@/lib/hooks/useInvoices';
 import { useJobs } from '@/lib/hooks/useJobs';
@@ -28,9 +29,22 @@ import { EXPENSE_CATEGORIES } from '@/types/expense';
 import { tenant } from '@/lib/config/tenant';
 
 export default function PnLPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'owner' || user?.role === 'admin';
   const { invoices, loading: invoicesLoading } = useInvoices({ realtime: true });
   const { jobs, loading: jobsLoading } = useJobs({ realtime: true });
   const { expenses, loading: expensesLoading } = useExpenses({ realtime: true });
+
+  if (!isAdmin) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-400">You do not have access to P&L reports.</p>
+        <Link href="/financials" className="text-gold hover:underline mt-2 inline-block">
+          Back to Financials
+        </Link>
+      </div>
+    );
+  }
 
   const datePresets = getDateRangePresets();
   const [selectedPreset, setSelectedPreset] = useState(0); // This Month by default
