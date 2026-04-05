@@ -42,18 +42,10 @@ export default function ContractorInventoryPage() {
   const loading = locationLoading || alertsLoading || stockLoading || receiptsLoading;
   const pendingReceipts = receipts.filter((r) => r.status === 'pending').length;
 
-  if (!location) {
+  if (locationLoading) {
     return (
-      <div className="text-center py-12">
-        <Truck className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-white mb-2">
-          {locationLoading ? 'Loading Inventory...' : 'No Truck Inventory Set Up'}
-        </h2>
-        <p className="text-gray-400 max-w-md mx-auto">
-          {locationLoading
-            ? 'Please wait while we load your truck inventory.'
-            : "Your truck inventory location hasn\u0027t been configured yet. Please contact an admin to set up your truck inventory."}
-        </p>
+      <div className="flex justify-center py-12">
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -64,42 +56,44 @@ export default function ContractorInventoryPage() {
       <div className="flex items-center gap-4">
         <BackButton href="/portal" />
         <div>
-          <h1 className="text-2xl font-bold text-white">My Truck Inventory</h1>
-          <p className="text-gray-400">{location.name}</p>
+          <h1 className="text-2xl font-bold text-white">My Inventory</h1>
+          {location && <p className="text-gray-400">{location.name}</p>}
         </div>
       </div>
 
       {/* Low Stock Alert */}
-      {!alertsLoading && alerts.length > 0 && (
+      {location && !alertsLoading && alerts.length > 0 && (
         <LowStockAlertBanner count={alerts.length} />
       )}
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-gold/10 rounded-lg">
-              <Package className="h-5 w-5 text-gold" />
+      {/* Stats Grid — only show if they have a location */}
+      {location && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-gold/10 rounded-lg">
+                <Package className="h-5 w-5 text-gold" />
+              </div>
+              <span className="text-gray-400 text-sm">Items</span>
             </div>
-            <span className="text-gray-400 text-sm">Items</span>
+            <p className="text-2xl font-bold text-white">
+              {loading ? '-' : stock.length}
+            </p>
           </div>
-          <p className="text-2xl font-bold text-white">
-            {loading ? '-' : stock.length}
-          </p>
-        </div>
 
-        <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-red-500/10 rounded-lg">
-              <AlertTriangle className="h-5 w-5 text-red-400" />
+          <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-red-500/10 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-red-400" />
+              </div>
+              <span className="text-gray-400 text-sm">Below Par</span>
             </div>
-            <span className="text-gray-400 text-sm">Below Par</span>
+            <p className="text-2xl font-bold text-red-400">
+              {loading ? '-' : alerts.length}
+            </p>
           </div>
-          <p className="text-2xl font-bold text-red-400">
-            {loading ? '-' : alerts.length}
-          </p>
         </div>
-      </div>
+      )}
 
       {/* Quick Actions */}
       <div className="space-y-3">
@@ -165,17 +159,19 @@ export default function ContractorInventoryPage() {
         </Link>
       </div>
 
-      {/* Low Stock Items */}
-      <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-4">
-        <h2 className="text-lg font-medium text-white mb-4">Items Needing Restock</h2>
-        {alertsLoading ? (
-          <div className="flex justify-center py-6">
-            <Spinner />
-          </div>
-        ) : (
-          <LowStockAlertList alerts={alerts} maxItems={10} />
-        )}
-      </div>
+      {/* Low Stock Items — only if they have a location */}
+      {location && (
+        <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-4">
+          <h2 className="text-lg font-medium text-white mb-4">Items Needing Restock</h2>
+          {alertsLoading ? (
+            <div className="flex justify-center py-6">
+              <Spinner />
+            </div>
+          ) : (
+            <LowStockAlertList alerts={alerts} maxItems={10} />
+          )}
+        </div>
+      )}
     </div>
   );
 }
