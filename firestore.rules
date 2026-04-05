@@ -414,8 +414,14 @@ service cloud.firestore {
       // Internal users can read locations
       allow read: if isInternalUser();
 
-      // Only admins can create/update/delete locations
+      // Admins can create/update any location
       allow create, update: if isAdmin();
+
+      // Contractors can create their own truck locations
+      allow create: if isActiveUser() &&
+        request.resource.data.contractorId == request.auth.uid &&
+        request.resource.data.type == 'truck';
+
       allow delete: if isOwner();
     }
 
