@@ -149,6 +149,48 @@ export async function deleteContractor(id: string): Promise<void> {
   await deleteDoc(docRef);
 }
 
+/**
+ * Get contractors who have opted in to a specific network.
+ * Returns only active contractors with the given networkId in sharedNetworks.
+ * Used by other tenants in the same network to view available contractors.
+ */
+export async function getNetworkContractors(networkId: string): Promise<Contractor[]> {
+  const q = query(
+    collection(db, COLLECTION),
+    where('sharedNetworks', 'array-contains', networkId),
+    where('status', '==', 'active'),
+    orderBy('createdAt', 'desc')
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Contractor));
+}
+
+/**
+ * Real-time subscription to network-shared contractors.
+ */
+export function subscribeToNetworkContractors(
+  networkId: string,
+  callback: (contractors: Contractor[]) => void
+): () => void {
+  const q = query(
+    collection(db, COLLECTION),
+    where('sharedNetworks', 'array-contains', networkId),
+    where('status', '==', 'active'),
+    orderBy('createdAt', 'desc')
+  );
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const contractors = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Contractor));
+      callback(contractors);
+    },
+    (error) => {
+      console.error('Error subscribing to network contractors:', error);
+      callback([]);
+    }
+  );
+}
+
 export function subscribeToContractors(
   callback: (contractors: Contractor[]) => void,
   filters?: ContractorFilters

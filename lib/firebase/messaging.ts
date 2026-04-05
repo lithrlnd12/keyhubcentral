@@ -1,7 +1,7 @@
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
-import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { app, db } from './config';
+import { app } from './config';
 import { tenant } from '@/lib/config/tenant';
+import { saveFCMToken, removeFCMToken } from './notifications';
 
 let messaging: Messaging | null = null;
 
@@ -71,8 +71,19 @@ export async function requestNotificationPermission(userId: string): Promise<str
     });
 
     if (token) {
-      // Save token to user document
-      await saveTokenToUser(userId, token);
+      // Save token to user document in the object format Cloud Functions expect
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const browser = navigator.userAgent.includes('Chrome')
+        ? 'Chrome'
+        : navigator.userAgent.includes('Firefox')
+          ? 'Firefox'
+          : navigator.userAgent.includes('Safari')
+            ? 'Safari'
+            : 'Other';
+      await saveFCMToken(userId, token, {
+        device: isMobile ? 'mobile' : 'desktop',
+        browser,
+      });
       return token;
     }
 
@@ -83,29 +94,8 @@ export async function requestNotificationPermission(userId: string): Promise<str
   }
 }
 
-// Save FCM token to user document
-async function saveTokenToUser(userId: string, token: string): Promise<void> {
-  try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      fcmTokens: arrayUnion(token),
-    });
-  } catch (error) {
-    console.error('Error saving FCM token:', error);
-  }
-}
-
-// Remove FCM token from user document
-export async function removeTokenFromUser(userId: string, token: string): Promise<void> {
-  try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      fcmTokens: arrayRemove(token),
-    });
-  } catch (error) {
-    console.error('Error removing FCM token:', error);
-  }
-}
+// Re-export for any consumers that imported from this module
+export { removeFCMToken as removeTokenFromUser } from './notifications';
 
 // Listen for foreground messages
 export function onForegroundMessage(callback: (payload: NotificationPayload) => void): () => void {

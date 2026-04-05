@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Calendar, Briefcase, DollarSign, Package, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Calendar, Briefcase, DollarSign, Package, Clock, CheckCircle, AlertTriangle, MapPin } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth, useContractorJobs, useContractorInvoices, useContractorExpenses, useLowStockCount, useContractorLocation } from '@/lib/hooks';
@@ -69,6 +69,26 @@ export default function PortalDashboardPage() {
           Here&apos;s an overview of your business
         </p>
       </div>
+
+      {/* Profile Completion Banner */}
+      {!loading && contractor && !contractor.address?.street && (
+        <Link href="/portal/my-profile">
+          <Card className="p-4 border-brand-gold/30 bg-brand-gold/5 hover:border-brand-gold/60 transition-colors cursor-pointer">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-brand-gold/10 rounded-lg shrink-0">
+                <MapPin className="h-5 w-5 text-brand-gold" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-brand-gold font-medium">Complete your profile</p>
+                <p className="text-sm text-gray-400">
+                  Add your address so you appear on the team map and get matched to nearby jobs.
+                </p>
+              </div>
+              <span className="text-brand-gold text-sm font-medium shrink-0">Set up &rarr;</span>
+            </div>
+          </Card>
+        </Link>
+      )}
 
       {/* Status Card */}
       <Card className="p-4">

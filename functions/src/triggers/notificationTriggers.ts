@@ -114,7 +114,7 @@ async function sendPushNotification(
       return false;
     }
 
-    // Get FCM tokens
+    // Get FCM tokens — handle both object format {token: "..."} and legacy plain strings
     if (tokens.length === 0) {
       console.log(`No FCM tokens for user ${userId}`);
       return false;
@@ -137,10 +137,16 @@ async function sendPushNotification(
       }),
     });
 
-    // Send to all tokens
-    const tokenStrings = tokens.map((t) => t.token);
+    // Send to all tokens — support both object {token: "..."} and legacy plain string formats
+    const tokenStrings = tokens.map((t: FCMToken | string) =>
+      typeof t === 'string' ? t : t.token
+    ).filter(Boolean);
     const message: admin.messaging.MulticastMessage = {
       tokens: tokenStrings,
+      notification: {
+        title: notification.title,
+        body: notification.body,
+      },
       data: {
         type: notification.type,
         priority: notification.priority,
@@ -150,6 +156,13 @@ async function sendPushNotification(
         ...notification.data,
       },
       webpush: {
+        notification: {
+          title: notification.title,
+          body: notification.body,
+          icon: '/logo.svg',
+          badge: '/logo.svg',
+          requireInteraction: notification.priority === 'urgent' || notification.priority === 'high',
+        },
         fcmOptions: {
           link: notification.data?.actionUrl || '/overview',
         },

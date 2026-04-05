@@ -5,12 +5,12 @@ import { useLeads } from '@/lib/hooks/useLeads';
 import { useCampaigns } from '@/lib/hooks/useCampaigns';
 import { useSubscriptions } from '@/lib/hooks/useSubscriptions';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { LeadList, LeadFilters } from '@/components/leads';
+import { LeadList, LeadFilters, LeadImportModal } from '@/components/leads';
 import { KDStats, CampaignPerformance, SubscriberBreakdown } from '@/components/kd';
 import { LeadPipelineChart } from '@/components/charts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Plus, LayoutDashboard, Users, MapPin, Globe } from 'lucide-react';
+import { Plus, Upload, LayoutDashboard, Users, MapPin, Globe } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils/cn';
 import { calculateDistanceMiles } from '@/lib/utils/distance';
@@ -25,6 +25,7 @@ export default function KDPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [leadScope, setLeadScope] = useState<LeadScope>('nearby');
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const {
     leads,
@@ -116,12 +117,18 @@ export default function KDPage() {
             </>
           )}
           {canCreate && (
-            <Link href="/kd/leads/new">
-              <Button size="sm">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Lead
+            <>
+              <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                Import Leads
               </Button>
-            </Link>
+              <Link href="/kd/leads/new">
+                <Button size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Lead
+                </Button>
+              </Link>
+            </>
           )}
         </div>
       </div>
@@ -244,6 +251,12 @@ export default function KDPage() {
           />
         </>
       )}
+
+      {/* Lead Import Modal */}
+      <LeadImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+      />
     </div>
   );
 }

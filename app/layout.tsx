@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/lib/hooks';
 import { ToastProvider } from '@/components/ui/Toast';
+import OfflineIndicator from '@/components/ui/OfflineIndicator';
 import './globals.css';
+import './globals-brand.css';
 import { tenant } from '@/lib/config/tenant';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -50,6 +52,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AuthProvider>
           <ToastProvider>
+            <OfflineIndicator />
             {children}
           </ToastProvider>
         </AuthProvider>

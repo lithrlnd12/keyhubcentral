@@ -29,6 +29,7 @@ export type NotificationType =
   | 'job_status_updated'
   | 'job_completed'
   | 'service_ticket_created'
+  | 'bid_accepted'
   // Leads
   | 'lead_assigned'
   | 'lead_accepted'
@@ -53,7 +54,12 @@ export type NotificationType =
   | 'partner_ticket_status_changed'
   // Messages
   | 'new_direct_message'
-  | 'new_group_message';
+  | 'new_group_message'
+  // Network
+  | 'network_opt_in'
+  | 'network_invite_received'
+  | 'network_invite_accepted'
+  | 'network_invite_rejected';
 
 // Map notification types to categories
 export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCategory> = {
@@ -72,6 +78,7 @@ export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCateg
   job_status_updated: 'jobs',
   job_completed: 'jobs',
   service_ticket_created: 'jobs',
+  bid_accepted: 'jobs',
   // Leads
   lead_assigned: 'leads',
   lead_accepted: 'leads',
@@ -97,6 +104,11 @@ export const NOTIFICATION_CATEGORIES: Record<NotificationType, NotificationCateg
   // Messages
   new_direct_message: 'messages',
   new_group_message: 'messages',
+  // Network
+  network_opt_in: 'admin',
+  network_invite_received: 'admin',
+  network_invite_accepted: 'admin',
+  network_invite_rejected: 'admin',
 };
 
 // Map notification types to priorities
@@ -116,6 +128,7 @@ export const NOTIFICATION_PRIORITIES: Record<NotificationType, NotificationPrior
   job_status_updated: 'low',
   job_completed: 'medium',
   service_ticket_created: 'high',
+  bid_accepted: 'high',
   // Leads
   lead_assigned: 'high',
   lead_accepted: 'high',
@@ -141,6 +154,11 @@ export const NOTIFICATION_PRIORITIES: Record<NotificationType, NotificationPrior
   // Messages
   new_direct_message: 'high',
   new_group_message: 'medium',
+  // Network
+  network_opt_in: 'medium',
+  network_invite_received: 'high',
+  network_invite_accepted: 'high',
+  network_invite_rejected: 'high',
 };
 
 // Quiet hours configuration
@@ -258,7 +276,7 @@ export function getDefaultPreferences(role: string): NotificationPreferences {
     pushEnabled: true,
     emailDigest: 'none',
     quietHours: {
-      enabled: true,
+      enabled: false,
       start: '21:00',
       end: '07:00',
     },
@@ -514,6 +532,11 @@ export function getNotificationTemplate(
       body: `Service ticket created for ${data.address}: ${data.issue}.`,
       actionUrl: data.ticketId ? `/kr/service/${data.ticketId}` : '/kr',
     },
+    bid_accepted: {
+      title: 'Bid Accepted — Job Created',
+      body: `Your bid on "${data.listingTitle}" was accepted! Job ${data.jobNumber} at ${data.address} scheduled for ${data.date}.`,
+      actionUrl: data.jobId ? `/kr/${data.jobId}` : '/portal/jobs',
+    },
 
     // Leads
     lead_assigned: {
@@ -624,6 +647,27 @@ export function getNotificationTemplate(
       body: data.messageText || 'Sent a message',
       actionUrl: data.conversationId ? `/messages/${data.conversationId}` : '/messages',
     },
+    // Network
+    network_opt_in: {
+      title: 'KeyHub Network — Share Your Availability?',
+      body: 'Your company has joined KeyHub Network. Would you like to be visible for cross-network job opportunities?',
+      actionUrl: '/portal/my-profile#network',
+    },
+    network_invite_received: {
+      title: `Network Invite from ${data.tenantName || 'a company'}`,
+      body: `${data.tenantName || 'A company'} wants to connect with you on KeyHub Network.`,
+      actionUrl: '/settings',
+    },
+    network_invite_accepted: {
+      title: `${data.tenantName || 'A company'} Accepted Your Invite`,
+      body: `You are now connected with ${data.tenantName || 'a company'} on KeyHub Network.`,
+      actionUrl: '/settings',
+    },
+    network_invite_rejected: {
+      title: `Network Invite Declined`,
+      body: `${data.tenantName || 'A company'} declined your network invite.`,
+      actionUrl: '/settings',
+    },
   };
 
   return templates[type];
@@ -658,6 +702,7 @@ export function isNotificationEnabled(
     case 'jobs':
       switch (type) {
         case 'job_assigned':
+        case 'bid_accepted':
           return preferences.jobs.newAssignments;
         case 'job_schedule_changed':
           return preferences.jobs.scheduleChanges;
@@ -713,6 +758,11 @@ export function isNotificationEnabled(
         case 'partner_ticket_new':
         case 'partner_ticket_status_changed':
           return preferences.admin.partnerRequests;
+        case 'network_opt_in':
+        case 'network_invite_received':
+        case 'network_invite_accepted':
+        case 'network_invite_rejected':
+          return true; // Always deliver network notifications
       }
       break;
 

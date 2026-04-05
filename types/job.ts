@@ -169,6 +169,7 @@ export interface Job {
   photos?: JobPhotos;
   commission?: JobCommission;
   leadId?: string | null;  // Reference to source lead
+  marketplaceListingId?: string | null;  // Reference to source marketplace listing
   // New fields for end-to-end workflow
   materials?: JobMaterial[];
   documents?: JobDocuments;

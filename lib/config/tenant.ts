@@ -1,5 +1,6 @@
 // Tenant configuration — centralized brand, entity, and business constants.
 // To white-label: change values here. All UI, PDFs, emails, and logic read from this file.
+// AUTO-GENERATED — do not edit manually.
 
 export type EntityKey = 'kd' | 'kts' | 'kr';
 
@@ -33,8 +34,8 @@ export interface TenantConfig {
   // Admin notification emails
   adminEmails: string[];
 
-  // Google Review URL
-  googleReviewUrl: string;
+  // Google Review URL (optional — not all tenants have one)
+  googleReviewUrl?: string;
 
   // Firebase project
   firebaseProjectId: string;
@@ -100,11 +101,11 @@ export const tenant: TenantConfig = {
   // Admin notification emails
   adminEmails: ['aaron@innovativeaiconsulting.com'],
 
+  // Google Review URL
+  googleReviewUrl: 'https://g.page/r/YOUR_GOOGLE_REVIEW_LINK/review',
+
   // Firebase project
   firebaseProjectId: 'key-hub-central',
-
-  // Google Review URL (replace with your actual Google review link)
-  googleReviewUrl: 'https://g.page/r/YOUR_GOOGLE_REVIEW_LINK/review',
 
   // Business entities
   entities: {

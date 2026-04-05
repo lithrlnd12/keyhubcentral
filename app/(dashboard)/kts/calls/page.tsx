@@ -1,10 +1,15 @@
 'use client';
 
-import { Phone } from 'lucide-react';
-import { InboundCallFilters, InboundCallList } from '@/components/inboundCalls';
+import { useAuth } from '@/lib/hooks/useAuth';
 import { useInboundCalls, useNewCallsCount } from '@/lib/hooks';
+import { InboundCallFilters, InboundCallList } from '@/components/inboundCalls';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { LiveCallDashboard } from '@/components/calls/LiveCallDashboard';
+import { CallQueueView } from '@/components/calls/CallQueueView';
+import { ShieldAlert } from 'lucide-react';
 
-export default function CallsPage() {
+function InboundCallsTab() {
   const {
     calls,
     loading,
@@ -16,19 +21,52 @@ export default function CallsPage() {
   } = useInboundCalls({
     realtime: true,
     initialFilters: {
-      // Exclude converted and closed calls from default view
       excludeStatuses: ['converted', 'closed'],
     },
   });
-
-  const { count: newCallsCount } = useNewCallsCount();
 
   const handleClearFilters = () => {
     setFilters({});
   };
 
   return (
+    <div className="space-y-4">
+      <InboundCallFilters
+        filters={filters}
+        onStatusChange={setStatus}
+        onSearchChange={setSearch}
+        onClear={handleClearFilters}
+      />
+      <InboundCallList
+        calls={calls}
+        loading={loading}
+        error={error}
+      />
+    </div>
+  );
+}
+
+export default function CallCenterPage() {
+  const { user } = useAuth();
+  const { count: newCallsCount } = useNewCallsCount();
+
+  const userRole = (user as Record<string, unknown> | null)?.role as string | undefined;
+  const isAdmin = userRole === 'owner' || userRole === 'admin';
+  const hasAccess = isAdmin || userRole === 'pm';
+
+  if (!hasAccess) {
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        title="Access Denied"
+        description="You do not have permission to view the Call Center. Contact an admin for access."
+      />
+    );
+  }
+
+  return (
     <div className="space-y-6">
+      {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
@@ -40,35 +78,35 @@ export default function CallsPage() {
             )}
           </div>
           <p className="text-gray-400 mt-1">
-            Review and follow up on incoming customer calls
+            Review incoming calls, manage the queue, and view call history.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2 text-gray-400 text-sm">
-          <Phone className="w-4 h-4" />
-          <span>
-            {!loading && (
-              <>
-                {calls.length} call{calls.length !== 1 ? 's' : ''}
-                {filters.status || filters.search ? ' (filtered)' : ''}
-              </>
-            )}
-          </span>
         </div>
       </div>
 
-      <InboundCallFilters
-        filters={filters}
-        onStatusChange={setStatus}
-        onSearchChange={setSearch}
-        onClear={handleClearFilters}
-      />
+      {/* Tabs — Inbound Calls is the default view */}
+      <Tabs defaultValue="inbound">
+        <TabsList>
+          <TabsTrigger value="inbound">Inbound Calls</TabsTrigger>
+          <TabsTrigger value="live">Live Calls</TabsTrigger>
+          <TabsTrigger value="queue">Call Queue</TabsTrigger>
+        </TabsList>
 
-      <InboundCallList
-        calls={calls}
-        loading={loading}
-        error={error}
-      />
+        <TabsContent value="inbound">
+          <InboundCallsTab />
+        </TabsContent>
+
+        <TabsContent value="live">
+          <LiveCallDashboard />
+        </TabsContent>
+
+        <TabsContent value="queue">
+          <CallQueueView />
+        </TabsContent>
+
+        {/* Call History and Routing Rules removed from tabs:
+            - Call history is now shown in context on each job's Activity tab
+            - Routing rules are developer config via Firestore routingRules collection */}
+      </Tabs>
     </div>
   );
 }

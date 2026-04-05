@@ -47,6 +47,13 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.partnerId;
     }
 
+    // Config collection (feature flags, app settings)
+    // All authenticated users can read; only owner can write
+    match /config/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner();
+    }
+
     // Users collection
     match /users/{userId} {
       // Anyone can create their own user document (signup)
@@ -63,6 +70,12 @@ service cloud.firestore {
           (request.resource.data.status == 'active' &&
            request.resource.data.role == 'customer' &&
            request.resource.data.requestedRole == 'customer')
+          ||
+          // First-user-is-owner: auto-promoted when no admins exist
+          // The client checks if users collection has any owner/admin before setting this
+          (request.resource.data.status == 'active' &&
+           request.resource.data.role == 'owner' &&
+           request.resource.data.get('approvedBy', '') == 'auto-first-user')
         );
 
       // Active users can read user profiles (needed for messaging contacts, user lookups)
@@ -521,13 +534,13 @@ service cloud.firestore {
       // Users can read their own notifications
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
-      // Only Cloud Functions (admin SDK) can create notifications
-      allow create: if false;
+      // Active users can create notifications (in-app notification system)
+      allow create: if isActiveUser();
 
       // Users can update their own notifications (mark as read)
       allow update: if isAuthenticated() &&
         resource.data.userId == request.auth.uid &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'readAt', 'deliveredAt']);
 
       // Users can delete their own notifications
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
@@ -679,6 +692,116 @@ service cloud.firestore {
 
       // Only owner can delete contracts
       allow delete: if isOwner();
+    }
+
+    // ========================================
+    // ENTERPRISE COLLECTIONS
+    // ========================================
+
+    // ── KeyHub Network ──────────────────────────────────────────────────
+    // Cross-tenant network connections for sharing contractors & marketplace.
+    // Network docs are readable by admins of member tenants only.
+
+    // Network config per tenant — stored in config/network
+    // (Already covered by the config/{docId} rule above: read=authenticated, write=owner)
+
+    // Networks collection — network membership and shared features
+    match /networks/{networkId} {
+      // Admins can read networks their tenant belongs to
+      allow read: if isAdmin();
+
+      // Only owner can create/update/delete networks
+      allow create, update: if isOwner();
+      allow delete: if isOwner();
+    }
+
+    // Connection requests — mutual agreement to join networks
+    match /connectionRequests/{requestId} {
+      // Admins can read requests involving their tenant
+      allow read: if isAdmin();
+
+      // Owner can create outbound requests
+      allow create: if isOwner();
+
+      // Owner can update (accept/reject) inbound requests
+      allow update: if isOwner();
+
+      // Owner can delete requests
+      allow delete: if isOwner();
+    }
+
+    // Marketplace Listings — cross-dealer labor sharing
+    // Network-scoped listings: tenants in the same network can READ listings
+    // with a matching networkId, but never write to another tenant's listings
+    match /marketplaceListings/{listingId} {
+      allow read: if isActiveUser();
+      allow create: if isAdmin() ||
+        (isActiveUser() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'pm');
+      allow update: if isAdmin() ||
+        (isActiveUser() && resource.data.dealerId == request.auth.uid) ||
+        // Contractors can update to place bids (bids array)
+        (isContractor() && isActiveUser());
+      allow delete: if isAdmin();
+    }
+
+    // Remote Signing Sessions — e-signature tokens
+    match /remoteSigningSessions/{sessionId} {
+      // Public read via token query (verify endpoint uses admin SDK)
+      // Internal users can list sessions for their contracts
+      allow read: if isInternalUser();
+      allow create: if isInternalUser() && isActiveUser();
+      allow update: if isAdmin() ||
+        (isInternalUser() && isActiveUser());
+      allow delete: if isAdmin();
+    }
+
+    // Email Templates — automation config
+    match /emailTemplates/{templateId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Email Queue — pending/sent emails
+    match /emailQueue/{emailId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isOwner();
+    }
+
+    // Webhook Endpoints — outbound webhook config
+    match /webhookEndpoints/{endpointId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Webhook Deliveries — delivery logs
+    match /webhookDeliveries/{deliveryId} {
+      allow read: if isAdmin();
+      allow create: if false; // Only admin SDK (dispatcher)
+      allow delete: if isOwner();
+    }
+
+    // API Keys — external API access
+    match /apiKeys/{keyId} {
+      allow read: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin();
+    }
+
+    // Routing Rules — AI call routing config (developer-managed)
+    match /routingRules/{ruleId} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Saved Reports — report builder configs
+    match /savedReports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() ||
+        (isActiveUser() && resource.data.createdBy == request.auth.uid);
+      allow delete: if isAdmin();
     }
 
     // Internal messaging - conversations

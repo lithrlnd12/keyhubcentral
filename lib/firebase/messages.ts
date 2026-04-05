@@ -349,6 +349,54 @@ export async function findOrCreateJobChat(
   return docRef.id;
 }
 
+// ---------- Cross-network job communication ----------
+
+/**
+ * Create a job-scoped conversation for cross-network jobs.
+ * Only visible to the contractor who accepted + the posting tenant's admin/PM.
+ * Uses first name + role only — never exposes company names.
+ */
+export async function findOrCreateNetworkJobChat(
+  networkJobId: string,
+  participants: string[],
+  participantNames: Record<string, string>,
+  createdBy: string
+): Promise<string> {
+  // Look for existing cross-network conversation for this job
+  const q = query(
+    collection(db, CONVERSATIONS),
+    where('networkJobId', '==', networkJobId),
+    where('participants', 'array-contains', createdBy)
+  );
+  const snapshot = await getDocs(q);
+
+  if (!snapshot.empty) {
+    return snapshot.docs[0].id;
+  }
+
+  // Create new cross-network conversation
+  const unreadCount: Record<string, number> = {};
+  for (const uid of participants) {
+    unreadCount[uid] = 0;
+  }
+
+  const docRef = await addDoc(collection(db, CONVERSATIONS), {
+    type: 'group',
+    participants,
+    participantNames,
+    groupName: 'Network Job Communication',
+    networkJobId,
+    crossTenant: true,
+    lastMessage: null,
+    unreadCount,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    createdBy,
+  });
+
+  return docRef.id;
+}
+
 export async function updateGroupName(
   conversationId: string,
   groupName: string

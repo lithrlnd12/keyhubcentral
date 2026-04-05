@@ -303,16 +303,18 @@ export function ChatView({ conversation }: { conversation: Conversation }) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Display name
-  const displayName =
-    conversation.type === 'group'
+  const displayName = conversation.crossTenant
+    ? 'Network Job Communication'
+    : conversation.type === 'group'
       ? conversation.groupName || 'Group Chat'
       : Object.entries(conversation.participantNames)
           .filter(([uid]) => uid !== user?.uid)
           .map(([, name]) => name)
           .join(', ') || 'Unknown';
 
-  const subtitle =
-    conversation.type === 'group'
+  const subtitle = conversation.crossTenant
+    ? 'Secure cross-network job thread'
+    : conversation.type === 'group'
       ? `${conversation.participants.length} members`
       : undefined;
 
