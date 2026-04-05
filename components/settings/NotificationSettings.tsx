@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { Bell, BellOff, Check } from 'lucide-react';
+import { Bell, BellOff } from 'lucide-react';
 import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useNotifications } from '@/lib/hooks';
@@ -16,21 +15,14 @@ export function NotificationSettings() {
     togglePush,
   } = useNotifications();
 
-  const [saving, setSaving] = useState(false);
+  const isEnabled = preferences?.pushEnabled && permission === 'granted';
 
-  const handleToggle = async () => {
-    setSaving(true);
-    try {
-      if (!preferences?.pushEnabled && permission !== 'granted') {
-        // Need to request browser permission first
-        await requestPermission();
-      } else {
-        await togglePush(!preferences?.pushEnabled);
-      }
-    } catch (error) {
-      console.error('Error toggling notifications:', error);
-    } finally {
-      setSaving(false);
+  const handleToggle = () => {
+    if (isEnabled) {
+      togglePush(false);
+    } else {
+      // Triggers browser permission dialog, saves token on grant
+      requestPermission();
     }
   };
 
@@ -64,8 +56,6 @@ export function NotificationSettings() {
     );
   }
 
-  const isEnabled = preferences?.pushEnabled && permission === 'granted';
-
   return (
     <Card>
       <div className="flex items-center justify-between">
@@ -95,9 +85,8 @@ export function NotificationSettings() {
             onClick={handleToggle}
             size="sm"
             variant={isEnabled ? 'outline' : 'primary'}
-            disabled={saving}
           >
-            {saving ? 'Saving...' : isEnabled ? 'Disable' : 'Enable'}
+            {isEnabled ? 'Disable' : 'Enable'}
           </Button>
         )}
       </div>

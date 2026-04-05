@@ -21,17 +21,10 @@ export function NotificationPrompt() {
   useEffect(() => {
     if (!user?.uid) return;
     if (!isSupported) return;
-
-    // Don't show if already granted or denied at browser level
     if (permission === 'granted' || permission === 'denied') return;
-
-    // Don't show if user already dismissed this prompt
     if (user.notificationPromptDismissed) return;
-
-    // Don't show if push is already enabled in preferences
     if (preferences?.pushEnabled) return;
 
-    // Small delay so it doesn't flash immediately on page load
     const timer = setTimeout(() => setVisible(true), 2000);
     return () => clearTimeout(timer);
   }, [user, isSupported, permission, preferences]);
@@ -46,8 +39,15 @@ export function NotificationPrompt() {
   };
 
   const handleEnable = async () => {
-    await requestPermission();
-    await dismiss();
+    // Dismiss modal first, then trigger browser permission dialog
+    setVisible(false);
+    if (user?.uid) {
+      updateDoc(doc(db, 'users', user.uid), {
+        notificationPromptDismissed: true,
+      });
+    }
+    // Browser dialog appears after modal is gone
+    requestPermission();
   };
 
   if (!visible) return null;
