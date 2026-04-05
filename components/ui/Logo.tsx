@@ -13,8 +13,8 @@ export function Logo({ size = 'md', showText = false, variant = 'full', classNam
   const sizes = {
     sm: { width: 100, height: 40 },
     md: { width: 140, height: 56 },
-    lg: { width: 180, height: 72 },
-    xl: { width: 240, height: 96 },
+    lg: { width: 200, height: 80 },
+    xl: { width: 300, height: 120 },
   };
 
   const iconSizes = {

@@ -9,8 +9,8 @@ export default function AuthLayout({
   return (
     <div className="min-h-screen bg-brand-black flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-center py-8">
-        <Logo size="lg" />
+      <header className="flex items-center justify-center py-12">
+        <Logo size="xl" />
       </header>
 
       {/* Content */}
