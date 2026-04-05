@@ -37,15 +37,24 @@ export async function requestNotificationPermission(userId: string): Promise<str
       return null;
     }
 
-    // Register firebase-messaging-sw.js explicitly so getToken doesn't hang
-    // looking for it (next-pwa registers sw.js which is a different SW)
+    // Register firebase-messaging-sw.js with Firebase's default scope
+    // (separate from next-pwa's sw.js which uses scope '/')
     const swRegistration = await navigator.serviceWorker.register(
       '/firebase-messaging-sw.js',
-      { scope: '/' }
+      { scope: '/firebase-cloud-messaging-push-scope' }
     );
 
-    // Send Firebase config to the SW so it can initialize
-    const sw = swRegistration.active ?? swRegistration.installing ?? swRegistration.waiting;
+    // Wait for the SW to be ready
+    if (swRegistration.installing) {
+      await new Promise<void>((resolve) => {
+        swRegistration.installing!.addEventListener('statechange', (e) => {
+          if ((e.target as ServiceWorker).state === 'activated') resolve();
+        });
+      });
+    }
+
+    // Send Firebase config to the SW
+    const sw = swRegistration.active;
     if (sw) {
       sw.postMessage({
         type: 'FIREBASE_CONFIG',
@@ -60,7 +69,7 @@ export async function requestNotificationPermission(userId: string): Promise<str
       });
     }
 
-    // Get FCM token using the explicit SW registration
+    // Get FCM token
     const token = await getToken(messagingInstance, {
       vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
       serviceWorkerRegistration: swRegistration,
