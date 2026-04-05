@@ -111,54 +111,55 @@ export default function ReceiptDetailPage() {
     fetchReceipt();
   }, [receiptId]);
 
-  // Auto-match receipt items to existing inventory when both are loaded
+  // Auto-match receipt items to existing inventory using AI suggestions or fallback word matching
   useEffect(() => {
-    if (!receipt || inventoryItems.length === 0 || receipt.status !== 'parsed') return;
+    if (!receipt || receipt.status === 'pending' || receipt.status === 'parsing') return;
 
-    const parsedItems = receipt.parsedData?.items || [];
-    // Note: We intentionally exclude itemLinks from deps to avoid infinite loops
-    // since we're updating itemLinks inside this effect
     setItemLinks((prevLinks) => {
       const newLinks = new Map(prevLinks);
       let hasChanges = false;
 
-      parsedItems.forEach((item, index) => {
-        // Skip if already linked
-        if (newLinks.has(index) && newLinks.get(index)?.inventoryItemId) return;
-
-        // Try to find a match
-        const descLower = item.description.toLowerCase();
-        const words = descLower.split(/\s+/).filter(w => w.length > 2);
-
-        // Find the best matching inventory item
-        const scoredItems = inventoryItems.map(invItem => {
-          const nameLower = invItem.name.toLowerCase();
-          let score = 0;
-
-          if (nameLower === descLower) score = 100;
-          else if (descLower.includes(nameLower) || nameLower.includes(descLower)) score = 50;
-          else {
-            words.forEach(word => {
-              if (nameLower.includes(word)) score += 10;
+      // Prefer AI match suggestions from the server
+      if (receipt.matchSuggestions && receipt.matchSuggestions.length > 0) {
+        for (const suggestion of receipt.matchSuggestions) {
+          if (newLinks.has(suggestion.parsedIndex) && newLinks.get(suggestion.parsedIndex)?.inventoryItemId) continue;
+          if (suggestion.matchedItemId) {
+            newLinks.set(suggestion.parsedIndex, {
+              itemIndex: suggestion.parsedIndex,
+              inventoryItemId: suggestion.matchedItemId,
+              inventoryItemName: suggestion.matchedItemName,
+              category: inventoryItems.find((i) => i.id === suggestion.matchedItemId)?.category,
             });
+            hasChanges = true;
           }
-
-          return { item: invItem, score };
-        });
-
-        const bestMatch = scoredItems.filter(s => s.score > 20).sort((a, b) => b.score - a.score)[0];
-
-        // If we found a good match (score > 20), auto-link it
-        if (bestMatch) {
-          newLinks.set(index, {
-            itemIndex: index,
-            inventoryItemId: bestMatch.item.id,
-            inventoryItemName: bestMatch.item.name,
-            category: bestMatch.item.category,
-          });
-          hasChanges = true;
         }
-      });
+      } else if (inventoryItems.length > 0) {
+        // Fallback: basic word matching for receipts parsed before AI matching was added
+        const parsedItems = receipt.parsedData?.items || [];
+        parsedItems.forEach((item, index) => {
+          if (newLinks.has(index) && newLinks.get(index)?.inventoryItemId) return;
+          const descLower = item.description.toLowerCase();
+          const words = descLower.split(/\s+/).filter((w) => w.length > 2);
+          const scoredItems = inventoryItems.map((invItem) => {
+            const nameLower = invItem.name.toLowerCase();
+            let score = 0;
+            if (nameLower === descLower) score = 100;
+            else if (descLower.includes(nameLower) || nameLower.includes(descLower)) score = 50;
+            else words.forEach((word) => { if (nameLower.includes(word)) score += 10; });
+            return { item: invItem, score };
+          });
+          const bestMatch = scoredItems.filter((s) => s.score > 20).sort((a, b) => b.score - a.score)[0];
+          if (bestMatch) {
+            newLinks.set(index, {
+              itemIndex: index,
+              inventoryItemId: bestMatch.item.id,
+              inventoryItemName: bestMatch.item.name,
+              category: bestMatch.item.category,
+            });
+            hasChanges = true;
+          }
+        });
+      }
 
       return hasChanges ? newLinks : prevLinks;
     });

@@ -80,7 +80,7 @@ export default function PortalReceiptDetailPage() {
             return;
           }
           setReceipt(data);
-          // Initialize item links
+          // Initialize item links from existing links or AI match suggestions
           const links = new Map<number, ItemLinkState>();
           data.items?.forEach((item: ReceiptItem, index: number) => {
             if (item.inventoryItemId) {
@@ -92,6 +92,18 @@ export default function PortalReceiptDetailPage() {
               });
             }
           });
+          // Apply AI match suggestions for items not already linked
+          if (data.matchSuggestions) {
+            for (const suggestion of data.matchSuggestions) {
+              if (!links.has(suggestion.parsedIndex) && suggestion.matchedItemId) {
+                links.set(suggestion.parsedIndex, {
+                  itemIndex: suggestion.parsedIndex,
+                  inventoryItemId: suggestion.matchedItemId,
+                  inventoryItemName: suggestion.matchedItemName,
+                });
+              }
+            }
+          }
           setItemLinks(links);
         } else {
           setError('Receipt not found');

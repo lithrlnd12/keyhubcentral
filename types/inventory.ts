@@ -164,6 +164,12 @@ export interface Receipt {
   addedToInventory?: boolean; // Prevents duplicate inventory adds
   addedToInventoryAt?: Timestamp;
   jobId?: string; // Links receipt to a job for material cost tracking
+  matchSuggestions?: Array<{
+    parsedIndex: number;
+    matchedItemId: string | null; // null = new item
+    matchedItemName?: string;
+    confidence: 'high' | 'medium' | 'low';
+  }>;
 }
 
 // Filters for inventory queries

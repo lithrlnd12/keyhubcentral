@@ -119,6 +119,83 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+// AI inventory matching — compares parsed receipt items against existing inventory
+interface MatchSuggestion {
+  parsedIndex: number;
+  matchedItemId: string | null;
+  matchedItemName?: string;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+async function matchItemsToInventory(
+  parsedItems: NonNullable<ParsedReceiptData['items']>,
+  contractorId: string | undefined
+): Promise<MatchSuggestion[]> {
+  const db = getAdminDb();
+
+  // Fetch existing inventory items for this contractor (or all if admin)
+  let inventoryQuery = db.collection('inventoryItems').orderBy('name', 'asc');
+  if (contractorId) {
+    inventoryQuery = db.collection('inventoryItems')
+      .where('contractorId', '==', contractorId)
+      .orderBy('name', 'asc');
+  }
+
+  const inventorySnap = await inventoryQuery.get();
+  if (inventorySnap.empty) return [];
+
+  const existingItems = inventorySnap.docs.map((doc) => ({
+    id: doc.id,
+    name: doc.data().name as string,
+    category: doc.data().category as string,
+  }));
+
+  const matchPrompt = `You are an inventory matching assistant for a home renovation company.
+
+Given receipt items and existing inventory items, match each receipt item to the most likely existing inventory item. Products may have different names across stores but be the same thing (e.g., "DAP Silicone Sealant 10.1oz" = "DAP Silicone Caulk 10oz", "1/2in Copper Elbow" = "1/2" Cu 90° Elbow").
+
+Receipt items:
+${JSON.stringify(parsedItems.map((item, i) => ({ index: i, description: item.description, category: item.category })))}
+
+Existing inventory:
+${JSON.stringify(existingItems.map((item) => ({ id: item.id, name: item.name, category: item.category })))}
+
+For each receipt item, return the best matching inventory item ID, or null if it's a new product not in inventory.
+
+Return ONLY a JSON array (no markdown, no explanation):
+[
+  { "parsedIndex": 0, "matchedItemId": "abc123" or null, "matchedItemName": "Existing Item Name" or null, "confidence": "high"|"medium"|"low" }
+]
+
+Rules:
+- "high" = clearly the same product (brand + type match)
+- "medium" = likely the same (similar description, same category)
+- "low" = possible match but uncertain
+- null matchedItemId = definitely a new product not in existing inventory
+- When in doubt, return null — better to create a new item than merge incorrectly`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: matchPrompt }],
+    });
+
+    const text = response.content.find((c) => c.type === 'text');
+    if (!text || text.type !== 'text') return [];
+
+    const jsonStr = text.text.trim()
+      .replace(/^```json?\s*/i, '')
+      .replace(/```\s*$/, '')
+      .trim();
+
+    return JSON.parse(jsonStr) as MatchSuggestion[];
+  } catch (err) {
+    console.error('AI inventory matching failed:', err);
+    return [];
+  }
+}
+
 const RECEIPT_PARSING_PROMPT = `Analyze this receipt/invoice/document and extract the following information:
 
 1. Vendor/Store name (e.g., "Home Depot", "Lowe's", "Ace Hardware")
@@ -367,6 +444,25 @@ export async function POST(request: NextRequest) {
 
     // Update the receipt with parsed data
     await updateReceiptParsedDataAdmin(receiptId, parsedData);
+
+    // AI inventory matching — compare parsed items against existing inventory
+    let matchSuggestions: MatchSuggestion[] = [];
+    if (parsedData.items && parsedData.items.length > 0) {
+      try {
+        // Get contractorId from receipt doc
+        const receiptDoc = await getReceiptAdmin(receiptId) as Record<string, unknown> | null;
+        const contractorId = (receiptDoc?.contractorId as string) || auth.user?.uid;
+        matchSuggestions = await matchItemsToInventory(parsedData.items, contractorId);
+
+        if (matchSuggestions.length > 0) {
+          const db = getAdminDb();
+          await db.collection('receipts').doc(receiptId).update({ matchSuggestions });
+        }
+      } catch (matchErr) {
+        // Non-fatal — receipt was parsed successfully, matching is a bonus
+        console.error('AI inventory matching error:', matchErr);
+      }
+    }
 
     // Auto-create expense for contractors
     let expenseId: string | undefined;
