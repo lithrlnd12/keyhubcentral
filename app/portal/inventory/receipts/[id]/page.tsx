@@ -62,7 +62,7 @@ export default function PortalReceiptDetailPage() {
   const [inventoryError, setInventoryError] = useState<string | null>(null);
   const [inventorySuccess, setInventorySuccess] = useState(false);
 
-  const { items: inventoryItems } = useInventoryItems({ realtime: true });
+  const { items: inventoryItems } = useInventoryItems({ realtime: true, contractorId: user?.uid });
   const { locations } = useInventoryLocations({ realtime: true });
   const { activeJobs } = useContractorJobs({
     contractorId: user?.uid || '',
