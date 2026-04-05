@@ -208,7 +208,7 @@ export default function ContractorReceiptsPage() {
                     </span>
                   </div>
                   <p className="text-gray-500 text-sm">
-                    {receipt.uploadedAt.toDate().toLocaleDateString()}
+                    {receipt.uploadedAt?.toDate?.().toLocaleDateString() || 'No date'}
                   </p>
                 </div>
               </div>
