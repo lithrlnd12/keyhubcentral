@@ -34,6 +34,10 @@ export default function PnLPage() {
   const { invoices, loading: invoicesLoading } = useInvoices({ realtime: true });
   const { jobs, loading: jobsLoading } = useJobs({ realtime: true });
   const { expenses, loading: expensesLoading } = useExpenses({ realtime: true });
+  const [selectedPreset, setSelectedPreset] = useState(0);
+  const [selectedEntity, setSelectedEntity] = useState<'all' | 'kd' | 'kts' | 'kr'>('all');
+
+  const loading = invoicesLoading || jobsLoading || expensesLoading;
 
   if (!isAdmin) {
     return (
@@ -47,10 +51,6 @@ export default function PnLPage() {
   }
 
   const datePresets = getDateRangePresets();
-  const [selectedPreset, setSelectedPreset] = useState(0); // This Month by default
-  const [selectedEntity, setSelectedEntity] = useState<'all' | 'kd' | 'kts' | 'kr'>('all');
-
-  const loading = invoicesLoading || jobsLoading || expensesLoading;
 
   // Filter invoices by date range
   const filteredInvoices = useMemo(() => {
