@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { SideNav, BottomNav, TopBar } from '@/components/navigation';
 import { AIChatWidget } from '@/components/chat';
+import { NotificationPrompt } from '@/components/notifications';
 import { useAuth } from '@/lib/hooks';
 import { SidebarProvider, useSidebar } from '@/lib/contexts';
 import { ADMIN_ROLES, UserRole } from '@/types/user';
@@ -211,6 +212,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       {/* AI Chat Widget — hidden on messages pages to avoid overlapping send button */}
       {!pathname.startsWith('/messages') && <AIChatWidget />}
+
+      {/* One-time notification prompt for new users */}
+      <NotificationPrompt />
     </div>
   );
 }

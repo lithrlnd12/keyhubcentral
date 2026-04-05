@@ -35,6 +35,7 @@ export interface UserProfile {
     state: string;
     zip: string;
   } | null;
+  notificationPromptDismissed?: boolean;
   onboardingComplete?: boolean;
   onboardingData?: {
     address?: {

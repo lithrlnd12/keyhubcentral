@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { SideNav, BottomNav, TopBar } from '@/components/navigation';
+import { NotificationPrompt } from '@/components/notifications';
 import { useAuth } from '@/lib/hooks';
 import { SidebarProvider, useSidebar } from '@/lib/contexts';
 import { cn } from '@/lib/utils';
@@ -77,6 +78,8 @@ function CustomerContent({ children }: { children: React.ReactNode }) {
       </div>
 
       <BottomNav />
+
+      <NotificationPrompt />
     </div>
   );
 }
