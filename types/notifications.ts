@@ -276,7 +276,7 @@ export function getDefaultPreferences(role: string): NotificationPreferences {
     pushEnabled: true,
     emailDigest: 'none',
     quietHours: {
-      enabled: true,
+      enabled: false,
       start: '21:00',
       end: '07:00',
     },
