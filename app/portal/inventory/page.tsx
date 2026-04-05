@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   Package,
@@ -9,6 +10,10 @@ import {
   ArrowRight,
   Truck,
   Settings,
+  Plus,
+  MapPin,
+  Home,
+  Warehouse,
 } from 'lucide-react';
 import {
   useAuth,
@@ -17,6 +22,7 @@ import {
   useInventoryStock,
   useReceipts,
 } from '@/lib/hooks';
+import { createInventoryLocation } from '@/lib/firebase/inventoryLocations';
 import { Spinner } from '@/components/ui/Spinner';
 import { BackButton } from '@/components/ui';
 import { LowStockAlertBanner, LowStockAlertList } from '@/components/inventory';
@@ -39,8 +45,38 @@ export default function ContractorInventoryPage() {
     realtime: true,
   });
 
+  const [showCustom, setShowCustom] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [creating, setCreating] = useState(false);
+
   const loading = locationLoading || alertsLoading || stockLoading || receiptsLoading;
   const pendingReceipts = receipts.filter((r) => r.status === 'pending').length;
+
+  const PRESET_LOCATIONS = [
+    { name: 'My Truck', icon: Truck },
+    { name: 'Home Garage', icon: Home },
+    { name: 'Storage Unit', icon: Warehouse },
+  ];
+
+  const handleCreateLocation = async (name: string) => {
+    if (!user?.uid || !name.trim()) return;
+    setCreating(true);
+    try {
+      await createInventoryLocation({
+        type: 'truck',
+        name: name.trim(),
+        contractorId: user.uid,
+        contractorName: user.displayName || '',
+        isActive: true,
+      });
+      // Reload page to pick up the new location
+      window.location.reload();
+    } catch (err) {
+      console.error('Error creating location:', err);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   if (locationLoading) {
     return (
@@ -60,6 +96,63 @@ export default function ContractorInventoryPage() {
           {location && <p className="text-gray-400">{location.name}</p>}
         </div>
       </div>
+
+      {/* Location Setup — shown when contractor has no location */}
+      {!location && (
+        <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-gold/10 rounded-lg">
+              <MapPin className="h-5 w-5 text-gold" />
+            </div>
+            <div>
+              <h3 className="text-white font-medium">Set Up Your Inventory Location</h3>
+              <p className="text-gray-400 text-sm">Where do you store your materials and tools?</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            {PRESET_LOCATIONS.map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => handleCreateLocation(preset.name)}
+                disabled={creating}
+                className="flex items-center gap-3 p-3 bg-gray-800 border border-gray-700 rounded-lg hover:border-gold/50 transition-colors disabled:opacity-50"
+              >
+                <preset.icon className="h-5 w-5 text-gray-400" />
+                <span className="text-white text-sm">{preset.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {!showCustom ? (
+            <button
+              onClick={() => setShowCustom(true)}
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Other
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                placeholder="Location name..."
+                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                autoFocus
+              />
+              <button
+                onClick={() => handleCreateLocation(customName)}
+                disabled={creating || !customName.trim()}
+                className="px-4 py-2 bg-gold text-black rounded-lg font-medium text-sm hover:bg-gold/90 transition-colors disabled:opacity-50"
+              >
+                {creating ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Low Stock Alert */}
       {location && !alertsLoading && alerts.length > 0 && (

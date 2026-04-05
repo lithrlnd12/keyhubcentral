@@ -317,24 +317,33 @@ export default function PortalReceiptDetailPage() {
           {/* Stock Location */}
           <div className="flex justify-between items-center">
             <span className="text-gray-400">Stock Location</span>
-            <select
-              value={receipt.locationId || ''}
-              onChange={async (e) => {
-                const loc = locations.find((l) => l.id === e.target.value);
-                if (loc) {
-                  await updateReceiptLocation(receiptId, loc.id, loc.name);
-                  setReceipt({ ...receipt, locationId: loc.id, locationName: loc.name });
-                }
-              }}
-              className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold"
-            >
-              <option value="">Select location</option>
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
+            {locations.length > 0 ? (
+              <select
+                value={receipt.locationId || ''}
+                onChange={async (e) => {
+                  const loc = locations.find((l) => l.id === e.target.value);
+                  if (loc) {
+                    await updateReceiptLocation(receiptId, loc.id, loc.name);
+                    setReceipt({ ...receipt, locationId: loc.id, locationName: loc.name });
+                  }
+                }}
+                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold"
+              >
+                <option value="">Select location</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Link
+                href="/portal/inventory"
+                className="text-sm text-gold hover:underline"
+              >
+                Set up a location first
+              </Link>
+            )}
           </div>
 
           {/* Job Link */}
