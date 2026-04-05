@@ -1,44 +1,70 @@
 'use client';
 
-import { Bell, BellOff } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, BellOff, Check } from 'lucide-react';
 import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { useNotifications } from '@/lib/hooks';
+import { useAuth } from '@/lib/hooks';
+import { requestNotificationPermission } from '@/lib/firebase/messaging';
+import { togglePushNotifications, removeFCMToken, getFCMTokens } from '@/lib/firebase/notifications';
 
 export function NotificationSettings() {
-  const {
-    isSupported,
-    permission,
-    preferences,
-    preferencesLoading,
-    requestPermission,
-    togglePush,
-  } = useNotifications();
+  const { user } = useAuth();
+  const [status, setStatus] = useState<'idle' | 'enabling' | 'enabled' | 'disabled' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const isEnabled = preferences?.pushEnabled && permission === 'granted';
+  // Check current state on mount
+  const isSupported =
+    typeof window !== 'undefined' &&
+    'Notification' in window &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window;
 
-  const handleToggle = () => {
-    if (isEnabled) {
-      togglePush(false);
-    } else {
-      // Triggers browser permission dialog, saves token on grant
-      requestPermission();
+  const browserPermission = typeof window !== 'undefined' && 'Notification' in window
+    ? Notification.permission
+    : 'default';
+
+  const handleEnable = async () => {
+    if (!user?.uid) return;
+    setStatus('enabling');
+    setErrorMsg('');
+
+    try {
+      const token = await requestNotificationPermission(user.uid);
+      if (token) {
+        await togglePushNotifications(user.uid, true);
+        setStatus('enabled');
+      } else {
+        // Permission denied or failed
+        if (Notification.permission === 'denied') {
+          setErrorMsg('Notifications blocked. Check your browser settings.');
+        } else {
+          setErrorMsg('Could not enable notifications. Try again.');
+        }
+        setStatus('error');
+      }
+    } catch {
+      setErrorMsg('Something went wrong. Try again.');
+      setStatus('error');
     }
   };
 
-  if (preferencesLoading) {
-    return (
-      <Card>
-        <div className="animate-pulse flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="h-5 bg-gray-700 rounded w-40"></div>
-            <div className="h-4 bg-gray-700 rounded w-64"></div>
-          </div>
-          <div className="h-10 w-24 bg-gray-700 rounded-lg"></div>
-        </div>
-      </Card>
-    );
-  }
+  const handleDisable = async () => {
+    if (!user?.uid) return;
+
+    try {
+      // Remove all FCM tokens so Cloud Functions can't send to this device
+      const tokens = await getFCMTokens(user.uid);
+      for (const t of tokens) {
+        await removeFCMToken(user.uid, t.token);
+      }
+      await togglePushNotifications(user.uid, false);
+      setStatus('disabled');
+    } catch {
+      // Still mark as disabled locally
+      setStatus('disabled');
+    }
+  };
 
   if (!isSupported) {
     return (
@@ -56,11 +82,15 @@ export function NotificationSettings() {
     );
   }
 
+  // Show enabled state if we just enabled, or if browser already granted
+  const showAsEnabled = status === 'enabled' || (status === 'idle' && browserPermission === 'granted');
+  const showAsDenied = browserPermission === 'denied' && status !== 'enabled';
+
   return (
     <Card>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {isEnabled ? (
+          {showAsEnabled ? (
             <Bell className="w-5 h-5 text-brand-gold" />
           ) : (
             <BellOff className="w-5 h-5 text-gray-500" />
@@ -68,28 +98,44 @@ export function NotificationSettings() {
           <div>
             <CardTitle>Push Notifications</CardTitle>
             <CardDescription>
-              {isEnabled
-                ? 'You will receive alerts for messages, leads, jobs, and more'
+              {showAsEnabled
+                ? 'Notifications are on for this device'
                 : 'Enable to receive real-time alerts on this device'}
             </CardDescription>
           </div>
         </div>
 
-        {permission === 'denied' ? (
+        {showAsDenied ? (
           <p className="text-sm text-red-400 ml-4 text-right">
             Blocked by browser.<br />
             <span className="text-xs text-gray-500">Check browser settings</span>
           </p>
+        ) : showAsEnabled ? (
+          <Button onClick={handleDisable} size="sm" variant="outline">
+            Disable
+          </Button>
         ) : (
           <Button
-            onClick={handleToggle}
+            onClick={handleEnable}
             size="sm"
-            variant={isEnabled ? 'outline' : 'primary'}
+            variant="primary"
+            disabled={status === 'enabling'}
           >
-            {isEnabled ? 'Disable' : 'Enable'}
+            {status === 'enabling' ? 'Enabling...' : 'Enable'}
           </Button>
         )}
       </div>
+
+      {status === 'enabled' && (
+        <div className="flex items-center gap-2 text-green-400 mt-3">
+          <Check className="w-4 h-4" />
+          <span className="text-sm">Notifications enabled successfully</span>
+        </div>
+      )}
+
+      {status === 'error' && errorMsg && (
+        <p className="text-sm text-red-400 mt-3">{errorMsg}</p>
+      )}
     </Card>
   );
 }
