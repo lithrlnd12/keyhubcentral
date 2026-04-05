@@ -11,6 +11,7 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
+  increment,
   QueryConstraint,
 } from 'firebase/firestore';
 import { db } from './config';
@@ -122,6 +123,17 @@ export async function updateJob(
   const docRef = doc(db, COLLECTION, id);
   await updateDoc(docRef, {
     ...data,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function incrementJobMaterialCost(
+  jobId: string,
+  amount: number
+): Promise<void> {
+  const docRef = doc(db, COLLECTION, jobId);
+  await updateDoc(docRef, {
+    'costs.materialActual': increment(amount),
     updatedAt: serverTimestamp(),
   });
 }

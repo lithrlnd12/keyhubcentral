@@ -173,9 +173,10 @@ export default function ContractorReceiptsPage() {
       ) : (
         <div className="space-y-3">
           {receipts.map((receipt) => (
-            <div
+            <Link
               key={receipt.id}
-              className="flex items-center justify-between p-4 bg-brand-charcoal border border-gray-800 rounded-xl"
+              href={`/portal/inventory/receipts/${receipt.id}`}
+              className="flex items-center justify-between p-4 bg-brand-charcoal border border-gray-800 rounded-xl hover:border-gray-700 transition-colors"
             >
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-gray-900 rounded-lg overflow-hidden flex-shrink-0">
@@ -225,7 +226,7 @@ export default function ContractorReceiptsPage() {
                   <Check className="h-5 w-5 text-green-400" />
                 )}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

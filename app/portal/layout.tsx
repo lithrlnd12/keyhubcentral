@@ -17,7 +17,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/portal/financials/invoices': 'My Invoices',
   '/portal/financials/invoices/new': 'New Invoice',
   '/portal/financials/expenses': 'Expenses',
-  '/portal/financials/pnl': 'Profit & Loss',
   '/portal/inventory': 'Inventory',
   '/portal/my-profile': 'Profile',
   '/portal/settings': 'Settings',
