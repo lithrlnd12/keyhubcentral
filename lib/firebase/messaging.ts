@@ -14,6 +14,9 @@ export function initializeMessaging(): Messaging | null {
   if (!messaging) {
     try {
       messaging = getMessaging(app);
+      // Send config to service worker on every init so it can handle
+      // background pushes even after SW restarts
+      sendConfigToServiceWorker();
     } catch (error) {
       console.error('Failed to initialize Firebase Messaging:', error);
       return null;
