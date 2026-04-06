@@ -205,6 +205,7 @@ function setContentCacheEntry(lang: string, entries: Record<string, string>) {
 }
 
 async function flushContentBatch(lang: string, getToken: () => Promise<string | null>) {
+  console.log('[translate-flush] Starting flush, pending:', pendingContentMap.size, 'targetLang:', lang);
   if (pendingContentMap.size === 0) return;
 
   const entries = Array.from(pendingContentMap.entries());
@@ -236,11 +237,13 @@ async function flushContentBatch(lang: string, getToken: () => Promise<string | 
     });
 
     if (!res.ok) {
-      console.error('Content translation API error:', res.status);
+      const errText = await res.text();
+      console.error('[translate-flush] API error:', res.status, errText);
       return;
     }
 
     const data = await res.json();
+    console.log('[translate-flush] API response:', { byContentId: data.byContentId, translationCount: Object.keys(data.translations || {}).length, translations: data.translations });
     if (data.translations) {
       let newEntries: Record<string, string>;
 
@@ -304,21 +307,34 @@ export function useContentTranslation() {
 
   const translateContent = useCallback(
     (contentId: string, text: string, originalLang?: string): string => {
-      if (!isEnabled || !text || !contentId) return text;
+      // Debug logging — remove after confirming translation works
+      console.log('[translate]', { contentId: contentId?.slice(0, 8), text: text?.slice(0, 30), originalLang, readerLang: lang, isEnabled, pendingSize: pendingContentMap.size, inflightSize: inflightContent.size });
+
+      if (!isEnabled || !text || !contentId) {
+        console.log('[translate] SKIP: disabled or empty', { isEnabled, hasText: !!text, hasId: !!contentId });
+        return text;
+      }
 
       // If the content is already in the reader's language, no translation needed
-      if (originalLang && originalLang === lang) return text;
-      // If original language is unknown, always attempt translation —
-      // Claude will return the text unchanged if it's already in the target language
+      if (originalLang && originalLang === lang) {
+        console.log('[translate] SKIP: same language');
+        return text;
+      }
 
       // Check global cache
       const cached = getContentCache(lang);
-      if (cached[contentId]) return cached[contentId];
+      if (cached[contentId]) {
+        console.log('[translate] CACHE HIT:', cached[contentId]?.slice(0, 30));
+        return cached[contentId];
+      }
 
       // Queue for batch translation (if not already queued or inflight)
       if (!pendingContentMap.has(contentId) && !inflightContent.has(contentId)) {
+        console.log('[translate] QUEUING for translation');
         pendingContentMap.set(contentId, { text, originalLang });
         scheduleContentFlush(lang, getIdToken);
+      } else {
+        console.log('[translate] ALREADY queued/inflight');
       }
 
       return text;
