@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Plus, Search, Package, Wrench, ArrowLeft } from 'lucide-react';
-import { useInventoryItems, useInventoryMutations, useAuth } from '@/lib/hooks';
+import { useInventoryItems, useInventoryMutations, useAuth, useTranslation } from '@/lib/hooks';
 import { InventoryCategory } from '@/types/inventory';
 import { Spinner } from '@/components/ui/Spinner';
 import { InventoryItemCard } from '@/components/inventory';
 
 export default function ContractorInventoryItemsPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
 
   // Filter inventory items by the logged-in contractor's ID
@@ -48,9 +49,9 @@ export default function ContractorInventoryItemsPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">My Inventory Items</h1>
+            <h1 className="text-2xl font-bold text-white">{t('My Inventory Items')}</h1>
             <p className="text-gray-400">
-              Manage your materials and tools
+              {t('Manage your materials and tools')}
             </p>
           </div>
         </div>
@@ -59,7 +60,7 @@ export default function ContractorInventoryItemsPage() {
           className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
         >
           <Plus className="h-4 w-4" />
-          Add Item
+          {t('Add Item')}
         </Link>
       </div>
 
@@ -70,7 +71,7 @@ export default function ContractorInventoryItemsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search items..."
+              placeholder={t('Search items...')}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-gold"
@@ -87,7 +88,7 @@ export default function ContractorInventoryItemsPage() {
                 : 'bg-gray-900 text-gray-400 hover:text-white'
             }`}
           >
-            All
+            {t('All')}
           </button>
           <button
             onClick={() => setCategory('material')}
@@ -98,7 +99,7 @@ export default function ContractorInventoryItemsPage() {
             }`}
           >
             <Package className="h-4 w-4" />
-            Materials
+            {t('Materials')}
           </button>
           <button
             onClick={() => setCategory('tool')}
@@ -109,14 +110,14 @@ export default function ContractorInventoryItemsPage() {
             }`}
           >
             <Wrench className="h-4 w-4" />
-            Tools
+            {t('Tools')}
           </button>
         </div>
       </div>
 
       {/* Results count */}
       <p className="text-gray-400 text-sm">
-        {loading ? 'Loading...' : `${items.length} item${items.length !== 1 ? 's' : ''}`}
+        {loading ? t('Loading...') : `${items.length} ${items.length !== 1 ? t('items') : t('item')}`}
       </p>
 
       {/* Items Grid */}
@@ -127,18 +128,18 @@ export default function ContractorInventoryItemsPage() {
       ) : items.length === 0 ? (
         <div className="text-center py-12">
           <Package className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No items found</h3>
+          <h3 className="text-lg font-medium text-white mb-2">{t('No items found')}</h3>
           <p className="text-gray-400 mb-4">
             {filters.search || filters.category
-              ? 'Try adjusting your filters'
-              : 'Add your first inventory item'}
+              ? t('Try adjusting your filters')
+              : t('Add your first inventory item')}
           </p>
           <Link
             href="/portal/inventory/items/new"
             className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Add Item
+            {t('Add Item')}
           </Link>
         </div>
       ) : (
@@ -160,24 +161,24 @@ export default function ContractorInventoryItemsPage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                   <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-6 max-w-sm w-full">
                     <h3 className="text-lg font-medium text-white mb-2">
-                      Delete Item?
+                      {t('Delete Item?')}
                     </h3>
                     <p className="text-gray-400 text-sm mb-4">
-                      Are you sure you want to delete &quot;{item.name}&quot;? This action cannot be undone.
+                      {t('Are you sure you want to delete')} &quot;{item.name}&quot;? {t('This action cannot be undone.')}
                     </p>
                     <div className="flex gap-3">
                       <button
                         onClick={() => setDeleteConfirm(null)}
                         className="flex-1 px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors"
                       >
-                        Cancel
+                        {t('Cancel')}
                       </button>
                       <button
                         onClick={() => handleDelete(item.id)}
                         disabled={deleting}
                         className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
                       >
-                        {deleting ? 'Deleting...' : 'Delete'}
+                        {deleting ? t('Deleting...') : t('Delete')}
                       </button>
                     </div>
                   </div>

@@ -15,7 +15,7 @@ import {
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { useAuth, useContractorInvoices, useContractorExpenses } from '@/lib/hooks';
+import { useAuth, useContractorInvoices, useContractorExpenses, useTranslation } from '@/lib/hooks';
 import { findAndLinkContractor } from '@/lib/firebase/contractors';
 import { Contractor } from '@/types/contractor';
 import { formatCurrency } from '@/lib/utils/formatters';
@@ -23,6 +23,7 @@ import { Invoice } from '@/types/invoice';
 
 export default function PortalFinancialsPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -65,15 +66,15 @@ export default function PortalFinancialsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Financials</h1>
+          <h1 className="text-2xl font-bold text-white">{t('Financials')}</h1>
           <p className="text-gray-400 mt-1">
-            Manage your invoices, expenses, and track your earnings
+            {t('Manage your invoices, expenses, and track your earnings')}
           </p>
         </div>
         <Link href="/portal/financials/invoices/new">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
-            Create Invoice
+            {t('Create Invoice')}
           </Button>
         </Link>
       </div>
@@ -86,12 +87,12 @@ export default function PortalFinancialsPage() {
             <div className="p-2 bg-green-500/10 rounded-lg">
               <TrendingUp className="h-5 w-5 text-green-400" />
             </div>
-            <span className="text-sm text-gray-400">Total Revenue</span>
+            <span className="text-sm text-gray-400">{t('Total Revenue')}</span>
           </div>
           <p className="text-2xl font-bold text-green-400">
             {formatCurrency(invoiceStats.totalRevenue)}
           </p>
-          <p className="text-xs text-gray-500">From paid invoices</p>
+          <p className="text-xs text-gray-500">{t('From paid invoices')}</p>
         </Card>
 
         {/* Pending Revenue */}
@@ -100,12 +101,12 @@ export default function PortalFinancialsPage() {
             <div className="p-2 bg-yellow-500/10 rounded-lg">
               <DollarSign className="h-5 w-5 text-yellow-400" />
             </div>
-            <span className="text-sm text-gray-400">Pending</span>
+            <span className="text-sm text-gray-400">{t('Pending')}</span>
           </div>
           <p className="text-2xl font-bold text-yellow-400">
             {formatCurrency(invoiceStats.pendingRevenue)}
           </p>
-          <p className="text-xs text-gray-500">{invoiceStats.sentCount} invoices outstanding</p>
+          <p className="text-xs text-gray-500">{invoiceStats.sentCount} {t('invoices outstanding')}</p>
         </Card>
 
         {/* Total Expenses */}
@@ -114,12 +115,12 @@ export default function PortalFinancialsPage() {
             <div className="p-2 bg-red-500/10 rounded-lg">
               <TrendingDown className="h-5 w-5 text-red-400" />
             </div>
-            <span className="text-sm text-gray-400">Expenses</span>
+            <span className="text-sm text-gray-400">{t('Expenses')}</span>
           </div>
           <p className="text-2xl font-bold text-red-400">
             {formatCurrency(expenseStats.totalExpenses)}
           </p>
-          <p className="text-xs text-gray-500">{expenseStats.expenseCount} transactions</p>
+          <p className="text-xs text-gray-500">{expenseStats.expenseCount} {t('transactions')}</p>
         </Card>
 
         {/* Net Profit */}
@@ -128,12 +129,12 @@ export default function PortalFinancialsPage() {
             <div className="p-2 bg-gold/10 rounded-lg">
               <PieChart className="h-5 w-5 text-gold" />
             </div>
-            <span className="text-sm text-gray-400">Net Profit</span>
+            <span className="text-sm text-gray-400">{t('Net Profit')}</span>
           </div>
           <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {formatCurrency(netProfit)}
           </p>
-          <p className="text-xs text-gray-500">Revenue - Expenses</p>
+          <p className="text-xs text-gray-500">{t('Revenue - Expenses')}</p>
         </Card>
       </div>
 
@@ -146,8 +147,8 @@ export default function PortalFinancialsPage() {
                 <FileText className="h-6 w-6 text-blue-400" />
               </div>
               <div className="flex-1">
-                <p className="text-white font-medium">My Invoices</p>
-                <p className="text-sm text-gray-400">{invoiceStats.totalInvoices} total</p>
+                <p className="text-white font-medium">{t('My Invoices')}</p>
+                <p className="text-sm text-gray-400">{invoiceStats.totalInvoices} {t('total')}</p>
               </div>
               <ArrowRight className="h-5 w-5 text-gray-500" />
             </div>
@@ -161,8 +162,8 @@ export default function PortalFinancialsPage() {
                 <Receipt className="h-6 w-6 text-red-400" />
               </div>
               <div className="flex-1">
-                <p className="text-white font-medium">Expenses</p>
-                <p className="text-sm text-gray-400">{expenseStats.expenseCount} transactions</p>
+                <p className="text-white font-medium">{t('Expenses')}</p>
+                <p className="text-sm text-gray-400">{expenseStats.expenseCount} {t('transactions')}</p>
               </div>
               <ArrowRight className="h-5 w-5 text-gray-500" />
             </div>
@@ -174,20 +175,20 @@ export default function PortalFinancialsPage() {
       {/* Recent Invoices */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Recent Invoices</h2>
+          <h2 className="text-lg font-semibold text-white">{t('Recent Invoices')}</h2>
           <Link href="/portal/financials/invoices" className="text-gold text-sm hover:underline">
-            View All
+            {t('View All')}
           </Link>
         </div>
 
         {recentInvoices.length === 0 ? (
           <div className="text-center py-8">
             <FileText className="h-12 w-12 text-gray-600 mx-auto mb-3" />
-            <p className="text-gray-400">No invoices yet</p>
+            <p className="text-gray-400">{t('No invoices yet')}</p>
             <Link href="/portal/financials/invoices/new">
               <Button variant="outline" className="mt-4">
                 <Plus className="h-4 w-4 mr-2" />
-                Create Your First Invoice
+                {t('Create Your First Invoice')}
               </Button>
             </Link>
           </div>
@@ -228,15 +229,15 @@ export default function PortalFinancialsPage() {
       <div className="grid grid-cols-3 gap-4">
         <Card className="p-4 text-center">
           <p className="text-3xl font-bold text-gray-400">{invoiceStats.draftCount}</p>
-          <p className="text-sm text-gray-500">Drafts</p>
+          <p className="text-sm text-gray-500">{t('Drafts')}</p>
         </Card>
         <Card className="p-4 text-center">
           <p className="text-3xl font-bold text-yellow-400">{invoiceStats.sentCount}</p>
-          <p className="text-sm text-gray-500">Pending</p>
+          <p className="text-sm text-gray-500">{t('Pending')}</p>
         </Card>
         <Card className="p-4 text-center">
           <p className="text-3xl font-bold text-green-400">{invoiceStats.paidCount}</p>
-          <p className="text-sm text-gray-500">Paid</p>
+          <p className="text-sm text-gray-500">{t('Paid')}</p>
         </Card>
       </div>
     </div>

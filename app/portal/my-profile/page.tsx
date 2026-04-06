@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { TagInput } from '@/components/ui/TagInput';
 import { TerritoryMap } from '@/components/maps/TerritoryMap';
 import { Pencil, Save, Loader2, Package, X, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/lib/hooks';
+import { useAuth, useTranslation } from '@/lib/hooks';
 import { findAndLinkContractor, updateContractor, createContractor } from '@/lib/firebase/contractors';
 import { deleteField, Timestamp } from 'firebase/firestore';
 import { geocodeAddress, buildAddressString } from '@/lib/utils/geocoding';
@@ -27,6 +27,7 @@ const usStates = [
 
 export default function PortalProfilePage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -230,10 +231,10 @@ export default function PortalProfilePage() {
       };
       setContractor(updated);
       setEditing(false);
-      setSuccessMessage('Profile updated successfully');
+      setSuccessMessage(t('Profile updated successfully'));
     } catch (err) {
       console.error('Error saving profile:', err);
-      setError('Failed to save changes. Please try again.');
+      setError(t('Failed to save changes. Please try again.'));
     } finally {
       setSaving(false);
     }
@@ -262,9 +263,9 @@ export default function PortalProfilePage() {
         <div className="flex items-center gap-4">
           <BackButton href="/portal" />
           <div>
-            <h1 className="text-2xl font-bold text-white">My Profile</h1>
+            <h1 className="text-2xl font-bold text-white">{t('My Profile')}</h1>
             <p className="text-gray-400 mt-1">
-              {editing ? 'Edit your profile information' : 'View and manage your profile'}
+              {editing ? t('Edit your profile information') : t('View and manage your profile')}
             </p>
           </div>
         </div>
@@ -272,14 +273,14 @@ export default function PortalProfilePage() {
         {contractor && !editing && (
           <Button variant="outline" onClick={() => setEditing(true)}>
             <Pencil className="w-4 h-4 mr-2" />
-            Edit Profile
+            {t('Edit Profile')}
           </Button>
         )}
 
         {editing && (
           <div className="flex gap-3">
             <Button variant="outline" onClick={handleCancel} disabled={saving}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? (
@@ -287,7 +288,7 @@ export default function PortalProfilePage() {
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Save Changes
+              {t('Save Changes')}
             </Button>
           </div>
         )}
@@ -308,26 +309,26 @@ export default function PortalProfilePage() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Account Info */}
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Account Information</h2>
+          <h2 className="text-lg font-semibold text-white mb-4">{t('Account Information')}</h2>
           <div className="space-y-4">
             <div>
-              <label className="text-sm text-gray-400">Name</label>
+              <label className="text-sm text-gray-400">{t('Name')}</label>
               <p className="text-white">{user?.displayName || 'N/A'}</p>
             </div>
             <div>
-              <label className="text-sm text-gray-400">Email</label>
+              <label className="text-sm text-gray-400">{t('Email')}</label>
               <p className="text-white">{user?.email || 'N/A'}</p>
             </div>
             {editing ? (
               <Input
-                label="Phone"
+                label={t('Phone')}
                 value={formData.phone}
                 onChange={(e) => updateField('phone', e.target.value)}
                 placeholder="(555) 123-4567"
               />
             ) : (
               <div>
-                <label className="text-sm text-gray-400">Phone</label>
+                <label className="text-sm text-gray-400">{t('Phone')}</label>
                 <p className="text-white">{contractor?.phone || user?.phone || 'N/A'}</p>
               </div>
             )}
@@ -337,23 +338,23 @@ export default function PortalProfilePage() {
         {/* Contractor Details */}
         {contractor && (
           <Card className="p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Contractor Details</h2>
+            <h2 className="text-lg font-semibold text-white mb-4">{t('Contractor Details')}</h2>
             <div className="space-y-4">
               {editing ? (
                 <Input
-                  label="Business Name"
+                  label={t('Business Name')}
                   value={formData.businessName}
                   onChange={(e) => updateField('businessName', e.target.value)}
-                  placeholder="Company or individual name"
+                  placeholder={t('Company or individual name')}
                 />
               ) : (
                 <div>
-                  <label className="text-sm text-gray-400">Business Name</label>
+                  <label className="text-sm text-gray-400">{t('Business Name')}</label>
                   <p className="text-white">{contractor.businessName || 'N/A'}</p>
                 </div>
               )}
               <div>
-                <label className="text-sm text-gray-400">Status</label>
+                <label className="text-sm text-gray-400">{t('Status')}</label>
                 <div className="mt-1">
                   <Badge variant={contractor.status === 'active' ? 'success' : 'warning'}>
                     {contractor.status}
@@ -361,7 +362,7 @@ export default function PortalProfilePage() {
                 </div>
               </div>
               <div>
-                <label className="text-sm text-gray-400">Trades</label>
+                <label className="text-sm text-gray-400">{t('Trades')}</label>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {contractor.trades?.map((trade) => (
                     <span
@@ -371,12 +372,12 @@ export default function PortalProfilePage() {
                       {trade}
                     </span>
                   )) || (
-                    <span className="text-gray-500 text-sm">No trades assigned</span>
+                    <span className="text-gray-500 text-sm">{t('No trades assigned')}</span>
                   )}
                 </div>
               </div>
               <div>
-                <label className="text-sm text-gray-400">Tier</label>
+                <label className="text-sm text-gray-400">{t('Tier')}</label>
                 <p className="text-white capitalize">
                   {contractor.rating?.overall
                     ? getRatingTier(contractor.rating.overall).replace('_', ' ')
@@ -385,15 +386,15 @@ export default function PortalProfilePage() {
               </div>
               {editing ? (
                 <MultiSelect
-                  label="Specialties"
+                  label={t('Specialties')}
                   options={SPECIALTIES.map((s) => ({ value: s, label: s }))}
                   value={formData.specialties}
                   onChange={(specialties) => updateField('specialties', specialties)}
-                  placeholder="Select specialties..."
+                  placeholder={t('Select specialties...')}
                 />
               ) : (
                 <div>
-                  <label className="text-sm text-gray-400">Specialties</label>
+                  <label className="text-sm text-gray-400">{t('Specialties')}</label>
                   {contractor.specialties?.length > 0 ? (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {contractor.specialties.map((specialty) => (
@@ -407,21 +408,21 @@ export default function PortalProfilePage() {
                     </div>
                   ) : (
                     <p className="text-gray-500 text-sm mt-1">
-                      No specialties set — tap Edit Profile to add specialties so customers can find you
+                      {t('No specialties set — tap Edit Profile to add specialties so customers can find you')}
                     </p>
                   )}
                 </div>
               )}
               {editing ? (
                 <TagInput
-                  label="Skills & Certifications"
+                  label={t('Skills & Certifications')}
                   value={formData.skills}
                   onChange={(skills) => updateField('skills', skills)}
-                  placeholder="Type a skill and press Enter..."
+                  placeholder={t('Type a skill and press Enter...')}
                 />
               ) : (
                 <div>
-                  <label className="text-sm text-gray-400">Skills & Certifications</label>
+                  <label className="text-sm text-gray-400">{t('Skills & Certifications')}</label>
                   {contractor.skills?.length > 0 ? (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {contractor.skills.map((skill) => (
@@ -435,7 +436,7 @@ export default function PortalProfilePage() {
                     </div>
                   ) : (
                     <p className="text-gray-500 text-sm mt-1">
-                      No skills added yet — tap Edit Profile to list your skills and certifications
+                      {t('No skills added yet — tap Edit Profile to list your skills and certifications')}
                     </p>
                   )}
                 </div>
@@ -450,9 +451,9 @@ export default function PortalProfilePage() {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-white font-medium">Contractor profile not found</h3>
+                <h3 className="text-white font-medium">{t('Contractor profile not found')}</h3>
                 <p className="text-gray-400 text-sm mt-1">
-                  Your account hasn&apos;t been linked to a contractor record yet. Please contact an administrator to set up your contractor profile.
+                  {t('Your account hasn\'t been linked to a contractor record yet. Please contact an administrator to set up your contractor profile.')}
                 </p>
               </div>
             </div>
@@ -462,37 +463,37 @@ export default function PortalProfilePage() {
         {/* Address */}
         {contractor && (
           <Card className="p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Address</h2>
+            <h2 className="text-lg font-semibold text-white mb-4">{t('Address')}</h2>
             {editing ? (
               <div className="space-y-4">
                 <Input
-                  label="Street Address"
+                  label={t('Street Address')}
                   value={formData.street}
                   onChange={(e) => updateField('street', e.target.value)}
-                  placeholder="123 Main St"
+                  placeholder={t('123 Main St')}
                 />
                 <Input
-                  label="City"
+                  label={t('City')}
                   value={formData.city}
                   onChange={(e) => updateField('city', e.target.value)}
-                  placeholder="City"
+                  placeholder={t('City')}
                 />
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1.5">State</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-1.5">{t('State')}</label>
                     <select
                       value={formData.state}
                       onChange={(e) => updateField('state', e.target.value)}
                       className="w-full px-3 py-2 bg-brand-charcoal border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-gold"
                     >
-                      <option value="">Select</option>
+                      <option value="">{t('Select')}</option>
                       {usStates.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
                   </div>
                   <Input
-                    label="ZIP"
+                    label={t('ZIP')}
                     value={formData.zip}
                     onChange={(e) => updateField('zip', e.target.value)}
                     placeholder="12345"
@@ -508,7 +509,7 @@ export default function PortalProfilePage() {
                     {contractor.address.city}, {contractor.address.state} {contractor.address.zip}
                   </p>
                 ) : (
-                  <p className="text-gray-500">No address on file</p>
+                  <p className="text-gray-500">{t('No address on file')}</p>
                 )}
               </div>
             )}
@@ -520,7 +521,7 @@ export default function PortalProfilePage() {
           <Card className="p-6">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Package className="w-4 h-4" />
-              Shipping Address
+              {t('Shipping Address')}
             </h2>
             {editing ? (
               <div className="space-y-4">
@@ -538,7 +539,7 @@ export default function PortalProfilePage() {
                     }}
                     className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-brand-gold focus:ring-brand-gold"
                   />
-                  <span className="text-sm text-gray-300">Same as address</span>
+                  <span className="text-sm text-gray-300">{t('Same as address')}</span>
                 </label>
 
                 {!formData.shippingSameAsAddress && (
@@ -563,7 +564,7 @@ export default function PortalProfilePage() {
                             setShowShippingModal(true);
                           }}
                         >
-                          Edit
+                          {t('Edit')}
                         </Button>
                       </div>
                     ) : (
@@ -574,7 +575,7 @@ export default function PortalProfilePage() {
                           setShowShippingModal(true);
                         }}
                       >
-                        Add Shipping Address
+                        {t('Add Shipping Address')}
                       </Button>
                     )}
                   </>
@@ -590,7 +591,7 @@ export default function PortalProfilePage() {
                     {contractor.shippingAddress.zip}
                   </p>
                 ) : (
-                  <p className="text-gray-500">Same as address</p>
+                  <p className="text-gray-500">{t('Same as address')}</p>
                 )}
               </div>
             )}
@@ -600,12 +601,12 @@ export default function PortalProfilePage() {
         {/* Service Area */}
         {contractor && (
           <Card className="p-6 lg:col-span-2">
-            <h2 className="text-lg font-semibold text-white mb-4">Service Area</h2>
+            <h2 className="text-lg font-semibold text-white mb-4">{t('Service Area')}</h2>
             <div className="space-y-4">
               {editing ? (
                 <>
                   <Slider
-                    label="How far are you willing to travel?"
+                    label={t('How far are you willing to travel?')}
                     value={formData.serviceRadius}
                     onChange={(value) => updateField('serviceRadius', value)}
                     min={5}
@@ -625,7 +626,7 @@ export default function PortalProfilePage() {
               ) : (
                 <>
                   <div>
-                    <label className="text-sm text-gray-400">Service Radius</label>
+                    <label className="text-sm text-gray-400">{t('Service Radius')}</label>
                     <p className="text-white">{contractor.serviceRadius || 50} miles</p>
                   </div>
                   {mapCenter && (
@@ -648,7 +649,7 @@ export default function PortalProfilePage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-brand-charcoal border border-gray-700 rounded-xl max-w-md w-full">
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
-              <h3 className="text-lg font-semibold text-white">Shipping Address</h3>
+              <h3 className="text-lg font-semibold text-white">{t('Shipping Address')}</h3>
               <button
                 onClick={() => setShowShippingModal(false)}
                 className="text-gray-400 hover:text-white"
@@ -658,33 +659,33 @@ export default function PortalProfilePage() {
             </div>
             <div className="p-4 space-y-4">
               <Input
-                label="Street Address"
+                label={t('Street Address')}
                 value={tempShipping.street}
                 onChange={(e) => setTempShipping((prev) => ({ ...prev, street: e.target.value }))}
-                placeholder="123 Main St"
+                placeholder={t('123 Main St')}
               />
               <Input
-                label="City"
+                label={t('City')}
                 value={tempShipping.city}
                 onChange={(e) => setTempShipping((prev) => ({ ...prev, city: e.target.value }))}
-                placeholder="City"
+                placeholder={t('City')}
               />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1.5">State</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">{t('State')}</label>
                   <select
                     value={tempShipping.state}
                     onChange={(e) => setTempShipping((prev) => ({ ...prev, state: e.target.value }))}
                     className="w-full px-3 py-2 bg-brand-charcoal border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-brand-gold"
                   >
-                    <option value="">Select</option>
+                    <option value="">{t('Select')}</option>
                     {usStates.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
                 </div>
                 <Input
-                  label="ZIP"
+                  label={t('ZIP')}
                   value={tempShipping.zip}
                   onChange={(e) => setTempShipping((prev) => ({ ...prev, zip: e.target.value }))}
                   placeholder="12345"
@@ -697,7 +698,7 @@ export default function PortalProfilePage() {
                 onClick={() => setShowShippingModal(false)}
                 className="flex-1"
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={() => {
@@ -713,7 +714,7 @@ export default function PortalProfilePage() {
                 }}
                 className="flex-1"
               >
-                Save
+                {t('Save')}
               </Button>
             </div>
           </div>
@@ -731,7 +732,7 @@ export default function PortalProfilePage() {
       {!editing && (
         <Card className="p-4 bg-gray-800/50">
           <p className="text-gray-400 text-sm">
-            Status, trades, and tier are managed by an administrator.
+            {t('Status, trades, and tier are managed by an administrator.')}
           </p>
         </Card>
       )}

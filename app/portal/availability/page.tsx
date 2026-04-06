@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { BackButton } from '@/components/ui';
-import { useAuth } from '@/lib/hooks';
+import { useAuth, useTranslation } from '@/lib/hooks';
 import { findAndLinkContractor } from '@/lib/firebase/contractors';
 import { Contractor } from '@/types/contractor';
 import { ContractorAvailabilityCalendar } from '@/components/availability/ContractorAvailabilityCalendar';
@@ -11,6 +11,7 @@ import { GoogleCalendarConnect } from '@/components/integrations/GoogleCalendarC
 
 export default function PortalAvailabilityPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,7 +45,7 @@ export default function PortalAvailabilityPage() {
     return (
       <Card className="p-6">
         <p className="text-gray-400">
-          Your contractor profile has not been set up yet. Please contact an administrator.
+          {t('Your contractor profile has not been set up yet. Please contact an administrator.')}
         </p>
       </Card>
     );
@@ -55,9 +56,9 @@ export default function PortalAvailabilityPage() {
       <div className="flex items-center gap-4">
         <BackButton href="/portal" />
         <div>
-          <h1 className="text-2xl font-bold text-white">My Availability</h1>
+          <h1 className="text-2xl font-bold text-white">{t('My Availability')}</h1>
           <p className="text-gray-400 mt-1">
-            Click on a day to set your availability status
+            {t('Click on a day to set your availability status')}
           </p>
         </div>
       </div>

@@ -21,6 +21,7 @@ import {
   useLowStockAlerts,
   useInventoryStock,
   useReceipts,
+  useTranslation,
 } from '@/lib/hooks';
 import { createInventoryLocation } from '@/lib/firebase/inventoryLocations';
 import { Spinner } from '@/components/ui/Spinner';
@@ -28,6 +29,7 @@ import { BackButton } from '@/components/ui';
 import { LowStockAlertBanner, LowStockAlertList } from '@/components/inventory';
 
 export default function ContractorInventoryPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { location, loading: locationLoading } = useContractorLocation(
     user?.uid || ''
@@ -53,9 +55,9 @@ export default function ContractorInventoryPage() {
   const pendingReceipts = receipts.filter((r) => r.status === 'pending').length;
 
   const PRESET_LOCATIONS = [
-    { name: 'My Truck', icon: Truck },
-    { name: 'Home Garage', icon: Home },
-    { name: 'Storage Unit', icon: Warehouse },
+    { name: t('My Truck'), icon: Truck },
+    { name: t('Home Garage'), icon: Home },
+    { name: t('Storage Unit'), icon: Warehouse },
   ];
 
   const handleCreateLocation = async (name: string) => {
@@ -92,7 +94,7 @@ export default function ContractorInventoryPage() {
       <div className="flex items-center gap-4">
         <BackButton href="/portal" />
         <div>
-          <h1 className="text-2xl font-bold text-white">My Inventory</h1>
+          <h1 className="text-2xl font-bold text-white">{t('My Inventory')}</h1>
           {location && <p className="text-gray-400">{location.name}</p>}
         </div>
       </div>
@@ -105,8 +107,8 @@ export default function ContractorInventoryPage() {
               <MapPin className="h-5 w-5 text-gold" />
             </div>
             <div>
-              <h3 className="text-white font-medium">Set Up Your Inventory Location</h3>
-              <p className="text-gray-400 text-sm">Where do you store your materials and tools?</p>
+              <h3 className="text-white font-medium">{t('Set Up Your Inventory Location')}</h3>
+              <p className="text-gray-400 text-sm">{t('Where do you store your materials and tools?')}</p>
             </div>
           </div>
 
@@ -130,7 +132,7 @@ export default function ContractorInventoryPage() {
               className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
             >
               <Plus className="h-4 w-4" />
-              Other
+              {t('Other')}
             </button>
           ) : (
             <div className="flex gap-2">
@@ -138,7 +140,7 @@ export default function ContractorInventoryPage() {
                 type="text"
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
-                placeholder="Location name..."
+                placeholder={t('Location name...')}
                 className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold"
                 autoFocus
               />
@@ -147,7 +149,7 @@ export default function ContractorInventoryPage() {
                 disabled={creating || !customName.trim()}
                 className="px-4 py-2 bg-gold text-black rounded-lg font-medium text-sm hover:bg-gold/90 transition-colors disabled:opacity-50"
               >
-                {creating ? 'Creating...' : 'Create'}
+                {creating ? t('Creating...') : t('Create')}
               </button>
             </div>
           )}
@@ -167,7 +169,7 @@ export default function ContractorInventoryPage() {
               <div className="p-2 bg-gold/10 rounded-lg">
                 <Package className="h-5 w-5 text-gold" />
               </div>
-              <span className="text-gray-400 text-sm">Items</span>
+              <span className="text-gray-400 text-sm">{t('Items')}</span>
             </div>
             <p className="text-2xl font-bold text-white">
               {loading ? '-' : stock.length}
@@ -179,7 +181,7 @@ export default function ContractorInventoryPage() {
               <div className="p-2 bg-red-500/10 rounded-lg">
                 <AlertTriangle className="h-5 w-5 text-red-400" />
               </div>
-              <span className="text-gray-400 text-sm">Below Par</span>
+              <span className="text-gray-400 text-sm">{t('Below Par')}</span>
             </div>
             <p className="text-2xl font-bold text-red-400">
               {loading ? '-' : alerts.length}
@@ -199,9 +201,9 @@ export default function ContractorInventoryPage() {
               <Settings className="h-5 w-5 text-blue-400" />
             </div>
             <div>
-              <p className="text-white font-medium">Manage Items</p>
+              <p className="text-white font-medium">{t('Manage Items')}</p>
               <p className="text-gray-400 text-sm">
-                Add or edit your inventory items
+                {t('Add or edit your inventory items')}
               </p>
             </div>
           </div>
@@ -217,9 +219,9 @@ export default function ContractorInventoryPage() {
               <ClipboardList className="h-5 w-5 text-gold" />
             </div>
             <div>
-              <p className="text-white font-medium">Count Inventory</p>
+              <p className="text-white font-medium">{t('Count Inventory')}</p>
               <p className="text-gray-400 text-sm">
-                Update your truck stock levels
+                {t('Update your truck stock levels')}
               </p>
             </div>
           </div>
@@ -235,16 +237,16 @@ export default function ContractorInventoryPage() {
               <Receipt className="h-5 w-5 text-purple-400" />
             </div>
             <div>
-              <p className="text-white font-medium">Upload Receipt</p>
+              <p className="text-white font-medium">{t('Upload Receipt')}</p>
               <p className="text-gray-400 text-sm">
-                Submit purchase receipts
+                {t('Submit purchase receipts')}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {pendingReceipts > 0 && (
               <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full">
-                {pendingReceipts} pending
+                {pendingReceipts} {t('pending')}
               </span>
             )}
             <ArrowRight className="h-5 w-5 text-gray-400" />
@@ -255,7 +257,7 @@ export default function ContractorInventoryPage() {
       {/* Low Stock Items — only if they have a location */}
       {location && (
         <div className="bg-brand-charcoal border border-gray-800 rounded-xl p-4">
-          <h2 className="text-lg font-medium text-white mb-4">Items Needing Restock</h2>
+          <h2 className="text-lg font-medium text-white mb-4">{t('Items Needing Restock')}</h2>
           {alertsLoading ? (
             <div className="flex justify-center py-6">
               <Spinner />

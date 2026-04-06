@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { useAuth, useContractorInvoices } from '@/lib/hooks';
+import { useAuth, useContractorInvoices, useTranslation } from '@/lib/hooks';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { Invoice, InvoiceStatus } from '@/types/invoice';
 
@@ -21,6 +21,7 @@ const STATUS_OPTIONS = [
 
 export default function PortalInvoicesPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
 
   const {
@@ -63,15 +64,15 @@ export default function PortalInvoicesPage() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-white">My Invoices</h1>
+          <h1 className="text-2xl font-bold text-white">{t('My Invoices')}</h1>
           <p className="text-gray-400 mt-1">
-            {stats.totalInvoices} total invoices
+            {stats.totalInvoices} {t('total invoices')}
           </p>
         </div>
         <Link href="/portal/financials/invoices/new">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
-            New Invoice
+            {t('New Invoice')}
           </Button>
         </Link>
       </div>
@@ -80,15 +81,15 @@ export default function PortalInvoicesPage() {
       <div className="grid grid-cols-3 gap-4">
         <Card className="p-4 text-center">
           <p className="text-2xl font-bold text-green-400">{formatCurrency(stats.totalRevenue)}</p>
-          <p className="text-sm text-gray-500">Total Paid</p>
+          <p className="text-sm text-gray-500">{t('Total Paid')}</p>
         </Card>
         <Card className="p-4 text-center">
           <p className="text-2xl font-bold text-yellow-400">{formatCurrency(stats.pendingRevenue)}</p>
-          <p className="text-sm text-gray-500">Pending</p>
+          <p className="text-sm text-gray-500">{t('Pending')}</p>
         </Card>
         <Card className="p-4 text-center">
           <p className="text-2xl font-bold text-gray-400">{stats.totalInvoices}</p>
-          <p className="text-sm text-gray-500">Total Invoices</p>
+          <p className="text-sm text-gray-500">{t('Total Invoices')}</p>
         </Card>
       </div>
 
@@ -98,7 +99,7 @@ export default function PortalInvoicesPage() {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search invoices..."
+              placeholder={t('Search invoices...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -120,13 +121,13 @@ export default function PortalInvoicesPage() {
         <Card className="p-8 text-center">
           <FileText className="h-12 w-12 text-gray-600 mx-auto mb-3" />
           <p className="text-gray-400 mb-4">
-            {search || statusFilter ? 'No invoices match your filters' : 'No invoices yet'}
+            {search || statusFilter ? t('No invoices match your filters') : t('No invoices yet')}
           </p>
           {!search && !statusFilter && (
             <Link href="/portal/financials/invoices/new">
               <Button variant="outline">
                 <Plus className="h-4 w-4 mr-2" />
-                Create Your First Invoice
+                {t('Create Your First Invoice')}
               </Button>
             </Link>
           )}
@@ -143,7 +144,7 @@ export default function PortalInvoicesPage() {
                     </div>
                     <div>
                       <p className="text-white font-medium">{invoice.invoiceNumber}</p>
-                      <p className="text-sm text-gray-400">To: {invoice.to.name}</p>
+                      <p className="text-sm text-gray-400">{t('To')}: {invoice.to.name}</p>
                     </div>
                   </div>
 
@@ -151,7 +152,7 @@ export default function PortalInvoicesPage() {
                     <div className="text-right">
                       <p className="text-white font-bold">{formatCurrency(invoice.total)}</p>
                       <p className="text-xs text-gray-500">
-                        Due: {formatDate(invoice.dueDate)}
+                        {t('Due')}: {formatDate(invoice.dueDate)}
                       </p>
                     </div>
                     <Badge

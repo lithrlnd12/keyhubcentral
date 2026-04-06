@@ -12,6 +12,7 @@ import { MarketplaceFeed } from '@/components/marketplace/MarketplaceFeed';
 import { BidForm } from '@/components/marketplace/BidForm';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useNetworkConfig } from '@/lib/hooks/useNetworkConfig';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 import { findAndLinkContractor } from '@/lib/firebase/contractors';
 import { getOpenListings } from '@/lib/firebase/marketplace';
 import { Contractor, getRatingTier } from '@/types/contractor';
@@ -22,6 +23,7 @@ import { useToast } from '@/components/ui/Toast';
 
 export default function PortalMarketplacePage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const { networkIds, canPullMarketplace } = useNetworkConfig();
   const [contractor, setContractor] = useState<Contractor | null>(null);
@@ -96,7 +98,7 @@ export default function PortalMarketplacePage() {
 
   const handleBidSubmitted = () => {
     setBidListing(null);
-    showToast('Bid submitted successfully!', 'success');
+    showToast(t('Bid submitted successfully!'), 'success');
     loadMyBids();
   };
 
@@ -120,13 +122,13 @@ export default function PortalMarketplacePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <BackButton href="/portal" label="Back to Portal" />
+          <BackButton href="/portal" label={t('Back to Portal')} />
           <div className="flex items-center gap-3 mt-3">
             <Store className="w-6 h-6 text-brand-gold" />
-            <h2 className="text-xl font-bold text-white">Labor Marketplace</h2>
+            <h2 className="text-xl font-bold text-white">{t('Labor Marketplace')}</h2>
           </div>
           <p className="text-gray-400 mt-1">
-            Find and bid on available work from dealers
+            {t('Find and bid on available work from dealers')}
           </p>
         </div>
       </div>
@@ -159,7 +161,7 @@ export default function PortalMarketplacePage() {
 
       {/* My Bids Section */}
       <div>
-        <h3 className="text-lg font-semibold text-white mb-3">My Bids</h3>
+        <h3 className="text-lg font-semibold text-white mb-3">{t('My Bids')}</h3>
         {bidsLoading ? (
           <div className="flex justify-center py-6">
             <Spinner />
@@ -167,7 +169,7 @@ export default function PortalMarketplacePage() {
         ) : myBids.length === 0 ? (
           <Card className="p-4">
             <p className="text-gray-400 text-sm text-center">
-              You haven&apos;t placed any bids yet. Browse listings below to get started.
+              {t("You haven't placed any bids yet. Browse listings below to get started.")}
             </p>
           </Card>
         ) : (
@@ -194,10 +196,10 @@ export default function PortalMarketplacePage() {
                   </div>
                   <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
                     <span>
-                      Your bid: <span className="text-green-400 font-medium">{formatCurrency(bid.proposedRate)}{PAY_TYPE_LABELS[listing.payType]}</span>
+                      {t('Your bid:')} <span className="text-green-400 font-medium">{formatCurrency(bid.proposedRate)}{PAY_TYPE_LABELS[listing.payType]}</span>
                     </span>
                     <span>
-                      Listed: {formatCurrency(listing.payRate)}{PAY_TYPE_LABELS[listing.payType]}
+                      {t('Listed:')} {formatCurrency(listing.payRate)}{PAY_TYPE_LABELS[listing.payType]}
                     </span>
                   </div>
                   {bid.status === 'accepted' && listing.jobId && (
@@ -205,7 +207,7 @@ export default function PortalMarketplacePage() {
                       href={`/kr/${listing.jobId}`}
                       className="inline-flex items-center gap-1 mt-2 text-sm text-blue-400 hover:text-blue-300"
                     >
-                      View Job <ArrowRight className="h-3 w-3" />
+                      {t('View Job')} <ArrowRight className="h-3 w-3" />
                     </Link>
                   )}
                 </Card>
@@ -217,7 +219,7 @@ export default function PortalMarketplacePage() {
 
       {/* Browse Listings */}
       <div>
-        <h3 className="text-lg font-semibold text-white mb-3">Available Listings</h3>
+        <h3 className="text-lg font-semibold text-white mb-3">{t('Available Listings')}</h3>
         <MarketplaceFeed
           contractorTrades={contractor?.trades || []}
           contractorLocation={contractorLocation}

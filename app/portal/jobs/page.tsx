@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { useAuth, useContractorJobs } from '@/lib/hooks';
+import { useAuth, useContractorJobs, useTranslation } from '@/lib/hooks';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { Job, JobStatus } from '@/types/job';
 import { Lead } from '@/types/lead';
@@ -23,21 +23,21 @@ const statusOptions = [
   { value: 'paid_in_full', label: 'Paid in Full' },
 ];
 
-function getStatusBadge(status: JobStatus) {
+function getStatusBadge(status: JobStatus, t: (s: string) => string) {
   switch (status) {
     case 'lead':
     case 'sold':
     case 'front_end_hold':
     case 'production':
-      return <Badge variant="default">{status.replace(/_/g, ' ')}</Badge>;
+      return <Badge variant="default">{t(status.replace(/_/g, ' '))}</Badge>;
     case 'scheduled':
-      return <Badge variant="info">Scheduled</Badge>;
+      return <Badge variant="info">{t('Scheduled')}</Badge>;
     case 'started':
-      return <Badge variant="warning">In Progress</Badge>;
+      return <Badge variant="warning">{t('In Progress')}</Badge>;
     case 'complete':
-      return <Badge variant="success">Completed</Badge>;
+      return <Badge variant="success">{t('Completed')}</Badge>;
     case 'paid_in_full':
-      return <Badge variant="success">Paid in Full</Badge>;
+      return <Badge variant="success">{t('Paid in Full')}</Badge>;
     default:
       return <Badge variant="default">{status}</Badge>;
   }
@@ -55,6 +55,7 @@ function formatDate(timestamp: any) {
 
 export default function MyJobsPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const canSeeCosts = user?.role && ['owner', 'admin', 'pm', 'partner'].includes(user.role);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -115,9 +116,9 @@ export default function MyJobsPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-white">My Jobs</h1>
+          <h1 className="text-2xl font-bold text-white">{t('My Jobs')}</h1>
           <p className="text-gray-400 mt-1">
-            Jobs you are assigned to work on
+            {t('Jobs you are assigned to work on')}
           </p>
         </div>
       </div>
@@ -126,15 +127,15 @@ export default function MyJobsPage() {
       <div className="grid grid-cols-3 gap-4">
         <Card className="p-4 text-center">
           <p className="text-2xl font-bold text-blue-400">{activeJobs.length + acceptedLeads.filter((l) => ['assigned', 'contacted', 'qualified'].includes(l.status)).length}</p>
-          <p className="text-sm text-gray-500">Active</p>
+          <p className="text-sm text-gray-500">{t('Active')}</p>
         </Card>
         <Card className="p-4 text-center">
           <p className="text-2xl font-bold text-green-400">{completedJobs.length}</p>
-          <p className="text-sm text-gray-500">Completed</p>
+          <p className="text-sm text-gray-500">{t('Completed')}</p>
         </Card>
         <Card className="p-4 text-center">
           <p className="text-2xl font-bold text-gold">{formatCurrency(totalJobValue)}</p>
-          <p className="text-sm text-gray-500">Total Value</p>
+          <p className="text-sm text-gray-500">{t('Total Value')}</p>
         </Card>
       </div>
 
@@ -144,7 +145,7 @@ export default function MyJobsPage() {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <Input
-              placeholder="Search jobs..."
+              placeholder={t('Search jobs...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -172,7 +173,7 @@ export default function MyJobsPage() {
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             <UserCheck className="w-5 h-5 text-green-400" />
-            Accepted Customer Requests
+            {t('Accepted Customer Requests')}
           </h2>
           {acceptedLeads.map((lead) => {
             const createdAt = lead.createdAt?.toDate?.();
@@ -184,10 +185,10 @@ export default function MyJobsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant={isActive ? 'success' : lead.status === 'converted' ? 'success' : 'default'}>
-                        {lead.status === 'assigned' ? 'Accepted' :
-                         lead.status === 'contacted' ? 'In Contact' :
-                         lead.status === 'qualified' ? 'Quote Sent' :
-                         lead.status === 'converted' ? 'Converted' :
+                        {lead.status === 'assigned' ? t('Accepted') :
+                         lead.status === 'contacted' ? t('In Contact') :
+                         lead.status === 'qualified' ? t('Quote Sent') :
+                         lead.status === 'converted' ? t('Converted') :
                          lead.status}
                       </Badge>
                       {lead.specialties && lead.specialties.map((s) => (
@@ -217,7 +218,7 @@ export default function MyJobsPage() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Navigation className="w-3 h-3" />
-                          Navigate
+                          {t('Navigate')}
                         </a>
                       </div>
                     )}
@@ -231,7 +232,7 @@ export default function MyJobsPage() {
                     {createdAt && (
                       <p className="text-xs text-gray-600 mt-2">
                         <Clock className="w-3 h-3 inline mr-1" />
-                        Accepted {createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {t('Accepted')} {createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </p>
                     )}
                   </div>
@@ -247,7 +248,7 @@ export default function MyJobsPage() {
         <Card className="p-8 text-center">
           <Briefcase className="h-12 w-12 text-gray-600 mx-auto mb-3" />
           <p className="text-gray-400">
-            {search || statusFilter ? 'No jobs match your filters' : 'No jobs assigned yet'}
+            {search || statusFilter ? t('No jobs match your filters') : t('No jobs assigned yet')}
           </p>
         </Card>
       ) : (
@@ -258,7 +259,7 @@ export default function MyJobsPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <span className="text-sm text-gray-500">{job.jobNumber}</span>
-                    {getStatusBadge(job.status)}
+                    {getStatusBadge(job.status, t)}
                   </div>
                   <h3 className="font-medium text-white mb-2">{job.customer?.name}</h3>
 
@@ -278,7 +279,7 @@ export default function MyJobsPage() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Navigation className="w-3 h-3" />
-                        Navigate
+                        {t('Navigate')}
                       </a>
                     )}
                   </div>
@@ -286,7 +287,7 @@ export default function MyJobsPage() {
                   {job.dates?.scheduledStart && (
                     <div className="flex items-center gap-2 text-sm text-gray-400">
                       <Calendar className="w-4 h-4" />
-                      <span>Scheduled: {formatDate(job.dates.scheduledStart)}</span>
+                      <span>{t('Scheduled')}: {formatDate(job.dates.scheduledStart)}</span>
                     </div>
                   )}
 
@@ -302,7 +303,7 @@ export default function MyJobsPage() {
                     <p className="text-lg font-bold text-gold">
                       {formatCurrency(job.costs?.laborActual || job.costs?.laborProjected || 0)}
                     </p>
-                    <p className="text-xs text-gray-500">Labor value</p>
+                    <p className="text-xs text-gray-500">{t('Labor value')}</p>
                   </div>
                 )}
               </div>
@@ -315,12 +316,12 @@ export default function MyJobsPage() {
       {filteredJobs.length > 0 && (
         <div className="bg-gray-800/50 rounded-xl p-4 flex flex-wrap gap-6">
           <div>
-            <p className="text-sm text-gray-400">Showing</p>
-            <p className="text-xl font-bold text-white">{filteredJobs.length} jobs</p>
+            <p className="text-sm text-gray-400">{t('Showing')}</p>
+            <p className="text-xl font-bold text-white">{filteredJobs.length} {t('jobs')}</p>
           </div>
           {canSeeCosts && (
             <div>
-              <p className="text-sm text-gray-400">Total Value</p>
+              <p className="text-sm text-gray-400">{t('Total Value')}</p>
               <p className="text-xl font-bold text-gold">
                 {formatCurrency(
                   filteredJobs.reduce(

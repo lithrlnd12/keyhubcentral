@@ -10,12 +10,14 @@ import {
   useInventoryStock,
   useSubmitCount,
   useAuth,
+  useTranslation,
 } from '@/lib/hooks';
 import { InventoryCountItem } from '@/types/inventory';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
 
 export default function ContractorCountPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
   const { location, loading: locationLoading } = useContractorLocation(
@@ -115,16 +117,16 @@ export default function ContractorCountPage() {
       <div className="text-center py-12">
         <Truck className="h-12 w-12 text-gray-600 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-white mb-2">
-          No Truck Location
+          {t('No Truck Location')}
         </h2>
         <p className="text-gray-400 mb-4">
-          Your truck inventory location hasn&apos;t been set up yet.
+          {t("Your truck inventory location hasn't been set up yet.")}
         </p>
         <Link
           href="/portal/inventory"
           className="text-gold hover:underline"
         >
-          Go back
+          {t('Go back')}
         </Link>
       </div>
     );
@@ -136,9 +138,9 @@ export default function ContractorCountPage() {
         <div className="p-4 bg-green-500/10 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
           <Check className="h-8 w-8 text-green-400" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Count Submitted!</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">{t('Count Submitted!')}</h2>
         <p className="text-gray-400 mb-6">
-          Your truck inventory has been updated
+          {t('Your truck inventory has been updated')}
         </p>
         <div className="flex gap-3 justify-center">
           <button
@@ -149,13 +151,13 @@ export default function ContractorCountPage() {
             }}
             className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors"
           >
-            Count Again
+            {t('Count Again')}
           </button>
           <Link
             href="/portal/inventory"
             className="px-4 py-2 bg-gold text-black rounded-lg font-medium hover:bg-gold/90 transition-colors"
           >
-            Back to Inventory
+            {t('Back to Inventory')}
           </Link>
         </div>
       </div>
@@ -173,7 +175,7 @@ export default function ContractorCountPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-white">Count Inventory</h1>
+          <h1 className="text-2xl font-bold text-white">{t('Count Inventory')}</h1>
           <p className="text-gray-400">{location.name}</p>
         </div>
         <button
@@ -184,12 +186,12 @@ export default function ContractorCountPage() {
           {submitting ? (
             <>
               <Spinner size="sm" />
-              Saving...
+              {t('Saving...')}
             </>
           ) : (
             <>
               <Save className="h-4 w-4" />
-              Submit
+              {t('Submit')}
             </>
           )}
         </button>
@@ -205,13 +207,13 @@ export default function ContractorCountPage() {
       {/* Notes */}
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">
-          Notes (optional)
+          {t('Notes (optional)')}
         </label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
-          placeholder="Add any notes..."
+          placeholder={t('Add any notes...')}
           className="w-full px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-gold resize-none"
         />
       </div>
@@ -224,8 +226,8 @@ export default function ContractorCountPage() {
       ) : items.length === 0 ? (
         <div className="text-center py-12">
           <ClipboardList className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No items to count</h3>
-          <p className="text-gray-400">No inventory items have been added yet</p>
+          <h3 className="text-lg font-medium text-white mb-2">{t('No items to count')}</h3>
+          <p className="text-gray-400">{t('No inventory items have been added yet')}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -245,9 +247,9 @@ export default function ContractorCountPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-medium truncate">{item.name}</p>
                   <div className="flex items-center gap-3 text-sm">
-                    <span className="text-gray-500">Par: {item.parLevel}</span>
+                    <span className="text-gray-500">{t('Par')}: {item.parLevel}</span>
                     {belowPar && (
-                      <span className="text-red-400">Low</span>
+                      <span className="text-red-400">{t('Low')}</span>
                     )}
                   </div>
                 </div>

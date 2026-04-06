@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { useAuth, useContractorExpenses } from '@/lib/hooks';
+import { useAuth, useContractorExpenses, useTranslation } from '@/lib/hooks';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { Expense, ExpenseCategory, getExpenseCategoryLabel } from '@/types/expense';
 
@@ -26,6 +26,7 @@ const CATEGORY_OPTIONS = [
 
 export default function PortalExpensesPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
 
   const {
@@ -68,15 +69,15 @@ export default function PortalExpensesPage() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-white">Expenses</h1>
+          <h1 className="text-2xl font-bold text-white">{t('Expenses')}</h1>
           <p className="text-gray-400 mt-1">
-            Expenses from your uploaded receipts
+            {t('Expenses from your uploaded receipts')}
           </p>
         </div>
         <Link href="/portal/inventory/receipts">
           <Button variant="outline">
             <Upload className="h-4 w-4 mr-2" />
-            Upload Receipt
+            {t('Upload Receipt')}
           </Button>
         </Link>
       </div>
@@ -85,11 +86,11 @@ export default function PortalExpensesPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 text-center">
           <p className="text-2xl font-bold text-red-400">{formatCurrency(stats.totalExpenses)}</p>
-          <p className="text-sm text-gray-500">Total Expenses</p>
+          <p className="text-sm text-gray-500">{t('Total Expenses')}</p>
         </Card>
         <Card className="p-4 text-center">
           <p className="text-2xl font-bold text-gray-400">{stats.expenseCount}</p>
-          <p className="text-sm text-gray-500">Transactions</p>
+          <p className="text-sm text-gray-500">{t('Transactions')}</p>
         </Card>
         {Object.keys(stats.expensesByCategory).length > 0 && (
           <>
@@ -97,13 +98,13 @@ export default function PortalExpensesPage() {
               <p className="text-2xl font-bold text-blue-400">
                 {formatCurrency(stats.expensesByCategory['materials'] || 0)}
               </p>
-              <p className="text-sm text-gray-500">Materials</p>
+              <p className="text-sm text-gray-500">{t('Materials')}</p>
             </Card>
             <Card className="p-4 text-center">
               <p className="text-2xl font-bold text-purple-400">
                 {formatCurrency(stats.expensesByCategory['fuel'] || 0)}
               </p>
-              <p className="text-sm text-gray-500">Fuel</p>
+              <p className="text-sm text-gray-500">{t('Fuel')}</p>
             </Card>
           </>
         )}
@@ -112,11 +113,11 @@ export default function PortalExpensesPage() {
       {/* Info Box */}
       <Card className="p-4 border-blue-500/20 bg-blue-500/5">
         <p className="text-blue-400 text-sm">
-          Expenses are automatically created from receipts you upload. Upload receipts in the{' '}
+          {t('Expenses are automatically created from receipts you upload. Upload receipts in the')}{' '}
           <Link href="/portal/inventory/receipts" className="underline hover:text-blue-300">
-            Inventory section
+            {t('Inventory section')}
           </Link>{' '}
-          and they will appear here once processed.
+          {t('and they will appear here once processed.')}
         </p>
       </Card>
 
@@ -126,7 +127,7 @@ export default function PortalExpensesPage() {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search expenses..."
+              placeholder={t('Search expenses...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -148,13 +149,13 @@ export default function PortalExpensesPage() {
         <Card className="p-8 text-center">
           <Receipt className="h-12 w-12 text-gray-600 mx-auto mb-3" />
           <p className="text-gray-400 mb-4">
-            {search || categoryFilter ? 'No expenses match your filters' : 'No expenses yet'}
+            {search || categoryFilter ? t('No expenses match your filters') : t('No expenses yet')}
           </p>
           {!search && !categoryFilter && (
             <Link href="/portal/inventory/receipts">
               <Button variant="outline">
                 <Upload className="h-4 w-4 mr-2" />
-                Upload Your First Receipt
+                {t('Upload Your First Receipt')}
               </Button>
             </Link>
           )}
@@ -208,7 +209,7 @@ export default function PortalExpensesPage() {
       {/* Category Breakdown */}
       {Object.keys(stats.expensesByCategory).length > 0 && (
         <Card className="p-4">
-          <h2 className="text-lg font-semibold text-white mb-4">Expense Breakdown</h2>
+          <h2 className="text-lg font-semibold text-white mb-4">{t('Expense Breakdown')}</h2>
           <div className="space-y-3">
             {Object.entries(stats.expensesByCategory)
               .sort((a, b) => b[1] - a[1])
