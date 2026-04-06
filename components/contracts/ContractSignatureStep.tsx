@@ -9,6 +9,7 @@ import { SignaturePad } from '@/components/jobs/SignaturePad';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -54,6 +55,7 @@ export function ContractSignatureStep({
   onBack,
   onComplete,
 }: ContractSignatureStepProps) {
+  const { t } = useTranslation();
   const [signatures, setSignatures] = useState<{
     salesRep: string | null;
     buyer: string | null;
@@ -259,21 +261,21 @@ export function ContractSignatureStep({
         <CardContent className="py-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h2 className="text-lg font-semibold">Collect Signatures</h2>
+              <h2 className="text-lg font-semibold">{t('Collect Signatures')}</h2>
               <p className="text-sm text-gray-400">
-                {status.completed} of {status.total} signatures collected
+                {status.completed} {t('of')} {status.total} {t('signatures collected')}
               </p>
             </div>
             <div className="flex items-center gap-2">
               {isComplete() ? (
                 <span className="flex items-center gap-1 text-green-500 text-sm">
                   <CheckCircle2 className="w-4 h-4" />
-                  All signatures collected
+                  {t('All signatures collected')}
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-yellow-500 text-sm">
                   <AlertCircle className="w-4 h-4" />
-                  Signatures pending
+                  {t('Signatures pending')}
                 </span>
               )}
             </div>
@@ -291,7 +293,7 @@ export function ContractSignatureStep({
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-500" />
-                View Document Before Signing
+                {t('View Document Before Signing')}
               </span>
               <div className="flex items-center gap-2">
                 {pdfUrl && (
@@ -304,7 +306,7 @@ export function ContractSignatureStep({
                     }}
                   >
                     <ExternalLink className="w-4 h-4 mr-1" />
-                    <span className="hidden sm:inline">Open in New Tab</span>
+                    <span className="hidden sm:inline">{t('Open in New Tab')}</span>
                   </Button>
                 )}
                 {showDocument ? (
@@ -321,22 +323,22 @@ export function ContractSignatureStep({
             {pdfLoading ? (
               <div className="flex flex-col items-center justify-center py-8">
                 <Spinner size="md" />
-                <p className="mt-2 text-sm text-gray-400">Loading document...</p>
+                <p className="mt-2 text-sm text-gray-400">{t('Loading document...')}</p>
               </div>
             ) : pdfUrl ? (
               <>
                 <iframe
                   src={pdfUrl}
                   className="w-full h-[400px] sm:h-[500px] md:h-[600px] border border-gray-700 rounded-lg"
-                  title="Contract Document"
+                  title={t('Contract Document')}
                 />
                 <p className="text-xs text-gray-500 text-center mt-3">
-                  Please review the entire document above before signing below. Tap header to collapse.
+                  {t('Please review the entire document above before signing below. Tap header to collapse.')}
                 </p>
               </>
             ) : (
               <p className="text-gray-400 text-center py-8">
-                Unable to load document preview. Use the button above to open in a new tab.
+                {t('Unable to load document preview. Use the button above to open in a new tab.')}
               </p>
             )}
           </CardContent>
@@ -344,10 +346,10 @@ export function ContractSignatureStep({
         {!showDocument && (
           <CardContent className="pt-0">
             <p className="text-sm text-gray-500">
-              Tap to expand and review the full{' '}
+              {t('Tap to expand and review the full')}{' '}
               {documentType === 'remodeling_agreement'
-                ? 'Remodeling Agreement (5 pages)'
-                : 'Disclosure Statement (4 pages)'}
+                ? t('Remodeling Agreement (5 pages)')
+                : t('Disclosure Statement (4 pages)')}
               .
             </p>
           </CardContent>
@@ -359,16 +361,14 @@ export function ContractSignatureStep({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-blue-500" />
-            Electronic Signature Consent
+            {t('Electronic Signature Consent')}
             {electronicConsent && <CheckCircle2 className="w-5 h-5 text-green-500" />}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="bg-gray-800 rounded-lg p-4 mb-4">
             <p className="text-sm text-gray-300">
-              By checking the box below, you agree to sign this document electronically. Electronic
-              signatures are legally binding under the Electronic Signatures in Global and National
-              Commerce Act (ESIGN Act) and the Uniform Electronic Transactions Act (UETA).
+              {t('By checking the box below, you agree to sign this document electronically. Electronic signatures are legally binding under the Electronic Signatures in Global and National Commerce Act (ESIGN Act) and the Uniform Electronic Transactions Act (UETA).')}
             </p>
           </div>
           <label className="flex items-start gap-3 cursor-pointer">
@@ -379,13 +379,12 @@ export function ContractSignatureStep({
               className="mt-1 w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900"
             />
             <span className="text-sm text-gray-300">
-              I agree to sign this document electronically and understand that my electronic
-              signature will be legally binding.
+              {t('I agree to sign this document electronically and understand that my electronic signature will be legally binding.')}
             </span>
           </label>
           {electronicConsent && consentTimestamp && (
             <p className="text-xs text-green-500 mt-2">
-              Consent given at {consentTimestamp.toLocaleString()}
+              {t('Consent given at')} {consentTimestamp.toLocaleString()}
             </p>
           )}
         </CardContent>
@@ -397,23 +396,21 @@ export function ContractSignatureStep({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PenLine className="w-5 h-5 text-orange-500" />
-              Lead-Based Paint Disclosure Initials
+              {t('Lead-Based Paint Disclosure Initials')}
               {initials.leadHazard && <CheckCircle2 className="w-5 h-5 text-green-500" />}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="bg-orange-500/10 rounded-lg p-4 mb-4">
               <p className="text-sm text-orange-400">
-                <strong>Lead-Based Paint Disclosure:</strong> For homes built before 1978, buyer
-                acknowledges receipt of EPA pamphlet &quot;Protect Your Family From Lead in Your Home&quot;
-                and any known lead-based paint hazard information.
+                <strong>{t('Lead-Based Paint Disclosure:')}</strong> {t('For homes built before 1978, buyer acknowledges receipt of EPA pamphlet "Protect Your Family From Lead in Your Home" and any known lead-based paint hazard information.')}
               </p>
             </div>
             <p className="text-sm text-gray-400 mb-4">
-              {formData.buyerName} - Please initial to acknowledge the lead hazard disclosure.
+              {formData.buyerName} - {t('Please initial to acknowledge the lead hazard disclosure.')}
             </p>
             <SignaturePad
-              label="Lead Hazard Initials"
+              label={t('Lead Hazard Initials')}
               onSave={(dataUrl) => handleInitialsSave('leadHazard', dataUrl)}
               onClear={() => handleInitialsClear('leadHazard')}
               initialSignature={initials.leadHazard || undefined}
@@ -426,16 +423,16 @@ export function ContractSignatureStep({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            Sales Representative Signature
+            {t('Sales Representative Signature')}
             {signatures.salesRep && <CheckCircle2 className="w-5 h-5 text-green-500" />}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-400 mb-4">
-            {salesRepName} - Please sign to acknowledge the contract terms.
+            {salesRepName} - {t('Please sign to acknowledge the contract terms.')}
           </p>
           <SignaturePad
-            label="Sales Rep Signature"
+            label={t('Sales Rep Signature')}
             onSave={(dataUrl) => handleSignatureSave('salesRep', dataUrl)}
             onClear={() => handleSignatureClear('salesRep')}
             initialSignature={signatures.salesRep || undefined}
@@ -447,16 +444,16 @@ export function ContractSignatureStep({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            Customer Signature
+            {t('Customer Signature')}
             {signatures.buyer && <CheckCircle2 className="w-5 h-5 text-green-500" />}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-400 mb-4">
-            {formData.buyerName} - Please sign to agree to the contract terms.
+            {formData.buyerName} - {t('Please sign to agree to the contract terms.')}
           </p>
           <SignaturePad
-            label="Customer Signature"
+            label={t('Customer Signature')}
             onSave={(dataUrl) => handleSignatureSave('buyer', dataUrl)}
             onClear={() => handleSignatureClear('buyer')}
             initialSignature={signatures.buyer || undefined}
@@ -469,16 +466,16 @@ export function ContractSignatureStep({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              Customer 2 Signature
+              {t('Customer 2 Signature')}
               {signatures.buyer2 && <CheckCircle2 className="w-5 h-5 text-green-500" />}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-400 mb-4">
-              {formData.buyerName2} - Please sign to agree to the contract terms.
+              {formData.buyerName2} - {t('Please sign to agree to the contract terms.')}
             </p>
             <SignaturePad
-              label="Customer 2 Signature"
+              label={t('Customer 2 Signature')}
               onSave={(dataUrl) => handleSignatureSave('buyer2', dataUrl)}
               onClear={() => handleSignatureClear('buyer2')}
               initialSignature={signatures.buyer2 || undefined}
@@ -492,23 +489,21 @@ export function ContractSignatureStep({
         <Card className="border-yellow-500/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-yellow-500">
-              Notice of Cancellation Acknowledgment
+              {t('Notice of Cancellation Acknowledgment')}
               {signatures.cancellation && <CheckCircle2 className="w-5 h-5 text-green-500" />}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="bg-yellow-500/10 rounded-lg p-4 mb-4">
               <p className="text-sm text-yellow-500/90">
-                <strong>Important:</strong> By signing below, the customer acknowledges receipt of
-                the Notice of Cancellation form. This signature does NOT cancel the contract - it
-                confirms the customer has received information about their cancellation rights.
+                <strong>{t('Important:')}</strong> {t('By signing below, the customer acknowledges receipt of the Notice of Cancellation form. This signature does NOT cancel the contract - it confirms the customer has received information about their cancellation rights.')}
               </p>
             </div>
             <p className="text-sm text-gray-400 mb-4">
-              {formData.buyerName} - Sign to acknowledge receipt of Notice of Cancellation.
+              {formData.buyerName} - {t('Sign to acknowledge receipt of Notice of Cancellation.')}
             </p>
             <SignaturePad
-              label="Cancellation Notice Acknowledgment"
+              label={t('Cancellation Notice Acknowledgment')}
               onSave={(dataUrl) => handleSignatureSave('cancellation', dataUrl)}
               onClear={() => handleSignatureClear('cancellation')}
               initialSignature={signatures.cancellation || undefined}
@@ -523,23 +518,21 @@ export function ContractSignatureStep({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PenLine className="w-5 h-5 text-blue-500" />
-              Terms &amp; Conditions Acknowledgment
+              {t('Terms & Conditions Acknowledgment')}
               {initials.termsAcknowledgment && <CheckCircle2 className="w-5 h-5 text-green-500" />}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="bg-blue-500/10 rounded-lg p-4 mb-4">
               <p className="text-sm text-blue-400">
-                By initialing below, customer acknowledges that they have read, understood, and
-                agree to all terms and conditions stated in this agreement. Customer has had the
-                opportunity to ask questions and seek independent advice.
+                {t('By initialing below, customer acknowledges that they have read, understood, and agree to all terms and conditions stated in this agreement. Customer has had the opportunity to ask questions and seek independent advice.')}
               </p>
             </div>
             <p className="text-sm text-gray-400 mb-4">
-              {formData.buyerName} - Please initial to acknowledge the terms and conditions.
+              {formData.buyerName} - {t('Please initial to acknowledge the terms and conditions.')}
             </p>
             <SignaturePad
-              label="Terms Acknowledgment Initials"
+              label={t('Terms Acknowledgment Initials')}
               onSave={(dataUrl) => handleInitialsSave('termsAcknowledgment', dataUrl)}
               onClear={() => handleInitialsClear('termsAcknowledgment')}
               initialSignature={initials.termsAcknowledgment || undefined}
@@ -552,11 +545,11 @@ export function ContractSignatureStep({
       <div className="flex justify-between pt-4">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Preview
+          {t('Back to Preview')}
         </Button>
         <Button onClick={handleSubmit} disabled={!isComplete()}>
           <CheckCircle2 className="w-4 h-4 mr-2" />
-          Complete Signing
+          {t('Complete Signing')}
         </Button>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { ContractDocumentType, CONTRACT_TYPE_LABELS } from '@/types/contract';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 import { CheckCircle2, Download, Eye, ArrowRight, Mail, Send, AlertCircle } from 'lucide-react';
 
 interface ContractConfirmationStepProps {
@@ -27,13 +28,14 @@ export function ContractConfirmationStep({
   onDone,
   onSignAnother,
 }: ContractConfirmationStepProps) {
+  const { t } = useTranslation();
   const [sendEmail, setSendEmail] = useState(true); // Default to sending email
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [emailError, setEmailError] = useState<string | null>(null);
 
   const handleSendEmail = async () => {
     if (!customerEmail) {
-      setEmailError('No customer email address available');
+      setEmailError(t('No customer email address available'));
       setEmailStatus('error');
       return;
     }
@@ -51,7 +53,7 @@ export function ContractConfirmationStep({
       setEmailStatus('sent');
     } catch (error) {
       console.error('Failed to send email:', error);
-      setEmailError(error instanceof Error ? error.message : 'Failed to send email');
+      setEmailError(error instanceof Error ? error.message : t('Failed to send email'));
       setEmailStatus('error');
     }
   };
@@ -87,7 +89,7 @@ export function ContractConfirmationStep({
           <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-10 h-10 text-green-500" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Contract Signed Successfully</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">{t('Contract Signed Successfully')}</h2>
           <p className="text-gray-400">{CONTRACT_TYPE_LABELS[documentType]}</p>
         </CardContent>
       </Card>
@@ -96,18 +98,17 @@ export function ContractConfirmationStep({
       <Card>
         <CardContent className="py-6 space-y-4">
           <p className="text-sm text-gray-400 text-center mb-4">
-            The signed contract has been saved to the job record. You can download or view the PDF
-            below.
+            {t('The signed contract has been saved to the job record. You can download or view the PDF below.')}
           </p>
 
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" onClick={handleDownload} className="w-full">
               <Download className="w-4 h-4 mr-2" />
-              Download PDF
+              {t('Download PDF')}
             </Button>
             <Button variant="outline" onClick={handleView} className="w-full">
               <Eye className="w-4 h-4 mr-2" />
-              View PDF
+              {t('View PDF')}
             </Button>
           </div>
 
@@ -117,12 +118,12 @@ export function ContractConfirmationStep({
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Mail className="w-5 h-5 text-blue-500" />
-                  <span className="font-medium">Send to Customer</span>
+                  <span className="font-medium">{t('Send to Customer')}</span>
                 </div>
                 {emailStatus === 'sent' && (
                   <span className="flex items-center gap-1 text-green-500 text-sm">
                     <CheckCircle2 className="w-4 h-4" />
-                    Sent
+                    {t('Sent')}
                   </span>
                 )}
               </div>
@@ -130,7 +131,7 @@ export function ContractConfirmationStep({
               {customerEmail ? (
                 <>
                   <p className="text-sm text-gray-400 mb-3">
-                    Send a copy of the signed contract to <strong>{customerName}</strong> at{' '}
+                    {t('Send a copy of the signed contract to')} <strong>{customerName}</strong> {t('at')}{' '}
                     <span className="text-blue-400">{customerEmail}</span>
                   </p>
 
@@ -141,21 +142,21 @@ export function ContractConfirmationStep({
                       variant="secondary"
                     >
                       <Send className="w-4 h-4 mr-2" />
-                      Send Contract to Customer
+                      {t('Send Contract to Customer')}
                     </Button>
                   )}
 
                   {emailStatus === 'sending' && (
                     <div className="flex items-center justify-center gap-2 py-2">
                       <Spinner size="sm" />
-                      <span className="text-sm text-gray-400">Sending email...</span>
+                      <span className="text-sm text-gray-400">{t('Sending email...')}</span>
                     </div>
                   )}
 
                   {emailStatus === 'sent' && (
                     <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-center">
                       <p className="text-sm text-green-500">
-                        Contract sent successfully to {customerEmail}
+                        {t('Contract sent successfully to')} {customerEmail}
                       </p>
                     </div>
                   )}
@@ -172,14 +173,14 @@ export function ContractConfirmationStep({
                         size="sm"
                         className="w-full"
                       >
-                        Try Again
+                        {t('Try Again')}
                       </Button>
                     </div>
                   )}
                 </>
               ) : (
                 <p className="text-sm text-yellow-500">
-                  No email address available for this customer. You can share the PDF manually.
+                  {t('No email address available for this customer. You can share the PDF manually.')}
                 </p>
               )}
             </div>
@@ -189,11 +190,11 @@ export function ContractConfirmationStep({
             {onSignAnother && (
               <Button variant="secondary" onClick={onSignAnother} className="w-full mb-3">
                 <ArrowRight className="w-4 h-4 mr-2" />
-                Sign Another Document
+                {t('Sign Another Document')}
               </Button>
             )}
             <Button onClick={onDone} className="w-full">
-              Done
+              {t('Done')}
             </Button>
           </div>
         </CardContent>
@@ -201,7 +202,7 @@ export function ContractConfirmationStep({
 
       {/* Info */}
       <div className="text-center text-sm text-gray-500">
-        <p>A copy of this signed contract has been stored with the job record.</p>
+        <p>{t('A copy of this signed contract has been stored with the job record.')}</p>
       </div>
     </div>
   );

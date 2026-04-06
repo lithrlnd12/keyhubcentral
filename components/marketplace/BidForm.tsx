@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { DollarSign, MapPin } from 'lucide-react';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
@@ -35,6 +36,7 @@ export function BidForm({
   onSubmit,
   onCancel,
 }: BidFormProps) {
+  const { t } = useTranslation();
   const [proposedRate, setProposedRate] = useState(listing.payRate);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -45,12 +47,12 @@ export function BidForm({
     setError('');
 
     if (proposedRate <= 0) {
-      setError('Please enter a valid rate.');
+      setError(t('Please enter a valid rate.'));
       return;
     }
 
     if (!message.trim()) {
-      setError('Please include a message with your bid.');
+      setError(t('Please include a message with your bid.'));
       return;
     }
 
@@ -67,7 +69,7 @@ export function BidForm({
       });
       onSubmit();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit bid');
+      setError(err instanceof Error ? err.message : t('Failed to submit bid'));
     } finally {
       setSubmitting(false);
     }
@@ -75,7 +77,7 @@ export function BidForm({
 
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-semibold text-white mb-1">Place a Bid</h3>
+      <h3 className="text-lg font-semibold text-white mb-1">{t('Place a Bid')}</h3>
       <p className="text-sm text-gray-400 mb-4">
         {listing.title} &mdash; {listing.location.city}, {listing.location.state}
       </p>
@@ -83,28 +85,28 @@ export function BidForm({
       {/* Listing summary */}
       <div className="bg-gray-800/50 rounded-lg p-3 mb-4 space-y-1 text-sm">
         <div className="flex justify-between text-gray-400">
-          <span>Listed Rate</span>
+          <span>{t('Listed Rate')}</span>
           <span className="text-green-400 font-medium">
             {formatCurrency(listing.payRate)}{PAY_TYPE_LABELS[listing.payType]}
           </span>
         </div>
         <div className="flex justify-between text-gray-400">
-          <span>Date Needed</span>
+          <span>{t('Date Needed')}</span>
           <span className="text-white">{new Date(listing.dateNeeded).toLocaleDateString()}</span>
         </div>
         <div className="flex justify-between text-gray-400">
-          <span>Time</span>
+          <span>{t('Time')}</span>
           <span className="text-white">{TIME_BLOCK_LABELS[listing.timeBlock]}</span>
         </div>
         <div className="flex justify-between text-gray-400">
-          <span>Duration</span>
+          <span>{t('Duration')}</span>
           <span className="text-white">{listing.estimatedDuration}</span>
         </div>
         {distance !== null && distance !== undefined && (
           <div className="flex items-center justify-between text-gray-400">
             <span className="flex items-center gap-1">
               <MapPin className="w-3 h-3" />
-              Distance
+              {t('Distance')}
             </span>
             <span className="text-white">{distance.toFixed(1)} mi</span>
           </div>
@@ -114,7 +116,7 @@ export function BidForm({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1.5">
-            Your Proposed Rate ({listing.payType})
+            {t('Your Proposed Rate')} ({listing.payType})
           </label>
           <div className="relative">
             <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -130,8 +132,8 @@ export function BidForm({
         </div>
 
         <Textarea
-          label="Message"
-          placeholder="Introduce yourself, highlight relevant experience, and explain why you're the right fit..."
+          label={t('Message')}
+          placeholder={t('Introduce yourself, highlight relevant experience, and explain why you\'re the right fit...')}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={4}
@@ -143,11 +145,11 @@ export function BidForm({
 
         <div className="flex gap-3">
           <Button type="submit" loading={submitting} className="flex-1">
-            Submit Bid
+            {t('Submit Bid')}
           </Button>
           {onCancel && (
             <Button type="button" variant="secondary" onClick={onCancel}>
-              Cancel
+              {t('Cancel')}
             </Button>
           )}
         </div>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { RemoteSigningSession } from '@/types/remoteSignature';
 import { getSigningSessionsForContract } from '@/lib/firebase/remoteSignatures';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 interface RemoteSigningButtonProps {
   contractId: string;
@@ -20,6 +21,7 @@ export function RemoteSigningButton({
   recipientName: initialName,
 }: RemoteSigningButtonProps) {
   const { getIdToken } = useAuth();
+  const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState(initialEmail || '');
   const [name, setName] = useState(initialName || '');
@@ -63,7 +65,7 @@ export function RemoteSigningButton({
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to send signing link');
+        throw new Error(data.error || t('Failed to send signing link'));
       }
 
       setSuccess(true);
@@ -73,7 +75,7 @@ export function RemoteSigningButton({
       const updated = await getSigningSessionsForContract(contractId);
       setSessions(updated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send signing link');
+      setError(err instanceof Error ? err.message : t('Failed to send signing link'));
     } finally {
       setLoading(false);
     }
@@ -81,11 +83,11 @@ export function RemoteSigningButton({
 
   const getStatusBadge = (status: string) => {
     const statusStyles: Record<string, { bg: string; text: string; label: string }> = {
-      pending: { bg: 'bg-yellow-500/10', text: 'text-yellow-500', label: 'Pending' },
-      viewed: { bg: 'bg-blue-500/10', text: 'text-blue-500', label: 'Viewed' },
-      signed: { bg: 'bg-green-500/10', text: 'text-green-500', label: 'Signed' },
-      expired: { bg: 'bg-gray-500/10', text: 'text-gray-500', label: 'Expired' },
-      cancelled: { bg: 'bg-red-500/10', text: 'text-red-500', label: 'Cancelled' },
+      pending: { bg: 'bg-yellow-500/10', text: 'text-yellow-500', label: t('Pending') },
+      viewed: { bg: 'bg-blue-500/10', text: 'text-blue-500', label: t('Viewed') },
+      signed: { bg: 'bg-green-500/10', text: 'text-green-500', label: t('Signed') },
+      expired: { bg: 'bg-gray-500/10', text: 'text-gray-500', label: t('Expired') },
+      cancelled: { bg: 'bg-red-500/10', text: 'text-red-500', label: t('Cancelled') },
     };
     const s = statusStyles[status] || statusStyles.pending;
     return (
@@ -101,7 +103,7 @@ export function RemoteSigningButton({
       {!loadingSessions && sessions.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-            Remote Signing Sessions
+            {t('Remote Signing Sessions')}
           </p>
           {sessions.map((session) => (
             <div
@@ -121,7 +123,7 @@ export function RemoteSigningButton({
       {/* Success message */}
       {success && (
         <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-4 py-3 text-sm text-green-400">
-          Signing link sent successfully!
+          {t('Signing link sent successfully!')}
         </div>
       )}
 
@@ -136,17 +138,17 @@ export function RemoteSigningButton({
       {showForm && (
         <div className="bg-gray-800 rounded-lg p-4 space-y-3">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Recipient Name</label>
+            <label className="block text-sm text-gray-400 mb-1">{t('Recipient Name')}</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Full name"
+              placeholder={t('Full name')}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-primary"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Recipient Email</label>
+            <label className="block text-sm text-gray-400 mb-1">{t('Recipient Email')}</label>
             <input
               type="email"
               value={email}
@@ -161,7 +163,7 @@ export function RemoteSigningButton({
               onClick={handleSubmit}
               disabled={loading || !email || !name}
             >
-              {loading ? 'Sending...' : 'Send Signing Link'}
+              {loading ? t('Sending...') : t('Send Signing Link')}
             </Button>
             <Button
               size="sm"
@@ -171,7 +173,7 @@ export function RemoteSigningButton({
                 setError('');
               }}
             >
-              Cancel
+              {t('Cancel')}
             </Button>
           </div>
         </div>
@@ -188,7 +190,7 @@ export function RemoteSigningButton({
             setError('');
           }}
         >
-          Send for Remote Signature
+          {t('Send for Remote Signature')}
         </Button>
       )}
     </div>

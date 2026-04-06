@@ -12,6 +12,7 @@ import { ContractSignatureStep, SignatureCollectionData } from './ContractSignat
 import { ContractConfirmationStep } from './ContractConfirmationStep';
 import { createContract, saveContractSignatures } from '@/lib/firebase/contracts';
 import { Spinner } from '@/components/ui/Spinner';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 import { AlertCircle, FileText, Eye, Edit3, CheckCircle } from 'lucide-react';
 
 type Step = 'form' | 'preview' | 'sign' | 'confirm';
@@ -39,12 +40,13 @@ export function ContractSigningFlow({
   const [contractId, setContractId] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const steps: { key: Step; label: string; icon: React.ReactNode }[] = [
-    { key: 'form', label: 'Fill Details', icon: <Edit3 className="w-4 h-4" /> },
-    { key: 'preview', label: 'Preview', icon: <Eye className="w-4 h-4" /> },
-    { key: 'sign', label: 'Sign', icon: <FileText className="w-4 h-4" /> },
-    { key: 'confirm', label: 'Complete', icon: <CheckCircle className="w-4 h-4" /> },
+    { key: 'form', label: t('Fill Details'), icon: <Edit3 className="w-4 h-4" /> },
+    { key: 'preview', label: t('Preview'), icon: <Eye className="w-4 h-4" /> },
+    { key: 'sign', label: t('Sign'), icon: <FileText className="w-4 h-4" /> },
+    { key: 'confirm', label: t('Complete'), icon: <CheckCircle className="w-4 h-4" /> },
   ];
 
   const currentStepIndex = steps.findIndex((s) => s.key === step);
@@ -136,7 +138,7 @@ export function ContractSigningFlow({
     } catch (err) {
       console.error('Failed to save contract:', err);
       setError(
-        err instanceof Error ? err.message : 'Failed to save contract. Please try again.'
+        err instanceof Error ? err.message : t('Failed to save contract. Please try again.')
       );
     } finally {
       setSaving(false);
@@ -147,8 +149,8 @@ export function ContractSigningFlow({
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Spinner size="lg" />
-        <p className="mt-4 text-gray-400">Saving contract...</p>
-        <p className="text-sm text-gray-500">Uploading signatures and generating PDF</p>
+        <p className="mt-4 text-gray-400">{t('Saving contract...')}</p>
+        <p className="text-sm text-gray-500">{t('Uploading signatures and generating PDF')}</p>
       </div>
     );
   }
@@ -199,7 +201,7 @@ export function ContractSigningFlow({
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-red-500 font-medium">Error</p>
+            <p className="text-red-500 font-medium">{t('Error')}</p>
             <p className="text-sm text-red-500/80">{error}</p>
           </div>
         </div>

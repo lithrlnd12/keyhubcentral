@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Slider } from '@/components/ui/Slider';
@@ -33,6 +34,7 @@ export function MarketplaceFeed({
   mode = 'contractor',
   networkIds,
 }: MarketplaceFeedProps) {
+  const { t } = useTranslation();
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -116,15 +118,15 @@ export function MarketplaceFeed({
   }, [listings, contractorTrades, contractorLocation, distanceFilter, sortBy]);
 
   const tradeOptions = [
-    { value: '', label: 'All Trades' },
-    ...TRADE_OPTIONS.map((t) => ({ value: t.value, label: t.label })),
+    { value: '', label: t('All Trades') },
+    ...TRADE_OPTIONS.map((to) => ({ value: to.value, label: to.label })),
   ];
 
   const sortOptions = [
-    { value: 'newest', label: 'Newest First' },
-    { value: 'highest_pay', label: 'Highest Pay' },
-    { value: 'closest', label: 'Closest' },
-    { value: 'soonest', label: 'Soonest Needed' },
+    { value: 'newest', label: t('Newest First') },
+    { value: 'highest_pay', label: t('Highest Pay') },
+    { value: 'closest', label: t('Closest') },
+    { value: 'soonest', label: t('Soonest Needed') },
   ];
 
   return (
@@ -135,7 +137,7 @@ export function MarketplaceFeed({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
-            placeholder="Search listings..."
+            placeholder={t('Search listings...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-3 py-2 bg-brand-charcoal border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:border-transparent"
@@ -146,7 +148,7 @@ export function MarketplaceFeed({
           options={tradeOptions}
           value={tradeFilter}
           onChange={(e) => setTradeFilter(e.target.value)}
-          placeholder="All Trades"
+          placeholder={t('All Trades')}
         />
 
         <Select
@@ -157,7 +159,7 @@ export function MarketplaceFeed({
 
         {contractorLocation && (
           <Slider
-            label="Max Distance"
+            label={t('Max Distance')}
             value={distanceFilter}
             onChange={setDistanceFilter}
             min={10}
@@ -172,7 +174,7 @@ export function MarketplaceFeed({
       <div className="flex items-center gap-4">
         <Input
           type="number"
-          placeholder="Min pay rate"
+          placeholder={t('Min pay rate')}
           value={minPay || ''}
           onChange={(e) => setMinPay(Number(e.target.value) || 0)}
           className="max-w-[160px]"
@@ -182,7 +184,7 @@ export function MarketplaceFeed({
             onClick={() => setMinPay(0)}
             className="text-sm text-gray-400 hover:text-white transition-colors"
           >
-            Clear min pay
+            {t('Clear min pay')}
           </button>
         )}
       </div>
@@ -194,8 +196,8 @@ export function MarketplaceFeed({
         </div>
       ) : filteredAndSorted.length === 0 ? (
         <EmptyState
-          title="No listings found"
-          description="There are no open listings matching your filters. Try adjusting your search criteria."
+          title={t('No listings found')}
+          description={t('There are no open listings matching your filters. Try adjusting your search criteria.')}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

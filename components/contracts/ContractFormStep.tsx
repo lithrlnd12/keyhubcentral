@@ -6,6 +6,7 @@ import { ContractFormData, ContractPaymentMethod, PAYMENT_METHOD_LABELS } from '
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 import { User, MapPin, Phone, Mail, Calendar, DollarSign, Plus, X } from 'lucide-react';
 
 interface ContractFormStepProps {
@@ -16,6 +17,7 @@ interface ContractFormStepProps {
 }
 
 export function ContractFormStep({ job, initialData, onNext, onCancel }: ContractFormStepProps) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<ContractFormData>(() => ({
     // Customer Info (auto-filled from job)
     buyerName: initialData?.buyerName || job.customer.name,
@@ -92,34 +94,34 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
     const newErrors: Record<string, string> = {};
 
     if (!formData.buyerName.trim()) {
-      newErrors.buyerName = 'Buyer name is required';
+      newErrors.buyerName = t('Buyer name is required');
     }
     if (!formData.address.street.trim()) {
-      newErrors.street = 'Street address is required';
+      newErrors.street = t('Street address is required');
     }
     if (!formData.address.city.trim()) {
-      newErrors.city = 'City is required';
+      newErrors.city = t('City is required');
     }
     if (!formData.address.state.trim()) {
-      newErrors.state = 'State is required';
+      newErrors.state = t('State is required');
     }
     if (!formData.address.zip.trim()) {
-      newErrors.zip = 'ZIP code is required';
+      newErrors.zip = t('ZIP code is required');
     }
     if (!formData.cellPhone.trim()) {
-      newErrors.cellPhone = 'Cell phone is required';
+      newErrors.cellPhone = t('Cell phone is required');
     }
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('Email is required');
     }
     if (formData.purchasePrice <= 0) {
-      newErrors.purchasePrice = 'Purchase price must be greater than 0';
+      newErrors.purchasePrice = t('Purchase price must be greater than 0');
     }
     if (formData.paymentMethods.length === 0) {
-      newErrors.paymentMethods = 'Select at least one payment method';
+      newErrors.paymentMethods = t('Select at least one payment method');
     }
     if (formData.paymentMethods.includes('other') && !formData.otherPaymentMethod?.trim()) {
-      newErrors.otherPaymentMethod = 'Specify the other payment method';
+      newErrors.otherPaymentMethod = t('Specify the other payment method');
     }
 
     setErrors(newErrors);
@@ -140,13 +142,13 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
-            Customer Information
+            {t('Customer Information')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="Buyer Name"
+              label={t('Buyer Name')}
               value={formData.buyerName}
               onChange={(e) => handleInputChange('buyerName', e.target.value)}
               error={errors.buyerName}
@@ -155,10 +157,10 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
             {showBuyer2 ? (
               <div className="relative">
                 <Input
-                  label="Buyer 2 Name"
+                  label={t('Buyer 2 Name')}
                   value={formData.buyerName2 || ''}
                   onChange={(e) => handleInputChange('buyerName2', e.target.value)}
-                  placeholder="Second buyer (optional)"
+                  placeholder={t('Second buyer (optional)')}
                 />
                 <button
                   type="button"
@@ -167,7 +169,7 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
                     handleInputChange('buyerName2', '');
                   }}
                   className="absolute top-8 right-2 p-1 text-gray-400 hover:text-red-500"
-                  title="Remove second buyer"
+                  title={t('Remove second buyer')}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -182,7 +184,7 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
                   className="mb-1"
                 >
                   <Plus className="w-4 h-4 mr-1" />
-                  Add Second Buyer
+                  {t('Add Second Buyer')}
                 </Button>
               </div>
             )}
@@ -195,12 +197,12 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="w-5 h-5" />
-            Property Address
+            {t('Property Address')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Input
-            label="Street Address"
+            label={t('Street Address')}
             value={formData.address.street}
             onChange={(e) => handleAddressChange('street', e.target.value)}
             error={errors.street}
@@ -209,7 +211,7 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="col-span-2 md:col-span-2">
               <Input
-                label="City"
+                label={t('City')}
                 value={formData.address.city}
                 onChange={(e) => handleAddressChange('city', e.target.value)}
                 error={errors.city}
@@ -217,14 +219,14 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
               />
             </div>
             <Input
-              label="State"
+              label={t('State')}
               value={formData.address.state}
               onChange={(e) => handleAddressChange('state', e.target.value)}
               error={errors.state}
               required
             />
             <Input
-              label="ZIP Code"
+              label={t('ZIP Code')}
               value={formData.address.zip}
               onChange={(e) => handleAddressChange('zip', e.target.value)}
               error={errors.zip}
@@ -239,20 +241,20 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Phone className="w-5 h-5" />
-            Contact Information
+            {t('Contact Information')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
-              label="Home Phone"
+              label={t('Home Phone')}
               type="tel"
               value={formData.homePhone}
               onChange={(e) => handleInputChange('homePhone', e.target.value)}
-              placeholder="Optional"
+              placeholder={t('Optional')}
             />
             <Input
-              label="Cell Phone"
+              label={t('Cell Phone')}
               type="tel"
               value={formData.cellPhone}
               onChange={(e) => handleInputChange('cellPhone', e.target.value)}
@@ -260,7 +262,7 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
               required
             />
             <Input
-              label="Email"
+              label={t('Email')}
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
@@ -276,13 +278,13 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            Project Details
+            {t('Project Details')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
-              label="Contract Date"
+              label={t('Contract Date')}
               type="date"
               value={
                 formData.contractDate
@@ -295,7 +297,7 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
               required
             />
             <Input
-              label="Estimated Start Date"
+              label={t('Estimated Start Date')}
               type="date"
               value={
                 formData.estimatedStartDate
@@ -310,10 +312,10 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
               }
             />
             <Input
-              label="Est. Completion Time"
+              label={t('Est. Completion Time')}
               value={formData.estimatedCompletionTime}
               onChange={(e) => handleInputChange('estimatedCompletionTime', e.target.value)}
-              placeholder="e.g., 3-4 weeks"
+              placeholder={t('e.g., 3-4 weeks')}
             />
           </div>
         </CardContent>
@@ -324,13 +326,13 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5" />
-            Pricing and Payment
+            {t('Pricing and Payment')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Input
-              label="Purchase Price"
+              label={t('Purchase Price')}
               type="number"
               value={formData.purchasePrice || ''}
               onChange={(e) => handleInputChange('purchasePrice', parseFloat(e.target.value) || 0)}
@@ -340,7 +342,7 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
               required
             />
             <Input
-              label="Down Payment"
+              label={t('Down Payment')}
               type="number"
               value={formData.downPayment || ''}
               onChange={(e) => handleInputChange('downPayment', parseFloat(e.target.value) || 0)}
@@ -348,7 +350,7 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
               step={0.01}
             />
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Balance Due</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">{t('Balance Due')}</label>
               <div className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-lg font-semibold">
                 ${formData.balanceDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
@@ -358,7 +360,7 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
           {/* Payment Methods */}
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-2">
-              Payment Method(s) {errors.paymentMethods && <span className="text-red-500">*</span>}
+              {t('Payment Method(s)')} {errors.paymentMethods && <span className="text-red-500">*</span>}
             </label>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {(Object.keys(PAYMENT_METHOD_LABELS) as ContractPaymentMethod[]).map((method) => (
@@ -382,11 +384,11 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
             {formData.paymentMethods.includes('other') && (
               <div className="mt-3">
                 <Input
-                  label="Specify Other Payment Method"
+                  label={t('Specify Other Payment Method')}
                   value={formData.otherPaymentMethod || ''}
                   onChange={(e) => handleInputChange('otherPaymentMethod', e.target.value)}
                   error={errors.otherPaymentMethod}
-                  placeholder="Describe the payment method"
+                  placeholder={t('Describe the payment method')}
                 />
               </div>
             )}
@@ -397,18 +399,17 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
       {/* Lead Hazard Disclosure */}
       <Card>
         <CardHeader>
-          <CardTitle>Lead-Based Paint Disclosure</CardTitle>
+          <CardTitle>{t('Lead-Based Paint Disclosure')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-400 mb-4">
-            For homes built before 1978, buyer acknowledges receipt of EPA pamphlet &quot;Protect Your
-            Family From Lead in Your Home&quot; and any known lead-based paint hazard information.
+            {t('For homes built before 1978, buyer acknowledges receipt of EPA pamphlet "Protect Your Family From Lead in Your Home" and any known lead-based paint hazard information.')}
           </p>
           <Input
-            label="Buyer Initials"
+            label={t('Buyer Initials')}
             value={formData.leadHazardInitials}
             onChange={(e) => handleInputChange('leadHazardInitials', e.target.value.toUpperCase())}
-            placeholder="Enter initials"
+            placeholder={t('Enter initials')}
             className="w-24"
             maxLength={4}
           />
@@ -418,9 +419,9 @@ export function ContractFormStep({ job, initialData, onNext, onCancel }: Contrac
       {/* Actions */}
       <div className="flex justify-between pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
+          {t('Cancel')}
         </Button>
-        <Button type="submit">Preview Contract</Button>
+        <Button type="submit">{t('Preview Contract')}</Button>
       </div>
     </form>
   );

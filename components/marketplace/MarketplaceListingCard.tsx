@@ -12,6 +12,7 @@ import {
   LISTING_STATUS_VARIANTS,
 } from '@/types/marketplace';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 interface MarketplaceListingCardProps {
   listing: MarketplaceListing;
@@ -26,6 +27,7 @@ export function MarketplaceListingCard({
   onPlaceBid,
   onViewBids,
 }: MarketplaceListingCardProps) {
+  const { t } = useTranslation();
   const pendingBids = listing.bids.filter((b) => b.status === 'pending').length;
 
   return (
@@ -89,13 +91,13 @@ export function MarketplaceListingCard({
       <div className="flex items-center gap-4 text-sm text-gray-400">
         <div className="flex items-center gap-1.5">
           <Users className="w-4 h-4" />
-          <span>{listing.crewSize} crew needed</span>
+          <span>{listing.crewSize} {t('crew needed')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Gavel className="w-4 h-4" />
-          <span>{listing.bids.length} bid{listing.bids.length !== 1 ? 's' : ''}</span>
+          <span>{listing.bids.length} {listing.bids.length !== 1 ? t('bids') : t('bid')}</span>
           {pendingBids > 0 && (
-            <Badge variant="warning">{pendingBids} pending</Badge>
+            <Badge variant="warning">{pendingBids} {t('pending')}</Badge>
           )}
         </div>
       </div>
@@ -104,7 +106,7 @@ export function MarketplaceListingCard({
       <div className="flex gap-2 mt-1">
         {mode === 'contractor' && listing.status === 'open' && onPlaceBid && (
           <Button size="sm" onClick={() => onPlaceBid(listing)}>
-            Place Bid
+            {t('Place Bid')}
           </Button>
         )}
         {mode === 'dealer' && onViewBids && (
@@ -113,7 +115,7 @@ export function MarketplaceListingCard({
             variant="secondary"
             onClick={() => onViewBids(listing)}
           >
-            View Bids ({listing.bids.length})
+            {t('View Bids')} ({listing.bids.length})
           </Button>
         )}
       </div>

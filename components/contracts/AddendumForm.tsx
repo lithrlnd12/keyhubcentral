@@ -7,7 +7,7 @@ import { AddendumType, ADDENDUM_TYPE_LABELS, ContractAddendum } from '@/types/co
 import { AddendumPDFDocument } from '@/components/pdf/AddendumPDFDocument';
 import { SignaturePad } from '@/components/jobs/SignaturePad';
 import { createAddendum } from '@/lib/firebase/addendums';
-import { useAuth } from '@/lib/hooks';
+import { useAuth, useTranslation } from '@/lib/hooks';
 import { Spinner } from '@/components/ui/Spinner';
 import {
   X,
@@ -28,6 +28,7 @@ const fmt = (n: number) =>
 
 export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
@@ -69,11 +70,11 @@ export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
   const handleSubmit = async () => {
     if (!user) return;
     if (!description.trim()) {
-      setError('Description is required');
+      setError(t('Description is required'));
       return;
     }
     if (!customerSignature || !contractorSignature) {
-      setError('Both signatures are required');
+      setError(t('Both signatures are required'));
       return;
     }
 
@@ -134,7 +135,7 @@ export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
       onSaved(addendum);
     } catch (err) {
       console.error('Failed to create addendum:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save addendum');
+      setError(err instanceof Error ? err.message : t('Failed to save addendum'));
       setSaving(false);
     }
   };
@@ -144,8 +145,8 @@ export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
       <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
         <div className="bg-brand-charcoal rounded-2xl p-8 text-center max-w-sm w-full">
           <Spinner size="lg" />
-          <p className="mt-4 text-white font-medium">Saving Addendum...</p>
-          <p className="text-sm text-gray-400 mt-1">Uploading signatures and generating PDF</p>
+          <p className="mt-4 text-white font-medium">{t('Saving Addendum...')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('Uploading signatures and generating PDF')}</p>
         </div>
       </div>
     );
@@ -156,7 +157,7 @@ export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
       <div className="bg-brand-charcoal w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl">
         {/* Header */}
         <div className="sticky top-0 bg-brand-charcoal border-b border-gray-800 px-4 py-3 flex items-center justify-between z-10">
-          <h2 className="text-lg font-bold text-white">New Addendum</h2>
+          <h2 className="text-lg font-bold text-white">{t('New Addendum')}</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800">
             <X className="w-5 h-5" />
           </button>
@@ -178,7 +179,7 @@ export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
 
           {/* Change Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Change Type</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">{t('Change Type')}</label>
             <div className="grid grid-cols-2 gap-2">
               {(Object.keys(ADDENDUM_TYPE_LABELS) as AddendumType[]).map((t) => (
                 <button
@@ -199,12 +200,12 @@ export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Description of Changes <span className="text-red-400">*</span>
+              {t('Description of Changes')} <span className="text-red-400">*</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the change — what needs to happen and why..."
+              placeholder={t('Describe the change — what needs to happen and why...')}
               rows={4}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-gold resize-none"
             />
@@ -214,7 +215,7 @@ export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               <DollarSign className="w-4 h-4 inline mr-1" />
-              Cost Impact
+              {t('Cost Impact')}
             </label>
             <div className="flex items-center gap-2">
               <span className="text-gray-400 text-sm">$</span>
@@ -228,11 +229,11 @@ export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
               />
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Positive = price increase, negative = decrease, 0 = no change
+              {t('Positive = price increase, negative = decrease, 0 = no change')}
             </p>
             {parseFloat(costImpact) !== 0 && !isNaN(parseFloat(costImpact)) && (
               <p className={`text-sm mt-1 font-medium ${parseFloat(costImpact) > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                {parseFloat(costImpact) > 0 ? '+' : ''}{fmt(parseFloat(costImpact))} to contract
+                {parseFloat(costImpact) > 0 ? '+' : ''}{fmt(parseFloat(costImpact))} {t('to contract')}
               </p>
             )}
           </div>
@@ -241,7 +242,7 @@ export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               <Camera className="w-4 h-4 inline mr-1" />
-              Photos (optional)
+              {t('Photos (optional)')}
             </label>
             <input
               ref={fileInputRef}
@@ -275,7 +276,7 @@ export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
               className="w-full py-2 border-2 border-dashed border-gray-700 rounded-lg text-gray-400 hover:border-gray-500 hover:text-white transition-colors text-sm"
             >
               <Camera className="w-4 h-4 inline mr-2" />
-              {photoPreviews.length > 0 ? 'Add More Photos' : 'Take / Upload Photo'}
+              {photoPreviews.length > 0 ? t('Add More Photos') : t('Take / Upload Photo')}
             </button>
           </div>
 
@@ -305,10 +306,10 @@ export function AddendumForm({ job, onClose, onSaved }: AddendumFormProps) {
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCircle className="w-5 h-5" />
-              Sign & Save Addendum
+              {t('Sign & Save Addendum')}
             </button>
             {(!customerSignature || !contractorSignature) && (
-              <p className="text-xs text-gray-500 text-center mt-2">Both signatures required</p>
+              <p className="text-xs text-gray-500 text-center mt-2">{t('Both signatures required')}</p>
             )}
           </div>
         </div>

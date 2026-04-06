@@ -5,6 +5,7 @@ import { ContractDocumentType, CONTRACT_TYPE_LABELS } from '@/types/contract';
 import { uploadSignedContract } from '@/lib/firebase/contracts';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 import {
   X,
   Upload,
@@ -30,6 +31,7 @@ export function ContractUploadModal({
   onClose,
   onSuccess,
 }: ContractUploadModalProps) {
+  const { t } = useTranslation();
   const [documentType, setDocumentType] = useState<ContractDocumentType | ''>('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -43,11 +45,11 @@ export function ContractUploadModal({
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       if (selectedFile.type !== 'application/pdf') {
-        setError('Please select a PDF file');
+        setError(t('Please select a PDF file'));
         return;
       }
       if (selectedFile.size > 10 * 1024 * 1024) {
-        setError('File size must be less than 10MB');
+        setError(t('File size must be less than 10MB'));
         return;
       }
       setFile(selectedFile);
@@ -57,7 +59,7 @@ export function ContractUploadModal({
 
   const handleUpload = async () => {
     if (!documentType || !file) {
-      setError('Please select a document type and file');
+      setError(t('Please select a document type and file'));
       return;
     }
 
@@ -69,7 +71,7 @@ export function ContractUploadModal({
       onSuccess();
     } catch (err) {
       console.error('Failed to upload contract:', err);
-      setError(err instanceof Error ? err.message : 'Failed to upload contract');
+      setError(err instanceof Error ? err.message : t('Failed to upload contract'));
     } finally {
       setUploading(false);
     }
@@ -80,7 +82,7 @@ export function ContractUploadModal({
       <div className="bg-brand-charcoal rounded-xl border border-gray-700 w-full max-w-md">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h2 className="text-lg font-semibold">Upload Signed Contract</h2>
+          <h2 className="text-lg font-semibold">{t('Upload Signed Contract')}</h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-700 rounded-lg transition-colors"
@@ -94,14 +96,14 @@ export function ContractUploadModal({
           {availableTypes.length === 0 ? (
             <div className="text-center py-6">
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-              <p className="text-gray-400">All contracts have already been signed.</p>
+              <p className="text-gray-400">{t('All contracts have already been signed.')}</p>
             </div>
           ) : (
             <>
               {/* Document Type Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Document Type
+                  {t('Document Type')}
                 </label>
                 <div className="space-y-2">
                   {availableTypes.map((type) => (
@@ -133,7 +135,7 @@ export function ContractUploadModal({
               {/* File Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Contract PDF
+                  {t('Contract PDF')}
                 </label>
                 <input
                   ref={fileInputRef}
@@ -172,8 +174,8 @@ export function ContractUploadModal({
                     className="w-full p-6 border-2 border-dashed border-gray-700 rounded-lg hover:border-gray-600 transition-colors"
                   >
                     <Upload className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                    <p className="text-sm text-gray-400">Click to select a PDF file</p>
-                    <p className="text-xs text-gray-500 mt-1">Max size: 10MB</p>
+                    <p className="text-sm text-gray-400">{t('Click to select a PDF file')}</p>
+                    <p className="text-xs text-gray-500 mt-1">{t('Max size: 10MB')}</p>
                   </button>
                 )}
               </div>
@@ -188,8 +190,7 @@ export function ContractUploadModal({
 
               {/* Info */}
               <p className="text-xs text-gray-500">
-                Upload a scanned copy of a signed paper contract. The file should be a clear,
-                legible PDF with all signatures visible.
+                {t('Upload a scanned copy of a signed paper contract. The file should be a clear, legible PDF with all signatures visible.')}
               </p>
             </>
           )}
@@ -198,7 +199,7 @@ export function ContractUploadModal({
         {/* Footer */}
         <div className="flex justify-end gap-3 p-4 border-t border-gray-700">
           <Button variant="outline" onClick={onClose} disabled={uploading}>
-            Cancel
+            {t('Cancel')}
           </Button>
           {availableTypes.length > 0 && (
             <Button
@@ -208,12 +209,12 @@ export function ContractUploadModal({
               {uploading ? (
                 <>
                   <Spinner size="sm" className="mr-2" />
-                  Uploading...
+                  {t('Uploading...')}
                 </>
               ) : (
                 <>
                   <Upload className="w-4 h-4 mr-2" />
-                  Upload Contract
+                  {t('Upload Contract')}
                 </>
               )}
             </Button>
