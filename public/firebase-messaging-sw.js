@@ -1,46 +1,20 @@
 // Firebase Messaging Service Worker
-// This handles background push notifications
+// Handles background push notifications with a direct push listener fallback
+// so notifications work even if the Firebase SDK hasn't been initialized.
 
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-// Firebase is initialized lazily via a message from the main app,
-// because service workers cannot access NEXT_PUBLIC_* env vars.
 let messaging = null;
+let firebaseInitialized = false;
 
 function setupMessaging() {
   if (messaging) return;
   messaging = firebase.messaging();
 
-  // Handle background messages
   messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message:', payload);
-
-    const data = payload.data || {};
-    const priority = data.priority || 'medium';
-
-    const NOTIFICATION_CONFIG = {
-      urgent: { requireInteraction: true, silent: false },
-      high: { requireInteraction: true, silent: false },
-      medium: { requireInteraction: false, silent: false },
-      low: { requireInteraction: false, silent: true },
-    };
-
-    const config = NOTIFICATION_CONFIG[priority] || NOTIFICATION_CONFIG.medium;
-
-    const notificationTitle = payload.notification?.title || data.title || 'KeyHub Central';
-    const notificationOptions = {
-      body: payload.notification?.body || data.body || '',
-      icon: '/logo.svg',
-      badge: '/logo.svg',
-      data: data,
-      tag: data.type || 'default',
-      requireInteraction: config.requireInteraction,
-      silent: config.silent,
-      actions: getNotificationActions(data.type),
-    };
-
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    // Firebase SDK handled the push — show notification
+    showNotification(payload.data || {});
   });
 }
 
@@ -50,9 +24,60 @@ self.addEventListener('message', (event) => {
     if (firebase.apps.length === 0) {
       firebase.initializeApp(event.data.config);
     }
+    firebaseInitialized = true;
     setupMessaging();
   }
 });
+
+// FALLBACK: Direct push event listener.
+// If the Firebase SDK isn't initialized (SW restarted, app closed, etc.),
+// onBackgroundMessage won't fire. This catches those pushes directly.
+self.addEventListener('push', (event) => {
+  // If Firebase messaging is initialized, let onBackgroundMessage handle it
+  if (firebaseInitialized && messaging) return;
+
+  if (!event.data) return;
+
+  let data = {};
+  try {
+    const payload = event.data.json();
+    // FCM wraps data in a `data` key, or may include `notification`
+    data = payload.data || payload.notification || payload;
+  } catch {
+    // Not JSON — ignore
+    return;
+  }
+
+  event.waitUntil(showNotification(data));
+});
+
+// Show a notification from push data
+function showNotification(data) {
+  const priority = data.priority || 'medium';
+
+  const NOTIFICATION_CONFIG = {
+    urgent: { requireInteraction: true, silent: false },
+    high: { requireInteraction: true, silent: false },
+    medium: { requireInteraction: false, silent: false },
+    low: { requireInteraction: false, silent: true },
+  };
+
+  const config = NOTIFICATION_CONFIG[priority] || NOTIFICATION_CONFIG.medium;
+
+  const title = data.title || 'KeyHub Central';
+  const options = {
+    body: data.body || '',
+    icon: '/logo.svg',
+    badge: '/logo.svg',
+    data: data,
+    tag: data.type || 'default',
+    requireInteraction: config.requireInteraction,
+    silent: config.silent,
+    actions: getNotificationActions(data.type),
+  };
+
+  return self.registration.showNotification(title, options);
+}
 
 // Get actions based on notification type
 function getNotificationActions(type) {
@@ -99,7 +124,6 @@ function getNotificationUrl(data) {
   const type = data.type || '';
 
   switch (type) {
-    // Compliance
     case 'insurance_expiring_30':
     case 'insurance_expiring_7':
     case 'insurance_expired':
@@ -109,8 +133,6 @@ function getNotificationUrl(data) {
     case 'background_check_complete':
     case 'background_check_flagged':
       return data.applicantId ? `/recruiting/applicants/${data.applicantId}` : '/admin';
-
-    // Jobs
     case 'job_assigned':
     case 'job_schedule_changed':
     case 'job_starting_tomorrow':
@@ -119,15 +141,11 @@ function getNotificationUrl(data) {
       return data.jobId ? `/kr/${data.jobId}` : '/kr';
     case 'service_ticket_created':
       return data.ticketId ? `/kr/service/${data.ticketId}` : '/kr';
-
-    // Leads
     case 'lead_assigned':
     case 'lead_hot':
     case 'lead_not_contacted':
     case 'lead_replacement_ready':
       return data.leadId ? `/kd/leads/${data.leadId}` : '/kd';
-
-    // Financial
     case 'payment_received':
     case 'commission_earned':
       return '/financials/earnings';
@@ -136,18 +154,13 @@ function getNotificationUrl(data) {
     case 'subscription_renewal':
     case 'subscription_payment_failed':
       return '/subscriber/subscription';
-
-    // Admin
     case 'user_pending_approval':
       return '/admin';
     case 'new_applicant':
       return data.applicantId ? `/recruiting/applicants/${data.applicantId}` : '/recruiting';
-
-    // Messages
     case 'new_direct_message':
     case 'new_group_message':
       return data.conversationId ? `/messages/${data.conversationId}` : '/messages';
-
     default:
       return data.actionUrl || '/overview';
   }
@@ -155,35 +168,23 @@ function getNotificationUrl(data) {
 
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
-  console.log('[firebase-messaging-sw.js] Notification click:', event);
   event.notification.close();
 
   const data = event.notification.data || {};
   const action = event.action;
 
-  // Handle specific actions
-  if (action === 'dismiss') {
-    return;
-  }
+  if (action === 'dismiss' || action === 'remind') return;
 
-  if (action === 'remind') {
-    // Could schedule a reminder, for now just dismiss
-    return;
-  }
-
-  // Get URL based on notification type
   const url = getNotificationUrl(data);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Check if there's already a window open
       for (const client of clientList) {
         if (client.url.includes(self.registration.scope) && 'focus' in client) {
           client.navigate(url);
           return client.focus();
         }
       }
-      // Open a new window if none exists
       if (clients.openWindow) {
         return clients.openWindow(url);
       }

@@ -140,6 +140,9 @@ export interface Campaign {
   endDate: Timestamp | null;
   spend: number;
   leadsGenerated: number;
+  appointmentsGenerated?: number;
+  salesGenerated?: number;
+  revenueAttributed?: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

@@ -80,6 +80,8 @@ export interface SignedContract {
   createdBy: string;  // User ID of sales rep who created
   createdAt: Timestamp;
   status: 'draft' | 'signed' | 'voided';
+  // Remote signing
+  remoteSigningSessionId?: string;
   // Email tracking
   emailedTo?: string;  // Customer email if sent
   emailedAt?: Timestamp;

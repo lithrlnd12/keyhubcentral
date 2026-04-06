@@ -225,6 +225,19 @@ export async function addReceiptToPL(
   });
 }
 
+export async function markReceiptAddedToInventory(id: string): Promise<void> {
+  const docRef = doc(db, COLLECTION, id);
+  await updateDoc(docRef, {
+    addedToInventory: true,
+    addedToInventoryAt: serverTimestamp(),
+  });
+}
+
+export async function updateReceiptJob(id: string, jobId: string): Promise<void> {
+  const docRef = doc(db, COLLECTION, id);
+  await updateDoc(docRef, { jobId });
+}
+
 export async function linkReceiptItemToInventory(
   receiptId: string,
   itemIndex: number,

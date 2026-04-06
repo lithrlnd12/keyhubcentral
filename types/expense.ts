@@ -29,6 +29,7 @@ export interface Expense {
   createdByName: string;
   createdAt: Timestamp;
   contractorId?: string; // Owner contractor - expenses are per-contractor
+  jobId?: string; // Links expense to a job for material cost tracking
 }
 
 export function getExpenseCategoryLabel(category: ExpenseCategory): string {

@@ -1,7 +1,7 @@
 import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
-import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { app, db } from './config';
+import { app } from './config';
 import { tenant } from '@/lib/config/tenant';
+import { saveFCMToken, removeFCMToken } from './notifications';
 
 let messaging: Messaging | null = null;
 
@@ -22,31 +22,6 @@ export function initializeMessaging(): Messaging | null {
   return messaging;
 }
 
-// Send Firebase config to the service worker so it can initialize.
-// Service workers cannot access NEXT_PUBLIC_* env vars directly.
-async function sendConfigToServiceWorker(): Promise<void> {
-  if (!('serviceWorker' in navigator)) return;
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    const sw = registration.active ?? registration.waiting;
-    if (sw) {
-      sw.postMessage({
-        type: 'FIREBASE_CONFIG',
-        config: {
-          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-          messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-          appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Failed to send config to service worker:', error);
-  }
-}
-
 // Request notification permission and get FCM token
 export async function requestNotificationPermission(userId: string): Promise<string | null> {
   const messagingInstance = initializeMessaging();
@@ -62,17 +37,58 @@ export async function requestNotificationPermission(userId: string): Promise<str
       return null;
     }
 
-    // Initialize the service worker with Firebase config before requesting token
-    await sendConfigToServiceWorker();
+    // Register firebase-messaging-sw.js with Firebase's default scope
+    // (separate from next-pwa's sw.js which uses scope '/')
+    const swRegistration = await navigator.serviceWorker.register(
+      '/firebase-messaging-sw.js',
+      { scope: '/firebase-cloud-messaging-push-scope' }
+    );
+
+    // Wait for the SW to be ready
+    if (swRegistration.installing) {
+      await new Promise<void>((resolve) => {
+        swRegistration.installing!.addEventListener('statechange', (e) => {
+          if ((e.target as ServiceWorker).state === 'activated') resolve();
+        });
+      });
+    }
+
+    // Send Firebase config to the SW
+    const sw = swRegistration.active;
+    if (sw) {
+      sw.postMessage({
+        type: 'FIREBASE_CONFIG',
+        config: {
+          apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+          authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+        },
+      });
+    }
 
     // Get FCM token
     const token = await getToken(messagingInstance, {
       vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+      serviceWorkerRegistration: swRegistration,
     });
 
     if (token) {
-      // Save token to user document
-      await saveTokenToUser(userId, token);
+      // Save token to user document in the object format Cloud Functions expect
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      const browser = navigator.userAgent.includes('Chrome')
+        ? 'Chrome'
+        : navigator.userAgent.includes('Firefox')
+          ? 'Firefox'
+          : navigator.userAgent.includes('Safari')
+            ? 'Safari'
+            : 'Other';
+      await saveFCMToken(userId, token, {
+        device: isMobile ? 'mobile' : 'desktop',
+        browser,
+      });
       return token;
     }
 
@@ -83,29 +99,8 @@ export async function requestNotificationPermission(userId: string): Promise<str
   }
 }
 
-// Save FCM token to user document
-async function saveTokenToUser(userId: string, token: string): Promise<void> {
-  try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      fcmTokens: arrayUnion(token),
-    });
-  } catch (error) {
-    console.error('Error saving FCM token:', error);
-  }
-}
-
-// Remove FCM token from user document
-export async function removeTokenFromUser(userId: string, token: string): Promise<void> {
-  try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      fcmTokens: arrayRemove(token),
-    });
-  } catch (error) {
-    console.error('Error removing FCM token:', error);
-  }
-}
+// Re-export for any consumers that imported from this module
+export { removeFCMToken as removeTokenFromUser } from './notifications';
 
 // Listen for foreground messages
 export function onForegroundMessage(callback: (payload: NotificationPayload) => void): () => void {

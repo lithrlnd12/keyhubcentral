@@ -15,7 +15,7 @@ export default function ProfilePage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const isSalesRep = user?.role === 'sales_rep';
+  const isMapUser = user?.role === 'sales_rep' || user?.role === 'pm';
 
   const handleSaveZipCode = async () => {
     if (!user?.uid) return;
@@ -112,7 +112,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Base Zip Code - only show for sales reps */}
-          {isSalesRep && (
+          {isMapUser && (
             <div className="flex items-center gap-3 text-gray-300">
               <MapPin className="w-5 h-5 text-gray-500" />
               <span>Base: {user?.baseZipCode || 'Not set'}</span>
@@ -125,7 +125,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Base Zip Code Editor - only for sales reps */}
-      {isSalesRep && (
+      {isMapUser && (
         <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Service Area</h3>
           <p className="text-gray-400 text-sm mb-4">

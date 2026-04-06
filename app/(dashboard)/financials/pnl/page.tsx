@@ -10,6 +10,7 @@ const PnLPDFButton = dynamic(
   () => import('@/components/pdf/PnLPDFButton').then((mod) => mod.PnLPDFButton),
   { ssr: false, loading: () => null }
 );
+import { useAuth } from '@/lib/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { useInvoices } from '@/lib/hooks/useInvoices';
 import { useJobs } from '@/lib/hooks/useJobs';
@@ -28,23 +29,23 @@ import { EXPENSE_CATEGORIES } from '@/types/expense';
 import { tenant } from '@/lib/config/tenant';
 
 export default function PnLPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'owner' || user?.role === 'admin';
   const { invoices, loading: invoicesLoading } = useInvoices({ realtime: true });
   const { jobs, loading: jobsLoading } = useJobs({ realtime: true });
   const { expenses, loading: expensesLoading } = useExpenses({ realtime: true });
-
-  const datePresets = getDateRangePresets();
-  const [selectedPreset, setSelectedPreset] = useState(0); // This Month by default
+  const [selectedPreset, setSelectedPreset] = useState(0);
   const [selectedEntity, setSelectedEntity] = useState<'all' | 'kd' | 'kts' | 'kr'>('all');
 
   const loading = invoicesLoading || jobsLoading || expensesLoading;
+  const datePresets = getDateRangePresets();
 
-  // Filter invoices by date range
+  // All hooks must be called before any early return
   const filteredInvoices = useMemo(() => {
     const preset = datePresets[selectedPreset];
     return filterInvoicesByDateRange(invoices, preset.start, preset.end);
   }, [invoices, selectedPreset, datePresets]);
 
-  // Filter expenses by date range
   const filteredExpenses = useMemo(() => {
     const preset = datePresets[selectedPreset];
     return expenses.filter((exp) => {
@@ -53,12 +54,10 @@ export default function PnLPage() {
     });
   }, [expenses, selectedPreset, datePresets]);
 
-  // Calculate P&L
   const pnlData = useMemo(() => {
     return calculateCombinedPnL(filteredInvoices, jobs, filteredExpenses);
   }, [filteredInvoices, jobs, filteredExpenses]);
 
-  // Get selected entity P&L
   const selectedPnL = useMemo(() => {
     if (selectedEntity === 'all') {
       return {
@@ -72,16 +71,27 @@ export default function PnLPage() {
     return entity || { revenue: 0, expenses: 0, netIncome: 0, entries: [] };
   }, [pnlData, selectedEntity]);
 
-  const profitMargin = calculateProfitMargin(selectedPnL.revenue, selectedPnL.expenses);
-  const groupedEntries = groupEntriesByCategory(selectedPnL.entries);
-
-  // Format date range for PDF export
   const currentDateRange = useMemo(() => {
     const preset = datePresets[selectedPreset];
     const formatDate = (d: Date) =>
       d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     return `${formatDate(preset.start)} - ${formatDate(preset.end)}`;
   }, [datePresets, selectedPreset]);
+
+  const profitMargin = calculateProfitMargin(selectedPnL.revenue, selectedPnL.expenses);
+  const groupedEntries = groupEntriesByCategory(selectedPnL.entries);
+
+  // Admin guard — after all hooks
+  if (!isAdmin) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-400">You do not have access to P&L reports.</p>
+        <Link href="/financials" className="text-gold hover:underline mt-2 inline-block">
+          Back to Financials
+        </Link>
+      </div>
+    );
+  }
 
   const entityNameMap: Record<string, string> = {
     all: 'Combined',

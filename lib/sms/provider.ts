@@ -1,12 +1,13 @@
-// SMS Provider - Abstraction layer for Textbelt (testing) and Twilio (production)
+// SMS Provider - Abstraction layer for Textbelt (testing), Twilio, and Telnyx (production)
 
 import { SmsSendResult, TextbeltResponse } from './types';
 
 const TEXTBELT_API_URL = 'https://textbelt.com/text';
+const TELNYX_API_URL = 'https://api.telnyx.com/v2/messages';
 
 // Get SMS provider from env (defaults to textbelt for testing)
-function getProvider(): 'textbelt' | 'twilio' {
-  return (process.env.SMS_PROVIDER as 'textbelt' | 'twilio') || 'textbelt';
+function getProvider(): 'textbelt' | 'twilio' | 'telnyx' {
+  return (process.env.SMS_PROVIDER as 'textbelt' | 'twilio' | 'telnyx') || 'textbelt';
 }
 
 // Normalize phone number to E.164 format for US numbers
@@ -141,6 +142,60 @@ async function sendViaTwilio(to: string, body: string): Promise<SmsSendResult> {
   }
 }
 
+// Send SMS via Telnyx (recommended for production)
+async function sendViaTelnyx(to: string, body: string): Promise<SmsSendResult> {
+  const apiKey = process.env.TELNYX_API_KEY;
+  const fromNumber = process.env.TELNYX_PHONE_NUMBER;
+
+  if (!apiKey || !fromNumber) {
+    throw new Error('Telnyx credentials not configured (TELNYX_API_KEY, TELNYX_PHONE_NUMBER)');
+  }
+
+  try {
+    const normalizedPhone = normalizePhoneNumber(to);
+
+    const response = await fetch(TELNYX_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromNumber,
+        to: normalizedPhone,
+        text: body,
+      }),
+    });
+
+    const data = await response.json();
+
+    console.log('Telnyx response:', data);
+
+    if (response.ok && data.data?.id) {
+      return {
+        success: true,
+        messageSid: data.data.id,
+        provider: 'telnyx',
+      };
+    } else {
+      const errorMsg =
+        data.errors?.[0]?.detail || data.errors?.[0]?.title || 'Unknown Telnyx error';
+      return {
+        success: false,
+        error: errorMsg,
+        provider: 'telnyx',
+      };
+    }
+  } catch (error) {
+    console.error('Telnyx send error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to send SMS',
+      provider: 'telnyx',
+    };
+  }
+}
+
 // Main send function - routes to configured provider
 export async function sendSms(to: string, body: string): Promise<SmsSendResult> {
   const provider = getProvider();
@@ -149,6 +204,8 @@ export async function sendSms(to: string, body: string): Promise<SmsSendResult> 
 
   if (provider === 'twilio') {
     return sendViaTwilio(to, body);
+  } else if (provider === 'telnyx') {
+    return sendViaTelnyx(to, body);
   } else {
     return sendViaTextbelt(to, body);
   }

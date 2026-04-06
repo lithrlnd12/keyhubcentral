@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { tenant } from '@/lib/config/tenant';
 
@@ -13,8 +12,8 @@ export function Logo({ size = 'md', showText = false, variant = 'full', classNam
   const sizes = {
     sm: { width: 100, height: 40 },
     md: { width: 140, height: 56 },
-    lg: { width: 180, height: 72 },
-    xl: { width: 240, height: 96 },
+    lg: { width: 200, height: 80 },
+    xl: { width: 300, height: 120 },
   };
 
   const iconSizes = {
@@ -39,13 +38,12 @@ export function Logo({ size = 'md', showText = false, variant = 'full', classNam
   }
 
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={tenant.logoPath}
       alt={tenant.appName}
       width={sizes[size].width}
       height={sizes[size].height}
-      priority
-      style={{ height: 'auto' }}
       className={cn('object-contain', className)}
     />
   );

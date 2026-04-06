@@ -161,6 +161,15 @@ export interface Receipt {
   plExpenseId?: string; // Link to P&L expense when added
   addedToPLAt?: Timestamp;
   linkedExpenseId?: string; // Auto-created expense for contractors
+  addedToInventory?: boolean; // Prevents duplicate inventory adds
+  addedToInventoryAt?: Timestamp;
+  jobId?: string; // Links receipt to a job for material cost tracking
+  matchSuggestions?: Array<{
+    parsedIndex: number;
+    matchedItemId: string | null; // null = new item
+    matchedItemName?: string;
+    confidence: 'high' | 'medium' | 'low';
+  }>;
 }
 
 // Filters for inventory queries

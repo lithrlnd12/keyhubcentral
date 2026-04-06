@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Users, User, MessageSquarePlus, Briefcase, Wrench, Archive, Trash2 } from 'lucide-react';
+import { Pencil, Users, User, MessageSquarePlus, Briefcase, Wrench, Archive, Trash2, Globe } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
 import { useConversations } from '@/lib/hooks/useMessages';
 import { deleteConversation, archiveConversation } from '@/lib/firebase/messages';
@@ -54,8 +54,9 @@ function ConversationItem({
   const isHorizontalSwipe = useRef<boolean | null>(null);
   const itemRef = useRef<HTMLDivElement>(null);
 
-  const displayName =
-    conversation.type === 'group'
+  const displayName = conversation.crossTenant
+    ? 'Network Job Communication'
+    : conversation.type === 'group'
       ? conversation.groupName || 'Group Chat'
       : Object.entries(conversation.participantNames)
           .filter(([uid]) => uid !== currentUserId)
@@ -170,11 +171,14 @@ function ConversationItem({
         {/* Avatar */}
         <div className={cn(
           'flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center',
+          conversation.crossTenant ? 'bg-purple-500/20' :
           conversation.jobId ? 'bg-blue-500/20' :
           conversation.requestId ? 'bg-orange-500/20' :
           conversation.type === 'group' ? 'bg-brand-gold/20' : 'bg-gray-700'
         )}>
-          {conversation.jobId ? (
+          {conversation.crossTenant ? (
+            <Globe className="w-5 h-5 text-purple-400" />
+          ) : conversation.jobId ? (
             <Briefcase className="w-5 h-5 text-blue-400" />
           ) : conversation.requestId ? (
             <Wrench className="w-5 h-5 text-orange-400" />

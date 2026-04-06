@@ -169,20 +169,6 @@ export default function PortalFinancialsPage() {
           </Card>
         </Link>
 
-        <Link href="/portal/financials/pnl">
-          <Card className="p-4 hover:border-gold/50 transition-colors cursor-pointer">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gold/10 rounded-lg">
-                <PieChart className="h-6 w-6 text-gold" />
-              </div>
-              <div className="flex-1">
-                <p className="text-white font-medium">Profit & Loss</p>
-                <p className="text-sm text-gray-400">View full report</p>
-              </div>
-              <ArrowRight className="h-5 w-5 text-gray-500" />
-            </div>
-          </Card>
-        </Link>
       </div>
 
       {/* Recent Invoices */}

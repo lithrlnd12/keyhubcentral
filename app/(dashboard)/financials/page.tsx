@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/Button';
 import { InvoiceFilters, InvoiceList, InvoiceStats } from '@/components/invoices';
 import { useInvoices } from '@/lib/hooks/useInvoices';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { canViewFinancials } from '@/types/user';
+import { canViewFinancials, ADMIN_ROLES } from '@/types/user';
 
 export default function FinancialsPage() {
   const { user } = useAuth();
+  const isAdmin = user?.role && ADMIN_ROLES.includes(user.role);
   const {
     invoices,
     loading,
@@ -40,12 +41,14 @@ export default function FinancialsPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link href="/financials/pnl">
-            <Button variant="secondary">
-              <TrendingUp className="w-4 h-4 mr-2" />
-              P&L Report
-            </Button>
-          </Link>
+          {isAdmin && (
+            <Link href="/financials/pnl">
+              <Button variant="secondary">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                P&L Report
+              </Button>
+            </Link>
+          )}
           {canManage && (
             <Link href="/financials/invoices/new">
               <Button>
@@ -73,19 +76,21 @@ export default function FinancialsPage() {
           </div>
         </Link>
 
-        <Link href="/financials/pnl">
-          <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-4 hover:border-brand-gold/50 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <TrendingUp className="w-5 h-5 text-green-400" />
-              </div>
-              <div>
-                <p className="text-white font-medium">P&L Reports</p>
-                <p className="text-gray-400 text-sm">Profit & loss by entity</p>
+        {isAdmin && (
+          <Link href="/financials/pnl">
+            <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-4 hover:border-brand-gold/50 transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/10">
+                  <TrendingUp className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <p className="text-white font-medium">P&L Reports</p>
+                  <p className="text-gray-400 text-sm">Profit & loss by entity</p>
+                </div>
               </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+        )}
 
         <Link href="/financials/earnings">
           <div className="bg-brand-charcoal rounded-xl border border-gray-800 p-4 hover:border-brand-gold/50 transition-colors">

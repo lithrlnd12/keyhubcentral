@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react';
 import { notFound } from 'next/navigation';
+import { Clock } from 'lucide-react';
 import { Spinner } from '@/components/ui/Spinner';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import {
   JobHeader,
@@ -17,6 +19,9 @@ import {
   JobMeasurements,
   CompletionCertificateFlow,
 } from '@/components/jobs';
+import { JobActivityFeed } from '@/components/jobs/JobActivityFeed';
+import { RiskScoreIndicator } from '@/components/jobs/RiskScoreIndicator';
+import { useJobRiskScore } from '@/lib/hooks/useJobRiskScore';
 import { useJob } from '@/lib/hooks/useJob';
 import { useAuth } from '@/lib/hooks/useAuth';
 
@@ -130,6 +135,12 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
           <TabsTrigger value="costs">Costs</TabsTrigger>
           <TabsTrigger value="crew">Crew</TabsTrigger>
           <TabsTrigger value="comms">Notes</TabsTrigger>
+          {['owner', 'admin'].includes(user?.role || '') && (
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+          )}
+          {['owner', 'admin'].includes(user?.role || '') && (
+            <TabsTrigger value="risk">Risk</TabsTrigger>
+          )}
           {['complete', 'paid_in_full'].includes(job.status) && (
             <TabsTrigger value="completion">
               {job.documents?.completionCert ? 'Certificate' : 'Completion'}
@@ -201,6 +212,22 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
           />
         </TabsContent>
 
+        {['owner', 'admin'].includes(user?.role || '') && (
+          <TabsContent value="activity">
+            <JobActivityFeed
+              jobId={job.id}
+              jobNumber={job.jobNumber}
+              contractorIds={job.crewIds}
+            />
+          </TabsContent>
+        )}
+
+        {['owner', 'admin'].includes(user?.role || '') && (
+          <TabsContent value="risk">
+            <RiskScoreDisplay jobId={job.id} />
+          </TabsContent>
+        )}
+
         {['complete', 'paid_in_full'].includes(job.status) && (
           <TabsContent value="completion">
             <CompletionCertificateFlow job={job} onComplete={() => update({})} />
@@ -209,4 +236,28 @@ export default function JobDetailPage({ params }: JobDetailPageProps) {
       </Tabs>
     </div>
   );
+}
+
+function RiskScoreDisplay({ jobId }: { jobId: string }) {
+  const { riskScore, loading, error } = useJobRiskScore(jobId);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Spinner size="md" />
+      </div>
+    );
+  }
+
+  if (error || !riskScore) {
+    return (
+      <EmptyState
+        icon={Clock}
+        title="Risk score unavailable"
+        description={error || 'Assign a crew member to calculate the risk score for this job.'}
+      />
+    );
+  }
+
+  return <RiskScoreIndicator score={riskScore} />;
 }

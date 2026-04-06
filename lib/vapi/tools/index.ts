@@ -46,3 +46,8 @@ import './createPartnerServiceTicket';
 
 // Phase 10: Appointment Reminders
 import './confirmAppointment';
+
+// Phase 11: AI Routing Flow
+import './checkTeamAvailability';
+import './requestCallback';
+import './routeAndNotify';

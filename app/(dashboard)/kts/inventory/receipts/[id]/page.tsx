@@ -19,14 +19,16 @@ import {
   Plus,
   X,
 } from 'lucide-react';
-import { getReceipt, verifyReceipt, linkReceiptItemToInventory, updateReceiptLocation, updateReceiptVendor, updateReceiptCompany, addReceiptToPL } from '@/lib/firebase/receipts';
+import { getReceipt, verifyReceipt, linkReceiptItemToInventory, updateReceiptLocation, updateReceiptVendor, updateReceiptCompany, addReceiptToPL, markReceiptAddedToInventory, updateReceiptJob } from '@/lib/firebase/receipts';
 import { addStockFromReceipt } from '@/lib/firebase/inventoryStock';
 import { createInventoryItem } from '@/lib/firebase/inventory';
 import { createExpenseFromReceipt } from '@/lib/firebase/expenses';
 import { Receipt as ReceiptType, ReceiptItem, getReceiptStatusLabel, getReceiptStatusColor, InventoryItem, InventoryCategory, COMPANY_OPTIONS, Company } from '@/types/inventory';
 import { Spinner } from '@/components/ui/Spinner';
 import { cn } from '@/lib/utils';
-import { useAuth, useInventoryItems, useInventoryLocations } from '@/lib/hooks';
+import { useAuth, useInventoryItems, useInventoryLocations, useJobs } from '@/lib/hooks';
+import { canAddReceiptsToPL } from '@/types/user';
+import { incrementJobMaterialCost } from '@/lib/firebase/jobs';
 
 interface ItemLinkState {
   itemIndex: number;
@@ -62,6 +64,9 @@ export default function ReceiptDetailPage() {
 
   // Fetch locations for stock assignment
   const { locations } = useInventoryLocations({ realtime: true });
+
+  // Fetch jobs for linking receipts to material costs
+  const { jobs: allJobs } = useJobs({ realtime: true });
 
   useEffect(() => {
     const fetchReceipt = async () => {
@@ -106,54 +111,55 @@ export default function ReceiptDetailPage() {
     fetchReceipt();
   }, [receiptId]);
 
-  // Auto-match receipt items to existing inventory when both are loaded
+  // Auto-match receipt items to existing inventory using AI suggestions or fallback word matching
   useEffect(() => {
-    if (!receipt || inventoryItems.length === 0 || receipt.status !== 'parsed') return;
+    if (!receipt || receipt.status === 'pending' || receipt.status === 'parsing') return;
 
-    const parsedItems = receipt.parsedData?.items || [];
-    // Note: We intentionally exclude itemLinks from deps to avoid infinite loops
-    // since we're updating itemLinks inside this effect
     setItemLinks((prevLinks) => {
       const newLinks = new Map(prevLinks);
       let hasChanges = false;
 
-      parsedItems.forEach((item, index) => {
-        // Skip if already linked
-        if (newLinks.has(index) && newLinks.get(index)?.inventoryItemId) return;
-
-        // Try to find a match
-        const descLower = item.description.toLowerCase();
-        const words = descLower.split(/\s+/).filter(w => w.length > 2);
-
-        // Find the best matching inventory item
-        const scoredItems = inventoryItems.map(invItem => {
-          const nameLower = invItem.name.toLowerCase();
-          let score = 0;
-
-          if (nameLower === descLower) score = 100;
-          else if (descLower.includes(nameLower) || nameLower.includes(descLower)) score = 50;
-          else {
-            words.forEach(word => {
-              if (nameLower.includes(word)) score += 10;
+      // Prefer AI match suggestions from the server
+      if (receipt.matchSuggestions && receipt.matchSuggestions.length > 0) {
+        for (const suggestion of receipt.matchSuggestions) {
+          if (newLinks.has(suggestion.parsedIndex) && newLinks.get(suggestion.parsedIndex)?.inventoryItemId) continue;
+          if (suggestion.matchedItemId) {
+            newLinks.set(suggestion.parsedIndex, {
+              itemIndex: suggestion.parsedIndex,
+              inventoryItemId: suggestion.matchedItemId,
+              inventoryItemName: suggestion.matchedItemName,
+              category: inventoryItems.find((i) => i.id === suggestion.matchedItemId)?.category,
             });
+            hasChanges = true;
           }
-
-          return { item: invItem, score };
-        });
-
-        const bestMatch = scoredItems.filter(s => s.score > 20).sort((a, b) => b.score - a.score)[0];
-
-        // If we found a good match (score > 20), auto-link it
-        if (bestMatch) {
-          newLinks.set(index, {
-            itemIndex: index,
-            inventoryItemId: bestMatch.item.id,
-            inventoryItemName: bestMatch.item.name,
-            category: bestMatch.item.category,
-          });
-          hasChanges = true;
         }
-      });
+      } else if (inventoryItems.length > 0) {
+        // Fallback: basic word matching for receipts parsed before AI matching was added
+        const parsedItems = receipt.parsedData?.items || [];
+        parsedItems.forEach((item, index) => {
+          if (newLinks.has(index) && newLinks.get(index)?.inventoryItemId) return;
+          const descLower = item.description.toLowerCase();
+          const words = descLower.split(/\s+/).filter((w) => w.length > 2);
+          const scoredItems = inventoryItems.map((invItem) => {
+            const nameLower = invItem.name.toLowerCase();
+            let score = 0;
+            if (nameLower === descLower) score = 100;
+            else if (descLower.includes(nameLower) || nameLower.includes(descLower)) score = 50;
+            else words.forEach((word) => { if (nameLower.includes(word)) score += 10; });
+            return { item: invItem, score };
+          });
+          const bestMatch = scoredItems.filter((s) => s.score > 20).sort((a, b) => b.score - a.score)[0];
+          if (bestMatch) {
+            newLinks.set(index, {
+              itemIndex: index,
+              inventoryItemId: bestMatch.item.id,
+              inventoryItemName: bestMatch.item.name,
+              category: bestMatch.item.category,
+            });
+            hasChanges = true;
+          }
+        });
+      }
 
       return hasChanges ? newLinks : prevLinks;
     });
@@ -181,6 +187,7 @@ export default function ReceiptDetailPage() {
           parLevel: receiptItem.quantity,
           cost: receiptItem.unitPrice || undefined,
           createdBy: user.uid,
+          contractorId: receipt.contractorId || user.uid,
         });
         inventoryItemId = newItemId;
         inventoryItemName = receiptItem.description;
@@ -237,6 +244,8 @@ export default function ReceiptDetailPage() {
     setVerifying(true);
     try {
       await writeSelectedItemsToInventory();
+      await markReceiptAddedToInventory(receipt.id);
+      setReceipt({ ...receipt, addedToInventory: true });
       setInventorySuccess(true);
     } catch (err) {
       console.error('Add to inventory error:', err);
@@ -299,11 +308,18 @@ export default function ReceiptDetailPage() {
         expenseDate,
         receipt.imageUrl,
         user.uid,
-        user.displayName || 'Unknown'
+        user.displayName || 'Unknown',
+        receipt.jobId
       );
 
       // Update receipt status to added_to_pl
       await addReceiptToPL(receipt.id, expenseId);
+
+      // Update job material cost if receipt is linked to a job
+      if (receipt.jobId && receipt.total) {
+        await incrementJobMaterialCost(receipt.jobId, receipt.total);
+      }
+
       setReceipt({ ...receipt, status: 'added_to_pl', plExpenseId: expenseId });
     } catch (err) {
       console.error('Add to P&L error:', err);
@@ -445,7 +461,7 @@ export default function ReceiptDetailPage() {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {receipt.status === 'error' && (
             <button
               onClick={handleReparse}
@@ -460,67 +476,50 @@ export default function ReceiptDetailPage() {
               Retry Parsing
             </button>
           )}
-          {receipt.status === 'parsed' && (
-            <button
-              onClick={handleVerify}
-              disabled={verifying}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-            >
-              {verifying ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle className="h-4 w-4" />
-              )}
-              Add {selectedItems.size} to Inventory
-            </button>
-          )}
-          {receipt.status === 'verified' && (
-            <>
-              <button
-                onClick={handleAddToInventory}
-                disabled={verifying || selectedItems.size === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-              >
-                {verifying ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Package className="h-4 w-4" />
-                )}
-                Add {selectedItems.size} to Inventory
-              </button>
-              <button
-                onClick={handleAddToPL}
-                disabled={addingToPL}
-                className="flex items-center gap-2 px-4 py-2 bg-gold text-brand-black rounded-lg font-medium hover:bg-gold/90 transition-colors disabled:opacity-50"
-              >
-                {addingToPL ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <DollarSign className="h-4 w-4" />
-                )}
-                Add to P&L
-              </button>
-            </>
-          )}
-          {receipt.status === 'added_to_pl' && (
-            <>
-              <button
-                onClick={handleAddToInventory}
-                disabled={verifying || selectedItems.size === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
-              >
-                {verifying ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Package className="h-4 w-4" />
-                )}
-                Add {selectedItems.size} to Inventory
-              </button>
+
+          {/* Inventory button — available after parsing, independent of P&L */}
+          {['parsed', 'verified', 'added_to_pl'].includes(receipt.status) && (
+            receipt.addedToInventory ? (
               <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-medium">
                 <CheckCircle className="h-4 w-4" />
-                Added to P&L
+                Added to Inventory
               </div>
-            </>
+            ) : (
+              <button
+                onClick={receipt.status === 'parsed' ? handleVerify : handleAddToInventory}
+                disabled={verifying || selectedItems.size === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {verifying ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Package className="h-4 w-4" />
+                )}
+                Add {selectedItems.size} to Inventory
+              </button>
+            )
+          )}
+
+          {/* P&L button — admin/owner only, available after parsing, independent of inventory */}
+          {['parsed', 'verified'].includes(receipt.status) && user && canAddReceiptsToPL(user.role) && (
+            <button
+              onClick={handleAddToPL}
+              disabled={addingToPL}
+              className="flex items-center gap-2 px-4 py-2 bg-gold text-brand-black rounded-lg font-medium hover:bg-gold/90 transition-colors disabled:opacity-50"
+            >
+              {addingToPL ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <DollarSign className="h-4 w-4" />
+              )}
+              Add to P&L
+            </button>
+          )}
+          {receipt.status === 'added_to_pl' && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-medium">
+              <CheckCircle className="h-4 w-4" />
+              Added to P&L
+            </div>
           )}
         </div>
       </div>
@@ -761,6 +760,26 @@ export default function ReceiptDetailPage() {
                 <span className="text-gold">
                   ${(parsedData?.total ?? receipt.total ?? 0).toFixed(2)}
                 </span>
+              </div>
+              {/* Job Link */}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Linked Job</span>
+                <select
+                  value={receipt.jobId || ''}
+                  onChange={async (e) => {
+                    const jobId = e.target.value;
+                    await updateReceiptJob(receiptId, jobId);
+                    setReceipt({ ...receipt, jobId: jobId || undefined });
+                  }}
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold"
+                >
+                  <option value="">No job linked</option>
+                  {allJobs.map((job) => (
+                    <option key={job.id} value={job.id}>
+                      {job.jobNumber ? `#${job.jobNumber} — ` : ''}{job.customer?.name || 'Unnamed'} ({job.status})
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

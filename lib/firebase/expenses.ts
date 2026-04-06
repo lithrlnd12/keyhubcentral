@@ -90,7 +90,8 @@ export async function createExpenseFromReceipt(
   date: Date,
   receiptImageUrl: string | undefined,
   createdBy: string,
-  createdByName: string
+  createdByName: string,
+  jobId?: string
 ): Promise<string> {
   const expenseId = await createExpense({
     entity,
@@ -103,6 +104,7 @@ export async function createExpenseFromReceipt(
     receiptImageUrl,
     createdBy,
     createdByName,
+    ...(jobId && { jobId }),
   });
 
   return expenseId;

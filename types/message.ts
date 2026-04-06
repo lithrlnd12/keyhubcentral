@@ -21,6 +21,9 @@ export interface Conversation {
   requestId?: string | null;
   requestType?: 'labor' | 'service' | null;
   complaintCallId?: string | null;
+  // Cross-network job communication
+  crossTenant?: boolean;
+  networkJobId?: string;
   lastMessage: {
     text: string;
     senderId: string;
