@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
 
     // For content translation, detect or use provided source language
     const sourceLanguage = sourceLang ? LANGUAGE_NAMES[sourceLang] : null;
-    const fromClause = type === 'content' && sourceLanguage
-      ? `from ${sourceLanguage} `
+    const fromClause = type === 'content'
+      ? (sourceLanguage ? `from ${sourceLanguage} ` : '(auto-detect the source language) ')
       : '';
 
     const message = await anthropic.messages.create({

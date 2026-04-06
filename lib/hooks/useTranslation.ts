@@ -307,9 +307,9 @@ export function useContentTranslation() {
       if (!isEnabled || !text || !contentId) return text;
 
       // If the content is already in the reader's language, no translation needed
-      if (originalLang === lang) return text;
-      // If original language is unknown, assume English — skip if reader is English
-      if (!originalLang && lang === 'en') return text;
+      if (originalLang && originalLang === lang) return text;
+      // If original language is unknown, always attempt translation —
+      // Claude will return the text unchanged if it's already in the target language
 
       // Check global cache
       const cached = getContentCache(lang);
