@@ -154,12 +154,16 @@ export function NetworkConnections() {
         )}
       </Card>
 
-      {/* Inbound Invites */}
-      {pendingInbound.length > 0 && (
-        <Card>
-          <CardTitle>Inbound Invites</CardTitle>
-          <div className="mt-4 space-y-3">
-            {pendingInbound.map((invite) => (
+      {/* Inbound Invites — always visible */}
+      <Card>
+        <CardTitle>Inbound Invites</CardTitle>
+        <div className="mt-4 space-y-3">
+          {pendingInbound.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No pending invites. When another company invites you to connect, it will appear here.
+            </p>
+          ) : (
+            pendingInbound.map((invite) => (
               <div
                 key={invite.id}
                 className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg"
@@ -193,10 +197,10 @@ export function NetworkConnections() {
                   </Button>
                 </div>
               </div>
-            ))}
-          </div>
-        </Card>
-      )}
+            ))
+          )}
+        </div>
+      </Card>
 
       {/* Outbound Invites */}
       {pendingOutbound.length > 0 && (

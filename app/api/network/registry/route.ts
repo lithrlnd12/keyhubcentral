@@ -19,7 +19,7 @@ export async function GET() {
       if (data.firebaseProjectId === tenant.firebaseProjectId) continue;
 
       registry.push({
-        tenantId: doc.id,
+        tenantId: data.firebaseProjectId || doc.id,
         name: data.companyName || data.name || doc.id,
         domain: data.domain || '',
       });
