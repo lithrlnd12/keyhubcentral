@@ -15,7 +15,7 @@ import {
   Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/lib/hooks';
+import { useAuth, useTranslation } from '@/lib/hooks';
 import { useUnreadMessageCount } from '@/lib/hooks/useMessages';
 import { useNotifications } from '@/lib/hooks';
 import { BottomSheet } from './BottomSheet';
@@ -95,6 +95,7 @@ export function BottomNav() {
     markAllAsRead,
   } = useNotifications();
 
+  const { t } = useTranslation();
   const [moreOpen, setMoreOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
 
@@ -174,7 +175,7 @@ export function BottomNav() {
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] font-medium mt-1">{tab.label}</span>
+                <span className="text-[10px] font-medium mt-1">{t(tab.label)}</span>
               </>
             );
 

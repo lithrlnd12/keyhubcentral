@@ -35,7 +35,7 @@ import {
   Webhook,
 } from 'lucide-react';
 import { Logo } from '@/components/ui';
-import { useAuth, useNewCallsCount, useFeatureFlags } from '@/lib/hooks';
+import { useAuth, useNewCallsCount, useFeatureFlags, useTranslation } from '@/lib/hooks';
 import { useUnreadMessageCount } from '@/lib/hooks/useMessages';
 import { useSidebar } from '@/lib/contexts';
 import { cn } from '@/lib/utils';
@@ -144,6 +144,7 @@ export function SideNav() {
   const { count: newCallsCount } = useNewCallsCount();
   const unreadMessages = useUnreadMessageCount();
   const { flags } = useFeatureFlags();
+  const { t } = useTranslation();
 
   const badgeCounts: Record<string, number> = {
     newCalls: newCallsCount,
@@ -167,7 +168,7 @@ export function SideNav() {
   const grouped = sections
     .map((section) => ({
       key: section,
-      label: SECTION_LABELS[section],
+      label: SECTION_LABELS[section] ? t(SECTION_LABELS[section]) : '',
       items: filteredNavItems.filter((item) => item.section === section),
     }))
     .filter((section) => section.items.length > 0);
@@ -237,7 +238,7 @@ export function SideNav() {
                     key={item.href}
                     href={item.href}
                     onClick={closeMobile}
-                    title={isCollapsed ? item.label : undefined}
+                    title={isCollapsed ? t(item.label) : undefined}
                     className={cn(
                       'flex items-center gap-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                       isCollapsed ? 'px-2 justify-center' : 'px-3',
@@ -256,7 +257,7 @@ export function SideNav() {
                     </div>
                     {!isCollapsed && (
                       <>
-                        <span className="truncate flex-1">{item.label}</span>
+                        <span className="truncate flex-1">{t(item.label)}</span>
                         {badgeCount > 0 && (
                           <span className="px-1.5 py-0.5 bg-brand-gold/15 text-brand-gold text-xs font-semibold rounded-full">
                             {badgeCount > 99 ? '99+' : badgeCount}

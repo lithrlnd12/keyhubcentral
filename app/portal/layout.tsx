@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { SideNav, BottomNav, TopBar } from '@/components/navigation';
 import { NotificationPrompt } from '@/components/notifications';
-import { useAuth } from '@/lib/hooks';
+import { useAuth, useTranslation } from '@/lib/hooks';
 import { SidebarProvider, useSidebar } from '@/lib/contexts';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +26,7 @@ function PortalContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading } = useAuth();
+  const { t } = useTranslation();
   const { isCollapsed } = useSidebar();
 
   useEffect(() => {
@@ -59,15 +60,15 @@ function PortalContent({ children }: { children: React.ReactNode }) {
   const getPageTitle = () => {
     // Check for exact match first
     if (PAGE_TITLES[pathname]) {
-      return PAGE_TITLES[pathname];
+      return t(PAGE_TITLES[pathname]);
     }
     // Check for partial matches (for sub-pages like /portal/inventory/count)
     for (const [path, title] of Object.entries(PAGE_TITLES)) {
       if (pathname.startsWith(path) && path !== '/portal') {
-        return title;
+        return t(title);
       }
     }
-    return 'Contractor Portal';
+    return t('Contractor Portal');
   };
 
   return (
