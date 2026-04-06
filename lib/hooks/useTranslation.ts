@@ -199,7 +199,9 @@ export function useContentTranslation() {
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const lang = user?.preferredLanguage || 'en';
-  const isEnabled = flags.multiLanguage && lang !== 'en';
+  // Content translation must work for ALL users (including English readers
+  // who need to read Spanish/Portuguese messages)
+  const isEnabled = !!flags.multiLanguage;
 
   const flushContentTranslations = useCallback(async () => {
     if (pendingContent.current.size === 0) return;
@@ -257,8 +259,8 @@ export function useContentTranslation() {
 
       // If the content is already in the reader's language, no translation needed
       if (originalLang === lang) return text;
-      // If original language is unknown and reader is non-English, translate
-      // (assume original is English if not specified)
+      // If original language is unknown, assume English — skip if reader is English
+      if (!originalLang && lang === 'en') return text;
 
       // Check local cache
       if (contentCache[contentId]) return contentCache[contentId];

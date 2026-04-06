@@ -8,6 +8,7 @@ const anthropic = new Anthropic({
 });
 
 const LANGUAGE_NAMES: Record<string, string> = {
+  en: 'English',
   es: 'Spanish',
   pt: 'Brazilian Portuguese',
 };
@@ -18,7 +19,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
  *
  * Body:
  *   - strings: string[]       — array of English strings to translate
- *   - targetLang: string      — target language code ('es' | 'pt')
+ *   - targetLang: string      — target language code ('en' | 'es' | 'pt')
  *   - type: 'ui' | 'content'  — ui strings get cached globally, content gets cached per-id
  *   - contentIds?: string[]   — required for type 'content', maps 1:1 with strings array
  */
