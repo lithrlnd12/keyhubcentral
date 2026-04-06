@@ -854,5 +854,17 @@ service cloud.firestore {
           request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
       }
     }
+
+    // Translation cache — UI string translations per language
+    match /translations/{langId} {
+      allow read: if isActiveUser();
+      // Only server (admin SDK) writes translations
+    }
+
+    // Content translations — per-message/note translations
+    match /contentTranslations/{contentId} {
+      allow read: if isActiveUser();
+      // Only server (admin SDK) writes translations
+    }
   }
 }

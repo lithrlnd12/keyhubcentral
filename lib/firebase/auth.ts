@@ -25,7 +25,8 @@ export async function signUp(
   baseZipCode?: string,
   selectedPartnerId?: string,
   companyName?: string,
-  serviceAddress?: { street: string; city: string; state: string; zip: string }
+  serviceAddress?: { street: string; city: string; state: string; zip: string },
+  preferredLanguage?: string
 ): Promise<UserCredential> {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
@@ -70,6 +71,7 @@ export async function signUp(
     baseZipCode: baseZipCode || null,
     baseCoordinates: null, // Will be geocoded by Cloud Function
     serviceAddress: serviceAddress || null,
+    preferredLanguage: preferredLanguage || 'en',
     createdAt: serverTimestamp(),
     ...(isFirstUser ? { approvedAt: serverTimestamp(), approvedBy: 'auto-first-user' } : {}),
     ...(isCustomer ? { approvedAt: serverTimestamp(), approvedBy: 'auto' } : {}),

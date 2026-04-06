@@ -26,6 +26,7 @@ export interface FeatureFlags {
   offlinePWA: boolean;
   inventory: boolean;
   keyhubNetwork: boolean;
+  multiLanguage: boolean;
 }
 
 // ── Module Dependencies ──────────────────────────────────────────────────────
@@ -108,6 +109,7 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   offlinePWA: true,
   inventory: true,
   keyhubNetwork: true,
+  multiLanguage: true,
 };
 
 // ── Module Display Info (for admin UI) ───────────────────────────────────────
@@ -133,4 +135,5 @@ export const MODULE_INFO: Record<keyof FeatureFlags, { label: string; descriptio
   offlinePWA: { label: 'Offline PWA', description: 'IndexedDB queue, background sync' },
   inventory: { label: 'Inventory', description: 'Items, locations, stock levels, counts, receipts' },
   keyhubNetwork: { label: 'KeyHub Network', description: 'Cross-tenant contractor sharing and labor marketplace' },
+  multiLanguage: { label: 'Multi-Language', description: 'AI-powered translation for workforce UI, chat, notes, and internal documents' },
 };

@@ -35,6 +35,7 @@ export default function SignUpPage() {
   const [partnerCompanies, setPartnerCompanies] = useState<PublicPartner[]>([]);
   const [selectedPartnerId, setSelectedPartnerId] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [preferredLanguage, setPreferredLanguage] = useState('en');
   const [localError, setLocalError] = useState('');
 
   // Fetch partner companies when partner role is selected
@@ -90,7 +91,9 @@ export default function SignUpPage() {
         requestedRole,
         (requestedRole === 'sales_rep' || requestedRole === 'contractor') ? baseZipCode : undefined,
         requestedRole === 'partner' && selectedPartnerId !== 'other' ? selectedPartnerId : undefined,
-        requestedRole === 'partner' && selectedPartnerId === 'other' ? companyName.trim() : undefined
+        requestedRole === 'partner' && selectedPartnerId === 'other' ? companyName.trim() : undefined,
+        undefined, // serviceAddress
+        preferredLanguage
       );
       // First user is auto-promoted to owner — send them to dashboard, not pending
       const { auth: firebaseAuth } = await import('@/lib/firebase/config');
@@ -197,6 +200,17 @@ export default function SignUpPage() {
             )}
           </>
         )}
+
+        <Select
+          label="Preferred Language"
+          options={[
+            { value: 'en', label: 'English' },
+            { value: 'es', label: 'Español (Spanish)' },
+            { value: 'pt', label: 'Português (Portuguese)' },
+          ]}
+          value={preferredLanguage}
+          onChange={(e) => setPreferredLanguage(e.target.value)}
+        />
 
         <Input
           label="Password"

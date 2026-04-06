@@ -45,6 +45,7 @@ export interface UserProfile {
       zip: string;
     };
   };
+  preferredLanguage?: string; // 'en' | 'es' | 'pt' — defaults to 'en'
   createdAt: Timestamp;
   approvedAt: Timestamp | null;
   approvedBy: string | null;
@@ -64,7 +65,8 @@ export interface AuthContextType {
     baseZipCode?: string,
     selectedPartnerId?: string,
     companyName?: string,
-    serviceAddress?: { street: string; city: string; state: string; zip: string }
+    serviceAddress?: { street: string; city: string; state: string; zip: string },
+    preferredLanguage?: string
   ) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;

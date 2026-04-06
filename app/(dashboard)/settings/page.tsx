@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { GoogleCalendarConnect } from '@/components/integrations';
-import { NotificationSettings } from '@/components/settings';
+import { NotificationSettings, LanguageSettings } from '@/components/settings';
 import { NetworkSettings } from '@/components/settings/NetworkSettings';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/lib/hooks';
@@ -78,6 +78,14 @@ export default function SettingsPage() {
           </div>
         </Card>
       </section>
+
+      {/* Language Section */}
+      {flags.multiLanguage && (
+        <section>
+          <h2 className="text-lg font-semibold text-white mb-4">Language</h2>
+          <LanguageSettings />
+        </section>
+      )}
 
       {/* Notifications Section */}
       <section>

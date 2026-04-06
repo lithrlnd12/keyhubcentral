@@ -5,13 +5,15 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { BackButton } from '@/components/ui';
 import { GoogleCalendarConnect } from '@/components/integrations';
-import { NotificationSettings } from '@/components/settings';
+import { NotificationSettings, LanguageSettings } from '@/components/settings';
 import { useToast } from '@/components/ui/Toast';
+import { useFeatureFlags } from '@/lib/hooks/useFeatureFlags';
 import { tenant } from '@/lib/config/tenant';
 
 export default function PortalSettingsPage() {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
+  const { flags } = useFeatureFlags();
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
@@ -53,6 +55,14 @@ export default function PortalSettingsPage() {
           </p>
         </div>
       </div>
+
+      {/* Language Section */}
+      {flags.multiLanguage && (
+        <section>
+          <h2 className="text-lg font-semibold text-white mb-4">Language</h2>
+          <LanguageSettings />
+        </section>
+      )}
 
       {/* Notifications Section */}
       <section>
