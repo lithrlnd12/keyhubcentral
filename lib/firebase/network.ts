@@ -121,6 +121,15 @@ export async function getNetworksForTenant(tenantId: string): Promise<Network[]>
 }
 
 /**
+ * Get active network IDs for the current tenant.
+ */
+export async function getActiveNetworkIds(): Promise<string[]> {
+  const { tenant } = await import('@/lib/config/tenant');
+  const networks = await getNetworksForTenant(tenant.firebaseProjectId);
+  return networks.map((n) => n.id);
+}
+
+/**
  * Add a tenant to a network.
  */
 export async function addTenantToNetwork(

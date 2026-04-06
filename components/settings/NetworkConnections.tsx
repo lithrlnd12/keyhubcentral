@@ -5,6 +5,7 @@ import { Card, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useNetworkInvites } from '@/lib/hooks/useNetworkInvites';
+import { autoEnrollContractorsInNetwork } from '@/lib/firebase/networkNotifications';
 import { NetworkInvite } from '@/types/network';
 
 export function NetworkConnections() {
@@ -60,6 +61,13 @@ export function NetworkConnections() {
         body: JSON.stringify({ action }),
       });
       if (res.ok) {
+        if (action === 'accept') {
+          const data = await res.json();
+          // Auto-enroll all active contractors into the new network
+          if (data.networkId) {
+            await autoEnrollContractorsInNetwork([data.networkId]);
+          }
+        }
         await refresh();
       }
     } catch (err) {

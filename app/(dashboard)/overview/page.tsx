@@ -13,7 +13,7 @@ import { LazyRevenueChart as RevenueChart } from '@/components/charts';
 import { LeadPipelineChart } from '@/components/charts';
 import { TeamNetworkMap } from '@/components/maps';
 import type { TeamMapEntry } from '@/components/maps';
-import { CommunicationPulse, NeedsAttention, TodaySchedule, RoleStatCards } from '@/components/dashboard';
+import { CommunicationPulse, NeedsAttention, NetworkInviteBanner, TodaySchedule, RoleStatCards } from '@/components/dashboard';
 import { useAuth, useJobs, useContractors, useInvoices, useLeads, useCampaigns } from '@/lib/hooks';
 import {
   calculateEntityStats,
@@ -103,6 +103,9 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-6">
+      {/* Network Invite Banner (visible to admins with pending inbound invites) */}
+      <NetworkInviteBanner />
+
       {/* Welcome + Communication Pulse */}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -11,8 +11,9 @@ import {
 import {
   subscribeToNetworkConfig,
   updateNetworkConfig,
+  getActiveNetworkIds,
 } from '@/lib/firebase/network';
-import { sendNetworkOptInNotifications } from '@/lib/firebase/networkNotifications';
+import { autoEnrollContractorsInNetwork } from '@/lib/firebase/networkNotifications';
 import { NetworkConnections } from './NetworkConnections';
 
 // Toggle switch — matches NotificationSettings pattern
@@ -93,11 +94,14 @@ export function NetworkSettings() {
     setSaving(true);
     try {
       await updateNetworkConfig({ enabled });
-      // When enabling, notify all contractors to opt in
+      // When enabling, auto-enroll all active contractors into existing networks
       if (enabled) {
-        const sent = await sendNetworkOptInNotifications();
-        if (sent > 0) {
-          console.log(`Sent network opt-in notifications to ${sent} contractors`);
+        const networkIds = await getActiveNetworkIds();
+        if (networkIds.length > 0) {
+          const enrolled = await autoEnrollContractorsInNetwork(networkIds);
+          if (enrolled > 0) {
+            console.log(`Auto-enrolled ${enrolled} contractors into network`);
+          }
         }
       }
     } catch (err) {
