@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { BackButton } from '@/components/ui';
 import { GoogleCalendarConnect } from '@/components/integrations';
+import { NotificationSettings } from '@/components/settings';
 import { useToast } from '@/components/ui/Toast';
 import { tenant } from '@/lib/config/tenant';
 
@@ -52,6 +53,12 @@ export default function PortalSettingsPage() {
           </p>
         </div>
       </div>
+
+      {/* Notifications Section */}
+      <section>
+        <h2 className="text-lg font-semibold text-white mb-4">Notifications</h2>
+        <NotificationSettings />
+      </section>
 
       {/* Integrations Section */}
       <section>
