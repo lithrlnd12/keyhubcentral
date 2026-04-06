@@ -33,12 +33,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { strings, targetLang, type = 'ui', contentIds } = body;
 
-    if (!strings || !Array.isArray(strings) || strings.length === 0) {
+    if (!strings || !Array.isArray(strings)) {
       return NextResponse.json({ error: 'strings array is required' }, { status: 400 });
     }
 
+    // Empty strings array — return empty translations (used for cache warming)
+    if (strings.length === 0) {
+      return NextResponse.json({ translations: {} });
+    }
+
     if (!targetLang || !LANGUAGE_NAMES[targetLang]) {
-      return NextResponse.json({ error: 'Invalid targetLang. Supported: es, pt' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid targetLang. Supported: en, es, pt' }, { status: 400 });
     }
 
     if (type === 'content' && (!contentIds || contentIds.length !== strings.length)) {

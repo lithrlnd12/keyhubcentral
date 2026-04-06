@@ -128,8 +128,7 @@ export function useTranslation() {
         const token = await getIdToken();
         if (!token) return;
 
-        // Request an empty array just to trigger cache load from the API
-        // The API returns all cached translations when checking
+        // Warm the in-memory cache from Firestore on first load
         const res = await fetch('/api/ai/translate', {
           method: 'POST',
           headers: {
@@ -143,10 +142,15 @@ export function useTranslation() {
           }),
         });
 
-        // This will 400 because empty strings, but that's OK —
-        // the real loading happens via t() calls
+        if (res.ok) {
+          const data = await res.json();
+          if (data.translations && Object.keys(data.translations).length > 0) {
+            setTranslationCache(lang, data.translations);
+            listeners.forEach((cb) => cb());
+          }
+        }
       } catch {
-        // Ignore — translations load on demand via t()
+        // Non-fatal — translations load on demand via t()
       }
     };
 
