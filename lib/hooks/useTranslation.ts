@@ -230,6 +230,8 @@ async function flushContentBatch(lang: string, getToken: () => Promise<string | 
         targetLang: lang,
         type: 'content',
         contentIds,
+        // Pass source language so Claude knows what language the text is in
+        sourceLang: entries[0]?.[1]?.originalLang || undefined,
       }),
     });
 

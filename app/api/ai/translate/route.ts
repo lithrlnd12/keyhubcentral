@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { strings, targetLang, type = 'ui', contentIds } = body;
+    const { strings, targetLang, type = 'ui', contentIds, sourceLang } = body;
 
     if (!strings || !Array.isArray(strings)) {
       return NextResponse.json({ error: 'strings array is required' }, { status: 400 });
@@ -83,21 +83,28 @@ export async function POST(request: NextRequest) {
       .map((s, i) => `${i + 1}. ${s}`)
       .join('\n');
 
+    // For content translation, detect or use provided source language
+    const sourceLanguage = sourceLang ? LANGUAGE_NAMES[sourceLang] : null;
+    const fromClause = type === 'content' && sourceLanguage
+      ? `from ${sourceLanguage} `
+      : '';
+
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
-      system: `You are a professional translator for a home renovation and contractor management app. Translate the following English text to ${langName}.
+      system: `You are a professional translator for a home renovation and contractor management app. Translate the following text ${fromClause}to ${langName}.
 
 Rules:
 - Use industry-standard terminology for construction, plumbing, HVAC, electrical, and home renovation trades
 - Keep translations natural and conversational, not overly formal
 - Preserve any technical terms that are commonly used in English (e.g., "W-9", "ACH")
 - For UI labels, keep translations concise — similar length to the original
-- Return ONLY a JSON object mapping each original English string to its ${langName} translation
+${type === 'content' ? '- These are chat messages or notes between coworkers — preserve the tone and intent\n- If the text is already in the target language, return it unchanged' : ''}
+- Return ONLY a JSON object mapping each original string to its ${langName} translation
 - Do not add explanations or notes`,
       messages: [{
         role: 'user',
-        content: `Translate these strings to ${langName}:\n\n${numberedStrings}\n\nReturn as JSON: {"original english": "translated text", ...}`,
+        content: `Translate these strings to ${langName}:\n\n${numberedStrings}\n\nReturn as JSON: {"original text": "translated text", ...}`,
       }],
     });
 
