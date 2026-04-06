@@ -173,7 +173,7 @@ const EXAMPLE = {
   description: 'Unified business management for Acme companies',
   copyright: 'Acme Pro',
   logoPath: '/logo.png',
-  logoIconPath: '/logo.svg',
+  logoIconPath: '/favicon.svg',
   logoIconText: 'AP',
   faviconPath: '/favicon.ico',
   supportEmail: 'support@acmepro.com',
@@ -356,7 +356,7 @@ export const tenant: TenantConfig = {
   description: ${JSON.stringify(cfg.description)},
   copyright: ${JSON.stringify(cfg.copyright)},
   logoPath: ${JSON.stringify(cfg.logoPath || '/logo.png')},
-  logoIconPath: ${JSON.stringify(cfg.logoIconPath || '/logo.svg')},
+  logoIconPath: ${JSON.stringify(cfg.logoIconPath || '/favicon.svg')},
   logoIconText: ${JSON.stringify(cfg.logoIconText || cfg.shortName.substring(0, 2).toUpperCase())},
   faviconPath: ${JSON.stringify(cfg.faviconPath || '/favicon.ico')},
 

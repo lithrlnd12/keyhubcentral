@@ -160,7 +160,7 @@ export default function TestNotificationsPage() {
     try {
       new Notification('KeyHub Test', {
         body: 'If you see this popup, local notifications work!',
-        icon: '/logo.svg',
+        icon: '/favicon.svg',
       });
       addLog('Local notification sent — did you see it?');
     } catch (err) {

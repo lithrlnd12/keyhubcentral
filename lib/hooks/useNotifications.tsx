@@ -153,7 +153,7 @@ export function useNotifications(): UseNotificationsResult {
       if (Notification.permission === 'granted') {
         new Notification(payload.title, {
           body: payload.body,
-          icon: payload.icon || '/logo.svg',
+          icon: payload.icon || '/favicon.svg',
         });
       }
 

@@ -84,7 +84,7 @@ export const tenant: TenantConfig = {
     'Unified business management for Keynote Digital, Key Trade Solutions, and Key Renovations',
   copyright: 'KeyHub Central',
   logoPath: '/logo.png',
-  logoIconPath: '/logo.svg',
+  logoIconPath: '/favicon.svg',
   logoIconText: 'KH',
   faviconPath: '/favicon.ico',
 
