@@ -6,6 +6,7 @@ import { Job, JobCommunication } from '@/types/job';
 import { SignedContract } from '@/types/contract';
 import { ContractAddendum, ADDENDUM_TYPE_LABELS } from '@/types/contract';
 import { tenant } from '@/lib/config/tenant';
+import { PDFLabels, DEFAULT_PDF_LABELS } from '@/lib/utils/pdfLabels';
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 9, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
@@ -54,9 +55,10 @@ export type JobPackageData = {
   contracts: SignedContract[];
   addendums: ContractAddendum[];
   communications: JobCommunication[];
+  labels?: PDFLabels;
 };
 
-export function JobPackagePDF({ job, contracts, addendums, communications }: JobPackageData) {
+export function JobPackagePDF({ job, contracts, addendums, communications, labels: l = DEFAULT_PDF_LABELS }: JobPackageData) {
   const costs = job.costs;
   const totalProjected = (costs?.materialProjected || 0) + (costs?.laborProjected || 0);
   const totalActual = (costs?.materialActual || 0) + (costs?.laborActual || 0);
@@ -73,58 +75,58 @@ export function JobPackagePDF({ job, contracts, addendums, communications }: Job
           <Text style={styles.companyInfo}>A division of {tenant.appName}</Text>
         </View>
 
-        <Text style={styles.title}>JOB PACKAGE — {job.jobNumber}</Text>
+        <Text style={styles.title}>{l.jobPackage} — {job.jobNumber}</Text>
 
         {/* Job Details */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Job Information</Text>
-          <View style={styles.row}><Text style={styles.label}>Job Number:</Text><Text style={styles.value}>{job.jobNumber}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Status:</Text><Text style={styles.value}>{job.status.replace(/_/g, ' ').toUpperCase()}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Type:</Text><Text style={styles.value}>{job.type ? job.type.charAt(0).toUpperCase() + job.type.slice(1) : 'N/A'}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Customer:</Text><Text style={styles.value}>{job.customer.name}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Phone:</Text><Text style={styles.value}>{job.customer.phone}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Email:</Text><Text style={styles.value}>{job.customer.email}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Address:</Text><Text style={styles.value}>{addressStr}</Text></View>
-          {job.notes && <View style={styles.row}><Text style={styles.label}>Notes:</Text><Text style={styles.value}>{job.notes}</Text></View>}
+          <Text style={styles.sectionTitle}>{l.jobInformation}</Text>
+          <View style={styles.row}><Text style={styles.label}>{l.jobNumber}:</Text><Text style={styles.value}>{job.jobNumber}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.status}:</Text><Text style={styles.value}>{job.status.replace(/_/g, ' ').toUpperCase()}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.type}:</Text><Text style={styles.value}>{job.type ? job.type.charAt(0).toUpperCase() + job.type.slice(1) : 'N/A'}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.customer}:</Text><Text style={styles.value}>{job.customer.name}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.phone}:</Text><Text style={styles.value}>{job.customer.phone}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.email}:</Text><Text style={styles.value}>{job.customer.email}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.address}:</Text><Text style={styles.value}>{addressStr}</Text></View>
+          {job.notes && <View style={styles.row}><Text style={styles.label}>{l.notes}:</Text><Text style={styles.value}>{job.notes}</Text></View>}
         </View>
 
         {/* Key Dates */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Timeline</Text>
-          <View style={styles.row}><Text style={styles.label}>Created:</Text><Text style={styles.value}>{fmtDate(job.dates?.created)}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Sold:</Text><Text style={styles.value}>{fmtDate(job.dates?.sold)}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Scheduled Start:</Text><Text style={styles.value}>{fmtDate(job.dates?.scheduledStart)}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Actual Start:</Text><Text style={styles.value}>{fmtDate(job.dates?.actualStart)}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Target Completion:</Text><Text style={styles.value}>{fmtDate(job.dates?.targetCompletion)}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Actual Completion:</Text><Text style={styles.value}>{fmtDate(job.dates?.actualCompletion)}</Text></View>
-          <View style={styles.row}><Text style={styles.label}>Paid in Full:</Text><Text style={styles.value}>{fmtDate(job.dates?.paidInFull)}</Text></View>
+          <Text style={styles.sectionTitle}>{l.timeline}</Text>
+          <View style={styles.row}><Text style={styles.label}>{l.created}:</Text><Text style={styles.value}>{fmtDate(job.dates?.created)}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.sold}:</Text><Text style={styles.value}>{fmtDate(job.dates?.sold)}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.scheduledStart}:</Text><Text style={styles.value}>{fmtDate(job.dates?.scheduledStart)}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.actualStart}:</Text><Text style={styles.value}>{fmtDate(job.dates?.actualStart)}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.targetCompletion}:</Text><Text style={styles.value}>{fmtDate(job.dates?.targetCompletion)}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.actualCompletion}:</Text><Text style={styles.value}>{fmtDate(job.dates?.actualCompletion)}</Text></View>
+          <View style={styles.row}><Text style={styles.label}>{l.paidInFull}:</Text><Text style={styles.value}>{fmtDate(job.dates?.paidInFull)}</Text></View>
         </View>
 
         {/* Cost Summary */}
         {costs && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Cost Summary</Text>
+            <Text style={styles.sectionTitle}>{l.costBreakdown}</Text>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={styles.col30}>Category</Text>
-                <Text style={styles.col23}>Projected</Text>
-                <Text style={styles.col23}>Actual</Text>
+                <Text style={styles.col30}>{l.category}</Text>
+                <Text style={styles.col23}>{l.projected}</Text>
+                <Text style={styles.col23}>{l.actual}</Text>
                 <Text style={styles.col24}>Variance</Text>
               </View>
               <View style={styles.tableRow}>
-                <Text style={styles.col30}>Materials</Text>
+                <Text style={styles.col30}>{l.material}</Text>
                 <Text style={styles.col23}>{fmt(costs.materialProjected)}</Text>
                 <Text style={styles.col23}>{fmt(costs.materialActual)}</Text>
                 <Text style={styles.col24}>{fmt(costs.materialActual - costs.materialProjected)}</Text>
               </View>
               <View style={styles.tableRow}>
-                <Text style={styles.col30}>Labor</Text>
+                <Text style={styles.col30}>{l.labor}</Text>
                 <Text style={styles.col23}>{fmt(costs.laborProjected)}</Text>
                 <Text style={styles.col23}>{fmt(costs.laborActual)}</Text>
                 <Text style={styles.col24}>{fmt(costs.laborActual - costs.laborProjected)}</Text>
               </View>
               <View style={styles.tableTotalRow}>
-                <Text style={styles.col30}>Total</Text>
+                <Text style={styles.col30}>{l.total}</Text>
                 <Text style={styles.col23}>{fmt(totalProjected)}</Text>
                 <Text style={styles.col23}>{fmt(totalActual)}</Text>
                 <Text style={styles.col24}>{fmt(totalActual - totalProjected)}</Text>
@@ -161,11 +163,11 @@ export function JobPackagePDF({ job, contracts, addendums, communications }: Job
       {/* Page 2: Contracts & Addendums */}
       {(contracts.length > 0 || addendums.length > 0) && (
         <Page size="LETTER" style={styles.page}>
-          <Text style={styles.title}>CONTRACTS & ADDENDUMS — {job.jobNumber}</Text>
+          <Text style={styles.title}>{l.contractsAndAddendums} — {job.jobNumber}</Text>
 
           {contracts.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Signed Contracts ({contracts.length})</Text>
+              <Text style={styles.sectionTitle}>{l.signedContracts} ({contracts.length})</Text>
               {contracts.map((c, i) => (
                 <View key={i} style={{ marginBottom: 8, padding: 6, backgroundColor: '#fafafa', borderRadius: 4 }}>
                   <View style={styles.row}>
@@ -197,7 +199,7 @@ export function JobPackagePDF({ job, contracts, addendums, communications }: Job
 
           {addendums.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Addendums ({addendums.length})</Text>
+              <Text style={styles.sectionTitle}>{l.addendums} ({addendums.length})</Text>
               {addendums.map((a, i) => (
                 <View key={i} style={{ marginBottom: 8, padding: 6, backgroundColor: '#fafafa', borderRadius: 4 }}>
                   <View style={styles.row}>
@@ -224,9 +226,9 @@ export function JobPackagePDF({ job, contracts, addendums, communications }: Job
           {/* Completion Certificate */}
           {cert && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Completion Certificate</Text>
-              <View style={styles.row}><Text style={styles.label}>Customer:</Text><Text style={styles.value}>{cert.customerName}</Text></View>
-              <View style={styles.row}><Text style={styles.label}>Contractor:</Text><Text style={styles.value}>{cert.contractorName || '—'}</Text></View>
+              <Text style={styles.sectionTitle}>{l.completionCertificate}</Text>
+              <View style={styles.row}><Text style={styles.label}>{l.customer}:</Text><Text style={styles.value}>{cert.customerName}</Text></View>
+              <View style={styles.row}><Text style={styles.label}>{l.contractor}:</Text><Text style={styles.value}>{cert.contractorName || '—'}</Text></View>
               <View style={styles.row}><Text style={styles.label}>Signed:</Text><Text style={styles.value}>{fmtDate(cert.signedAt)}</Text></View>
               {cert.notes && <View style={styles.row}><Text style={styles.label}>Notes:</Text><Text style={styles.value}>{cert.notes}</Text></View>}
               {cert.customerSignatureUrl && cert.contractorSignatureUrl && (
@@ -294,10 +296,10 @@ export function JobPackagePDF({ job, contracts, addendums, communications }: Job
       {/* Page 4: Communications */}
       {communications.length > 0 && (
         <Page size="LETTER" style={styles.page}>
-          <Text style={styles.title}>COMMUNICATIONS LOG — {job.jobNumber}</Text>
+          <Text style={styles.title}>{l.communicationLog} — {job.jobNumber}</Text>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notes & Communications ({communications.length})</Text>
+            <Text style={styles.sectionTitle}>{l.communicationLog} ({communications.length})</Text>
             {communications.map((comm, i) => (
               <View key={i} style={styles.noteBlock}>
                 <Text style={styles.noteHeader}>

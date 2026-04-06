@@ -5,6 +5,7 @@ import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import { Invoice, NET_TERMS_DAYS } from '@/types/invoice';
 import { formatPdfCurrency } from '@/lib/utils/pdf';
 import { tenant } from '@/lib/config/tenant';
+import { PDFLabels, DEFAULT_PDF_LABELS } from '@/lib/utils/pdfLabels';
 
 // Invoice-specific styles
 const styles = StyleSheet.create({
@@ -213,9 +214,10 @@ const styles = StyleSheet.create({
 
 interface InvoicePDFDocumentProps {
   invoice: Invoice;
+  labels?: PDFLabels;
 }
 
-export function InvoicePDFDocument({ invoice }: InvoicePDFDocumentProps) {
+export function InvoicePDFDocument({ invoice, labels: l = DEFAULT_PDF_LABELS }: InvoicePDFDocumentProps) {
   const formatDate = (timestamp: { toDate: () => Date } | null): string => {
     if (!timestamp) return 'N/A';
     return timestamp.toDate().toLocaleDateString('en-US', {
@@ -269,7 +271,7 @@ export function InvoicePDFDocument({ invoice }: InvoicePDFDocumentProps) {
             <Text style={styles.companyTagline}>Business Management Platform</Text>
           </View>
           <View style={styles.invoiceTitle}>
-            <Text style={styles.invoiceLabel}>INVOICE</Text>
+            <Text style={styles.invoiceLabel}>{l.invoice}</Text>
             <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
             <View style={[styles.statusBadge, isOverdue ? styles.statusOverdue : getStatusStyle()]}>
               <Text style={styles.statusText}>
@@ -288,7 +290,7 @@ export function InvoicePDFDocument({ invoice }: InvoicePDFDocumentProps) {
             {invoice.from.email && <Text style={styles.partyDetail}>{invoice.from.email}</Text>}
           </View>
           <View style={styles.partyBox}>
-            <Text style={styles.partyLabel}>Bill To</Text>
+            <Text style={styles.partyLabel}>{l.billTo}</Text>
             <Text style={styles.partyName}>{formatEntityName(invoice.to.entity)}</Text>
             <Text style={styles.partyDetail}>{invoice.to.name}</Text>
             {invoice.to.email && <Text style={styles.partyDetail}>{invoice.to.email}</Text>}
@@ -298,11 +300,11 @@ export function InvoicePDFDocument({ invoice }: InvoicePDFDocumentProps) {
         {/* Dates */}
         <View style={styles.datesSection}>
           <View style={styles.dateItem}>
-            <Text style={styles.dateLabel}>Invoice Date</Text>
+            <Text style={styles.dateLabel}>{l.issueDate}</Text>
             <Text style={styles.dateValue}>{formatDate(invoice.createdAt)}</Text>
           </View>
           <View style={styles.dateItem}>
-            <Text style={styles.dateLabel}>Due Date</Text>
+            <Text style={styles.dateLabel}>{l.dueDate}</Text>
             <Text style={[styles.dateValue, isOverdue ? { color: '#991b1b' } : {}]}>
               {formatDate(invoice.dueDate)}
             </Text>
@@ -320,10 +322,10 @@ export function InvoicePDFDocument({ invoice }: InvoicePDFDocumentProps) {
         {/* Line Items Table */}
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderText, styles.colDescription]}>Description</Text>
-            <Text style={[styles.tableHeaderText, styles.colQty]}>Qty</Text>
-            <Text style={[styles.tableHeaderText, styles.colRate]}>Rate</Text>
-            <Text style={[styles.tableHeaderText, styles.colTotal]}>Total</Text>
+            <Text style={[styles.tableHeaderText, styles.colDescription]}>{l.description}</Text>
+            <Text style={[styles.tableHeaderText, styles.colQty]}>{l.quantity}</Text>
+            <Text style={[styles.tableHeaderText, styles.colRate]}>{l.rate}</Text>
+            <Text style={[styles.tableHeaderText, styles.colTotal]}>{l.total}</Text>
           </View>
           {invoice.lineItems.map((item, index) => (
             <View key={index} style={styles.tableRow}>
@@ -338,7 +340,7 @@ export function InvoicePDFDocument({ invoice }: InvoicePDFDocumentProps) {
         {/* Totals */}
         <View style={styles.totalsSection}>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Subtotal</Text>
+            <Text style={styles.totalLabel}>{l.subtotal}</Text>
             <Text style={styles.totalValue}>{formatPdfCurrency(invoice.subtotal)}</Text>
           </View>
           {invoice.discount > 0 && (
@@ -350,7 +352,7 @@ export function InvoicePDFDocument({ invoice }: InvoicePDFDocumentProps) {
             </View>
           )}
           <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>Total Due</Text>
+            <Text style={styles.grandTotalLabel}>{l.balanceDue}</Text>
             <Text style={styles.grandTotalValue}>{formatPdfCurrency(invoice.total)}</Text>
           </View>
         </View>

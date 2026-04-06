@@ -88,3 +88,4 @@ export { useNetworkConfig } from './useNetworkConfig';
 
 // Translation
 export { useTranslation, useContentTranslation } from './useTranslation';
+export { usePDFLabels } from './usePDFLabels';

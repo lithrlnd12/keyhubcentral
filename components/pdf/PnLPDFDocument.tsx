@@ -11,6 +11,7 @@ import {
 } from '@/lib/utils/pnl';
 import { formatPdfCurrency } from '@/lib/utils/pdf';
 import { tenant } from '@/lib/config/tenant';
+import { PDFLabels, DEFAULT_PDF_LABELS } from '@/lib/utils/pdfLabels';
 
 interface PnLPDFDocumentProps {
   data: {
@@ -23,6 +24,7 @@ interface PnLPDFDocumentProps {
   entityName: string;
   dateRange: string;
   isCombined: boolean;
+  labels?: PDFLabels;
 }
 
 export function PnLPDFDocument({
@@ -31,6 +33,7 @@ export function PnLPDFDocument({
   entityName,
   dateRange,
   isCombined,
+  labels: l = DEFAULT_PDF_LABELS,
 }: PnLPDFDocumentProps) {
   const profitMargin = calculateProfitMargin(data.revenue, data.expenses);
   const groupedEntries = groupEntriesByCategory(data.entries);
@@ -51,7 +54,7 @@ export function PnLPDFDocument({
         {/* Header */}
         <View style={pdfStyles.header}>
           <Text style={pdfStyles.companyName}>{tenant.appName}</Text>
-          <Text style={pdfStyles.reportTitle}>Profit & Loss Statement</Text>
+          <Text style={pdfStyles.reportTitle}>{l.profitAndLoss}</Text>
           <Text style={pdfStyles.reportMeta}>Entity: {entityName}</Text>
           <Text style={pdfStyles.reportMeta}>Period: {dateRange}</Text>
           <Text style={pdfStyles.reportMeta}>Generated: {generatedDate}</Text>
@@ -70,19 +73,19 @@ export function PnLPDFDocument({
         {/* Summary Cards */}
         <View style={pdfStyles.summaryGrid}>
           <View style={pdfStyles.summaryCard}>
-            <Text style={pdfStyles.summaryLabel}>Revenue</Text>
+            <Text style={pdfStyles.summaryLabel}>{l.revenue}</Text>
             <Text style={pdfStyles.summaryValuePositive}>
               {formatPdfCurrency(data.revenue)}
             </Text>
           </View>
           <View style={pdfStyles.summaryCard}>
-            <Text style={pdfStyles.summaryLabel}>Expenses</Text>
+            <Text style={pdfStyles.summaryLabel}>{l.expenses}</Text>
             <Text style={pdfStyles.summaryValueNegative}>
               {formatPdfCurrency(data.expenses)}
             </Text>
           </View>
           <View style={pdfStyles.summaryCard}>
-            <Text style={pdfStyles.summaryLabel}>Net Income</Text>
+            <Text style={pdfStyles.summaryLabel}>{l.netIncome}</Text>
             <Text
               style={
                 data.netIncome >= 0
@@ -94,7 +97,7 @@ export function PnLPDFDocument({
             </Text>
           </View>
           <View style={pdfStyles.summaryCard}>
-            <Text style={pdfStyles.summaryLabel}>Profit Margin</Text>
+            <Text style={pdfStyles.summaryLabel}>{l.profitMargin}</Text>
             <Text
               style={
                 profitMargin >= 0
@@ -109,7 +112,7 @@ export function PnLPDFDocument({
 
         {/* Revenue Breakdown */}
         <View style={pdfStyles.section}>
-          <Text style={pdfStyles.sectionTitle}>Revenue Breakdown</Text>
+          <Text style={pdfStyles.sectionTitle}>{l.revenueBreakdown}</Text>
           <View style={pdfStyles.table}>
             <View style={pdfStyles.tableHeader}>
               <Text style={[pdfStyles.tableCellLeft, pdfStyles.tableHeaderText]}>Category</Text>
@@ -142,7 +145,7 @@ export function PnLPDFDocument({
 
         {/* Expense Breakdown */}
         <View style={pdfStyles.section}>
-          <Text style={pdfStyles.sectionTitle}>Expense Breakdown</Text>
+          <Text style={pdfStyles.sectionTitle}>{l.expenseBreakdown}</Text>
           <View style={pdfStyles.table}>
             <View style={pdfStyles.tableHeader}>
               <Text style={[pdfStyles.tableCellLeft, pdfStyles.tableHeaderText]}>Category</Text>
