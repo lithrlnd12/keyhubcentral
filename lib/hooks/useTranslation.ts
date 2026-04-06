@@ -188,8 +188,87 @@ export function useTranslation() {
   return { t, lang, isEnabled };
 }
 
+// ── Global content translation state (shared across all hook instances) ──
+const contentCacheMap: Record<string, Record<string, string>> = {}; // lang -> { contentId -> translated }
+const pendingContentMap: Map<string, { text: string; originalLang?: string }> = new Map();
+let contentFlushTimer: ReturnType<typeof setTimeout> | null = null;
+const contentListeners: Set<() => void> = new Set();
+const inflightContent: Set<string> = new Set();
+
+function getContentCache(lang: string): Record<string, string> {
+  return contentCacheMap[lang] || {};
+}
+
+function setContentCacheEntry(lang: string, entries: Record<string, string>) {
+  if (!contentCacheMap[lang]) contentCacheMap[lang] = {};
+  Object.assign(contentCacheMap[lang], entries);
+}
+
+async function flushContentBatch(lang: string, getToken: () => Promise<string | null>) {
+  if (pendingContentMap.size === 0) return;
+
+  const entries = Array.from(pendingContentMap.entries());
+  pendingContentMap.clear();
+
+  const strings = entries.map(([, { text }]) => text);
+  const contentIds = entries.map(([id]) => id);
+
+  entries.forEach(([id]) => inflightContent.add(id));
+
+  try {
+    const token = await getToken();
+    if (!token) return;
+
+    const res = await fetch('/api/ai/translate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        strings,
+        targetLang: lang,
+        type: 'content',
+        contentIds,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error('Content translation API error:', res.status);
+      return;
+    }
+
+    const data = await res.json();
+    if (data.translations) {
+      const newEntries: Record<string, string> = {};
+      entries.forEach(([id, { text }]) => {
+        if (data.translations[text]) {
+          newEntries[id] = data.translations[text];
+        }
+      });
+
+      if (Object.keys(newEntries).length > 0) {
+        setContentCacheEntry(lang, newEntries);
+        contentListeners.forEach((cb) => cb());
+      }
+    }
+  } catch (err) {
+    console.error('Content translation error:', err);
+  } finally {
+    entries.forEach(([id]) => inflightContent.delete(id));
+  }
+}
+
+function scheduleContentFlush(lang: string, getToken: () => Promise<string | null>) {
+  if (contentFlushTimer) clearTimeout(contentFlushTimer);
+  contentFlushTimer = setTimeout(() => {
+    flushContentBatch(lang, getToken);
+  }, BATCH_DELAY_MS);
+}
+
 /**
  * Content translation hook for chat messages, job notes, etc.
+ * Uses global state so all MessageBubble instances share one batch queue and cache.
  *
  * Usage:
  *   const { translateContent } = useContentTranslation();
@@ -198,65 +277,21 @@ export function useTranslation() {
 export function useContentTranslation() {
   const { user, getIdToken } = useAuth();
   const { flags } = useFeatureFlags();
-  const [contentCache, setContentCache] = useState<Record<string, string>>({});
-  const pendingContent = useRef<Map<string, { text: string; originalLang?: string }>>(new Map());
-  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [, forceUpdate] = useState(0);
 
   const lang = user?.preferredLanguage || 'en';
   // Content translation must work for ALL users (including English readers
   // who need to read Spanish/Portuguese messages)
   const isEnabled = !!flags.multiLanguage;
 
-  const flushContentTranslations = useCallback(async () => {
-    if (pendingContent.current.size === 0) return;
+  // Subscribe to global content cache updates
+  useEffect(() => {
+    if (!isEnabled) return;
+    const listener = () => forceUpdate((n) => n + 1);
+    contentListeners.add(listener);
+    return () => { contentListeners.delete(listener); };
+  }, [isEnabled]);
 
-    const entries = Array.from(pendingContent.current.entries());
-    pendingContent.current.clear();
-
-    const strings = entries.map(([, { text }]) => text);
-    const contentIds = entries.map(([id]) => id);
-
-    try {
-      const token = await getIdToken();
-      if (!token) return;
-
-      const res = await fetch('/api/ai/translate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          strings,
-          targetLang: lang,
-          type: 'content',
-          contentIds,
-        }),
-      });
-
-      if (!res.ok) return;
-
-      const data = await res.json();
-      if (data.translations) {
-        // Map translated text back to content IDs
-        const newCache: Record<string, string> = {};
-        entries.forEach(([id, { text }]) => {
-          if (data.translations[text]) {
-            newCache[id] = data.translations[text];
-          }
-        });
-
-        setContentCache((prev) => ({ ...prev, ...newCache }));
-      }
-    } catch (err) {
-      console.error('Content translation error:', err);
-    }
-  }, [lang, getIdToken]);
-
-  /**
-   * Translate content (message, note, etc.)
-   * Returns translated text if cached, original while pending.
-   */
   const translateContent = useCallback(
     (contentId: string, text: string, originalLang?: string): string => {
       if (!isEnabled || !text || !contentId) return text;
@@ -266,20 +301,19 @@ export function useContentTranslation() {
       // If original language is unknown, assume English — skip if reader is English
       if (!originalLang && lang === 'en') return text;
 
-      // Check local cache
-      if (contentCache[contentId]) return contentCache[contentId];
+      // Check global cache
+      const cached = getContentCache(lang);
+      if (cached[contentId]) return cached[contentId];
 
-      // Queue for batch translation
-      if (!pendingContent.current.has(contentId)) {
-        pendingContent.current.set(contentId, { text, originalLang });
-
-        if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
-        flushTimerRef.current = setTimeout(flushContentTranslations, BATCH_DELAY_MS);
+      // Queue for batch translation (if not already queued or inflight)
+      if (!pendingContentMap.has(contentId) && !inflightContent.has(contentId)) {
+        pendingContentMap.set(contentId, { text, originalLang });
+        scheduleContentFlush(lang, getIdToken);
       }
 
       return text;
     },
-    [isEnabled, lang, contentCache, flushContentTranslations]
+    [isEnabled, lang, getIdToken]
   );
 
   return { translateContent, lang, isEnabled };
