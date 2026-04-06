@@ -38,6 +38,7 @@ export async function addCommunication(
     userId: string;
     content: string;
     attachments?: string[];
+    originalLanguage?: string;
   }
 ): Promise<string> {
   const docRef = await addDoc(collection(db, 'jobs', jobId, 'communications'), {

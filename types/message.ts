@@ -9,6 +9,7 @@ export interface Message {
   timestamp: Timestamp;
   readBy: string[];
   reactions?: Record<string, string[]>; // emoji -> array of userIds
+  originalLanguage?: string; // language code of the sender (e.g., 'en', 'es', 'pt')
 }
 
 export interface Conversation {

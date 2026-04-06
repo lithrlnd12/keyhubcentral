@@ -6,7 +6,7 @@ import {
   ArrowLeft, Send, Users, Loader2, ChevronUp, Check, CheckCheck,
   UserPlus, Camera, ImageIcon, X,
 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks';
+import { useAuth, useContentTranslation } from '@/lib/hooks';
 import { useChat } from '@/lib/hooks/useMessages';
 import { toggleReaction } from '@/lib/firebase/messages';
 import { uploadChatImage } from '@/lib/firebase/storage';
@@ -121,6 +121,7 @@ function MessageBubble({
   const [showPicker, setShowPicker] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { translateContent } = useContentTranslation();
 
   const time = message.timestamp?.toDate?.()
     ? message.timestamp.toDate().toLocaleTimeString('en-US', {
@@ -160,6 +161,7 @@ function MessageBubble({
   const reactions = message.reactions || {};
   const hasImage = !!message.imageUrl;
   const hasText = !!message.text;
+  const displayText = hasText ? translateContent(message.id, message.text, message.originalLanguage) : '';
 
   return (
     <div className={cn('flex flex-col mb-1.5', isMine ? 'items-end' : 'items-start')}>
@@ -207,7 +209,7 @@ function MessageBubble({
           )}
           {hasText && (
             <p className={cn('text-sm break-words', hasImage && 'px-2 pt-1.5')}>
-              {message.text}
+              {displayText}
             </p>
           )}
         </div>

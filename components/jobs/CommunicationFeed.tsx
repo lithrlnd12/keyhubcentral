@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { useCommunications } from '@/lib/hooks/useCommunications';
+import { useAuth, useTranslation, useContentTranslation } from '@/lib/hooks';
 import { formatDistanceToNow } from '@/lib/utils/formatters';
 import {
   MessageSquare,
@@ -43,6 +44,9 @@ export function CommunicationFeed({
 }: CommunicationFeedProps) {
   const { communications, loading, error, addEntry, deleteEntry } =
     useCommunications(jobId, userId);
+  const { user } = useAuth();
+  const { t } = useTranslation();
+  const { translateContent } = useContentTranslation();
 
   const [showForm, setShowForm] = useState(false);
   const [newType, setNewType] = useState<CommunicationType>('note');
@@ -78,7 +82,7 @@ export function CommunicationFeed({
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-brand-gold" />
-          Communication Log ({communications.length})
+          {t('Communication Log')} ({communications.length})
         </CardTitle>
         {canEdit && (
           <Button
@@ -87,7 +91,7 @@ export function CommunicationFeed({
             onClick={() => setShowForm(!showForm)}
           >
             <Plus className="w-4 h-4 mr-1" />
-            {showForm ? 'Cancel' : 'Add Entry'}
+            {showForm ? t('Cancel') : t('Add Entry')}
           </Button>
         )}
       </CardHeader>
@@ -131,7 +135,7 @@ export function CommunicationFeed({
                   onChange={(e) => setNewContent(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-gold/50 resize-none"
-                  placeholder="Enter your note..."
+                  placeholder={t('Enter your note...')}
                 />
               </div>
               <div className="flex justify-end">
@@ -139,7 +143,7 @@ export function CommunicationFeed({
                   onClick={handleSubmit}
                   disabled={!newContent.trim() || submitting}
                 >
-                  {submitting ? 'Adding...' : 'Add Entry'}
+                  {submitting ? t('Adding...') : t('Add Entry')}
                 </Button>
               </div>
             </div>
@@ -160,7 +164,7 @@ export function CommunicationFeed({
         {!loading && communications.length === 0 && (
           <div className="text-center py-8">
             <MessageSquare className="w-10 h-10 text-gray-600 mx-auto mb-2" />
-            <p className="text-gray-400">No communications yet</p>
+            <p className="text-gray-400">{t('No communications yet')}</p>
           </div>
         )}
 
@@ -201,7 +205,7 @@ export function CommunicationFeed({
                       </span>
                     </div>
                     <p className="text-white whitespace-pre-wrap">
-                      {comm.content}
+                      {translateContent(`comm-${comm.id}`, comm.content, comm.originalLanguage)}
                     </p>
                   </div>
                   {canEdit && comm.type !== 'status_update' && (

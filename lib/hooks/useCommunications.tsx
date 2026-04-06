@@ -8,6 +8,7 @@ import {
   deleteCommunication,
 } from '@/lib/firebase/communications';
 import { JobCommunication, CommunicationType } from '@/types/job';
+import { useAuth } from './useAuth';
 
 interface UseCommunicationsOptions {
   realtime?: boolean;
@@ -29,6 +30,7 @@ export function useCommunications(
   options: UseCommunicationsOptions = {}
 ): UseCommunicationsReturn {
   const { realtime = true, maxResults = 50 } = options;
+  const { user } = useAuth();
 
   const [communications, setCommunications] = useState<JobCommunication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,6 +86,7 @@ export function useCommunications(
           userId,
           content,
           attachments,
+          originalLanguage: user?.preferredLanguage || 'en',
         });
         if (!realtime) {
           await fetchCommunications();

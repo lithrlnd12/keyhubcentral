@@ -80,12 +80,12 @@ export function useChat(conversationId: string | null) {
       if (!conversationId || !user?.uid || !user?.displayName) return;
       setSending(true);
       try {
-        await sendMessageFn(conversationId, user.uid, user.displayName, text, participants, imageUrl);
+        await sendMessageFn(conversationId, user.uid, user.displayName, text, participants, imageUrl, user.preferredLanguage || 'en');
       } finally {
         setSending(false);
       }
     },
-    [conversationId, user?.uid, user?.displayName]
+    [conversationId, user?.uid, user?.displayName, user?.preferredLanguage]
   );
 
   // Load older messages

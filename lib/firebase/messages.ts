@@ -97,7 +97,8 @@ export async function sendMessage(
   senderName: string,
   text: string,
   participants: string[],
-  imageUrl?: string | null
+  imageUrl?: string | null,
+  originalLanguage?: string
 ): Promise<void> {
   const trimmed = text.trim();
   if (!trimmed && !imageUrl) return;
@@ -112,6 +113,9 @@ export async function sendMessage(
   };
   if (imageUrl) {
     messageData.imageUrl = imageUrl;
+  }
+  if (originalLanguage) {
+    messageData.originalLanguage = originalLanguage;
   }
   await addDoc(collection(db, CONVERSATIONS, conversationId, MESSAGES), messageData);
 

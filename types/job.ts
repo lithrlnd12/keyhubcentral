@@ -190,6 +190,7 @@ export interface JobCommunication {
   userId: string;
   content: string;
   attachments: string[];
+  originalLanguage?: string; // language code of the author
   createdAt: Timestamp;
 }
 
