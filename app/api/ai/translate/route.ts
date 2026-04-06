@@ -133,21 +133,27 @@ ${type === 'content' ? '- These are chat messages or notes between coworkers —
         translations: { ...cachedTranslations, ...newTranslations },
       });
     } else {
-      // Content translations — cache per content ID
+      // Content translations — match by position since Claude may alter keys
+      const translationValues = Object.values(newTranslations);
+      const resultByContentId: Record<string, string> = {};
+
       const batch = adminDb.batch();
       for (let i = 0; i < stringsToTranslate.length; i++) {
         const original = stringsToTranslate[i];
-        const translated = newTranslations[original];
+        // Try exact key match first, then fall back to positional match
+        const translated = newTranslations[original] || translationValues[i];
         const contentId = contentIds[i];
 
         if (translated && contentId) {
+          resultByContentId[contentId] = translated;
           const ref = adminDb.collection('contentTranslations').doc(contentId);
-          batch.set(ref, { [targetLang]: translated, originalLang: 'en' }, { merge: true });
+          batch.set(ref, { [targetLang]: translated, originalLang: sourceLang || 'en' }, { merge: true });
         }
       }
       await batch.commit();
 
-      return NextResponse.json({ translations: newTranslations });
+      // Return keyed by content ID so the hook can match reliably
+      return NextResponse.json({ translations: resultByContentId, byContentId: true });
     }
   } catch (err) {
     console.error('Translation error:', err);

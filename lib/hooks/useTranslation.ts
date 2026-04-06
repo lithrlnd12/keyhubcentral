@@ -242,12 +242,20 @@ async function flushContentBatch(lang: string, getToken: () => Promise<string | 
 
     const data = await res.json();
     if (data.translations) {
-      const newEntries: Record<string, string> = {};
-      entries.forEach(([id, { text }]) => {
-        if (data.translations[text]) {
-          newEntries[id] = data.translations[text];
-        }
-      });
+      let newEntries: Record<string, string>;
+
+      if (data.byContentId) {
+        // API returned translations keyed by content ID — use directly
+        newEntries = data.translations;
+      } else {
+        // Fallback: match by original text
+        newEntries = {};
+        entries.forEach(([id, { text }]) => {
+          if (data.translations[text]) {
+            newEntries[id] = data.translations[text];
+          }
+        });
+      }
 
       if (Object.keys(newEntries).length > 0) {
         setContentCacheEntry(lang, newEntries);
