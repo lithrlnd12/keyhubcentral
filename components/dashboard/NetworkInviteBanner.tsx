@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Network, Check, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
+import { autoEnrollContractorsInNetwork } from '@/lib/firebase/networkNotifications';
 import { ADMIN_ROLES } from '@/types/user';
 
 interface PendingInvite {
@@ -62,7 +63,11 @@ export function NetworkInviteBanner() {
       });
       if (res.ok) {
         if (action === 'accept') {
-          // Redirect to settings to configure network sharing
+          const data = await res.json();
+          // Auto-enroll all active contractors into the new network
+          if (data.networkId) {
+            await autoEnrollContractorsInNetwork([data.networkId]);
+          }
           router.push('/settings');
         }
         setInvites((prev) => prev.filter((i) => i.id !== inviteId));

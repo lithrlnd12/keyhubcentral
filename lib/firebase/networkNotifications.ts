@@ -6,106 +6,51 @@ import {
   query,
   where,
   serverTimestamp,
-  Timestamp,
 } from 'firebase/firestore';
 import { db } from './config';
-import { createNotification } from './notifications';
 import { Contractor } from '@/types/contractor';
 
 /**
- * Send network opt-in notifications to all active contractors.
- * Called when admin enables KeyHub Network.
- * Skips contractors who already opted in, opted out, or dismissed within 7 days.
+ * Auto-enroll all active contractors into the given networks.
+ * Called when admin enables KeyHub Network or accepts a network invite.
+ * Skips contractors who have explicitly opted out.
  */
-export async function sendNetworkOptInNotifications(): Promise<number> {
+export async function autoEnrollContractorsInNetwork(
+  networkIds: string[]
+): Promise<number> {
+  if (networkIds.length === 0) return 0;
+
   const q = query(
     collection(db, 'contractors'),
     where('status', '==', 'active')
   );
   const snapshot = await getDocs(q);
-  let sent = 0;
-
-  const sevenDaysAgo = Timestamp.fromDate(
-    new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  );
+  let enrolled = 0;
 
   for (const contractorDoc of snapshot.docs) {
     const contractor = { id: contractorDoc.id, ...contractorDoc.data() } as Contractor;
 
-    // Skip if already opted in to any network
-    if (contractor.sharedNetworks && contractor.sharedNetworks.length > 0) continue;
-
     // Skip if explicitly opted out
     if (contractor.networkOptOut) continue;
 
-    // Skip if dismissed within 7 days
-    if (contractor.networkOptInDismissedAt) {
-      const dismissedAt = contractor.networkOptInDismissedAt;
-      if (dismissedAt.toMillis() > sevenDaysAgo.toMillis()) continue;
-    }
+    // Skip if already enrolled in all these networks
+    const existing = new Set(contractor.sharedNetworks || []);
+    const newIds = networkIds.filter((id) => !existing.has(id));
+    if (newIds.length === 0) continue;
 
-    // Send notification to the contractor's user
-    if (contractor.userId) {
-      try {
-        await createNotification(contractor.userId, 'network_opt_in', {});
-        sent++;
-      } catch (err) {
-        console.error(`Failed to notify contractor ${contractor.id}:`, err);
-      }
+    try {
+      const ref = doc(db, 'contractors', contractorDoc.id);
+      await updateDoc(ref, {
+        sharedNetworks: [...Array.from(existing), ...newIds],
+        networkOptInDismissedAt: null,
+        updatedAt: serverTimestamp(),
+      });
+      enrolled++;
+    } catch (err) {
+      console.error(`Failed to enroll contractor ${contractorDoc.id}:`, err);
     }
   }
 
-  return sent;
+  return enrolled;
 }
 
-/**
- * Contractor accepts network opt-in — add all active networkIds to sharedNetworks.
- */
-export async function acceptNetworkOptIn(
-  contractorId: string,
-  networkIds: string[]
-): Promise<void> {
-  const ref = doc(db, 'contractors', contractorId);
-  await updateDoc(ref, {
-    sharedNetworks: networkIds,
-    networkOptOut: false,
-    networkOptInDismissedAt: null,
-    updatedAt: serverTimestamp(),
-  });
-}
-
-/**
- * Contractor declines network opt-in — set opt-out flag.
- */
-export async function declineNetworkOptIn(contractorId: string): Promise<void> {
-  const ref = doc(db, 'contractors', contractorId);
-  await updateDoc(ref, {
-    networkOptOut: true,
-    networkOptInDismissedAt: null,
-    updatedAt: serverTimestamp(),
-  });
-}
-
-/**
- * Contractor defers decision — record dismissal timestamp.
- * Notification will re-surface after 7 days.
- */
-export async function deferNetworkOptIn(contractorId: string): Promise<void> {
-  const ref = doc(db, 'contractors', contractorId);
-  await updateDoc(ref, {
-    networkOptInDismissedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-}
-
-/**
- * Admin resets a contractor's opt-out so they can be asked again.
- */
-export async function resetNetworkOptOut(contractorId: string): Promise<void> {
-  const ref = doc(db, 'contractors', contractorId);
-  await updateDoc(ref, {
-    networkOptOut: false,
-    networkOptInDismissedAt: null,
-    updatedAt: serverTimestamp(),
-  });
-}

@@ -720,13 +720,11 @@ export default function PortalProfilePage() {
         </div>
       )}
 
-      {/* Network Opt-In — only shown when not editing and contractor exists */}
+      {/* Network Visibility — only shown when not editing and contractor exists */}
       {!editing && contractor && (
         <ContractorNetworkOptIn
           contractorId={contractor.id}
           sharedNetworks={contractor.sharedNetworks}
-          networkOptOut={contractor.networkOptOut}
-          networkOptInDismissedAt={contractor.networkOptInDismissedAt}
         />
       )}
 
