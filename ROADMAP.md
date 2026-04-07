@@ -1,6 +1,6 @@
 # KeyHub Central — Product Roadmap
 
-**Last Updated:** 2026-03-28
+**Last Updated:** 2026-04-07
 **Current Branch:** Enterprise (all 14 enterprise features deployed)
 
 ---
@@ -299,7 +299,81 @@ Complete these steps for every new white-label customer. Covered by the onboardi
 
 ---
 
-## Phase 4 — Voice AI Expansion
+## Phase 4 — Multi-Language Translation
+
+*Goal: Eliminate language barriers between office staff and field crews. Every user sees the app and all communication in their preferred language.*
+
+### Core Translation Engine
+- ✅ Claude API-powered translation with Firestore caching (each string translated once per language, ever)
+- ✅ `useTranslation()` hook for UI strings — batched, cached, zero overhead for English users
+- ✅ `useContentTranslation()` hook for chat messages and job notes — bidirectional, global shared state
+- ✅ Translation API route (`/api/ai/translate`) with construction industry-specific prompting
+- ✅ Languages: English, Spanish (ES), Brazilian Portuguese (PT)
+
+### Signup & Settings
+- ✅ Preferred language selection on signup form
+- ✅ Language picker in both dashboard and portal settings
+- ✅ `preferredLanguage` field on user profile
+
+### UI Translation (Contractor Portal)
+- ✅ Portal dashboard, layout, and all page titles
+- ✅ SideNav and BottomNav labels
+- ✅ Jobs, marketplace, leads, availability pages
+- ✅ Inventory pages (main, items, count)
+- ✅ Financials pages (main, invoices, expenses)
+- ✅ My Profile page
+- ✅ Marketplace components (listing cards, feed, bid form)
+- ✅ Contract components (signing flow, form, preview, signature, confirmation, upload, remote signing, addendums)
+
+### Content Translation (Chat & Notes)
+- ✅ Messages save `originalLanguage` from sender's profile
+- ✅ Chat messages auto-translated for readers in a different language (both directions)
+- ✅ Job communication notes translated for readers
+- ✅ Claude auto-detects source language when `originalLanguage` is missing
+
+### PDF Translation
+- ✅ `PDFLabels` type with translatable label system
+- ✅ `usePDFLabels()` hook for pre-translating PDF strings
+- ✅ JobPackagePDF, InvoicePDFDocument, PnLPDFDocument accept translated labels
+
+### Feature Flag & Tenant Management
+- ✅ `multiLanguage` feature flag (enterprise tier, toggleable per tenant in keyhub-system)
+- ✅ Added to DEFAULT_FLAGS, ENTERPRISE_FLAGS, MODULE_INFO, FEATURE_FLAGS_SEED
+- ✅ Firestore rules for `translations` and `contentTranslations` collections
+
+### Remaining
+- 🔜 Remove debug logging from `useTranslation.ts` before merge
+- 📋 Translate dashboard pages (admin/PM/sales rep views)
+- 📋 Translate remaining shared components (contractor cards, job cards, etc.)
+
+**Branch:** `feature/multi-language-translation`
+
+---
+
+## Phase 5 — Business Email Integration
+
+*Goal: Admins see business-relevant emails inside the app — filtered to only show emails from known contacts (employees, customers, leads, contractors, partners). Not a full inbox — a CRM-style email view.*
+
+### Architecture
+- 📋 Extend existing Google Calendar OAuth to include Gmail API scopes
+- 📋 Sync only emails where from/to matches a known contact email in Firestore
+- 📋 Email thread view grouped by contact, linked to lead/job/contractor records
+- 📋 Reply from within the app (sends through user's actual Gmail)
+- 📋 Background sync (poll or push via Gmail webhooks)
+- 📋 Store email metadata in Firestore for search and linking
+
+### UI
+- 📋 Email tab in admin dashboard
+- 📋 Inbox view filtered to business contacts only
+- 📋 Thread view with full conversation history
+- 📋 Compose/reply inline
+- 📋 Email linked to contact record (click lead/job/contractor to see related emails)
+- 📋 Notifications for new emails from known contacts
+
+---
+
+## Phase 6 — Voice AI Expansion
+
 
 *Goal: AI handles every repetitive phone interaction across the platform.*
 *Full details in `VOICE_ENHANCEMENTS.md`.*
@@ -331,7 +405,7 @@ Complete these steps for every new white-label customer. Covered by the onboardi
 
 ---
 
-## Phase 5 — Platform Integrations
+## Phase 7 — Platform Integrations
 
 *Goal: KeyHub plugs into everything a home services company already uses.*
 
@@ -351,7 +425,7 @@ Complete these steps for every new white-label customer. Covered by the onboardi
 
 ---
 
-## Phase 6 — Enterprise & Scale
+## Phase 8 — Enterprise & Scale
 
 *Goal: Support large multi-location operations and eventually true SaaS multi-tenancy.*
 
