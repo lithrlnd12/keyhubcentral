@@ -64,7 +64,7 @@ const menuItems: MoreMenuItem[] = [
   { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'shortcuts', featureFlag: 'inventory' },
   { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'shortcuts', featureFlag: 'inventory' },
   { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff, section: 'shortcuts', featureFlag: 'contracts' },
-  { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: canManageCampaigns, section: 'shortcuts', featureFlag: 'leadEngine' },
+  { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: (r) => canManageCampaigns(r) || r === 'sales_rep', section: 'shortcuts', featureFlag: 'leadEngine' },
   { label: 'Calendar', href: '/calendar', icon: Calendar, permission: isInternalStaff, section: 'shortcuts' },
   { label: 'Messages', href: '/messages', icon: MessageSquare, section: 'shortcuts', featureFlag: 'communications' },
 

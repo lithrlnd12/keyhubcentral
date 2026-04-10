@@ -53,6 +53,13 @@ function getTabConfig(role: string) {
         workLabel: 'Find Pros',
         workIcon: MapPin,
       };
+    case 'sales_rep':
+      return {
+        homeHref: '/overview',
+        workHref: '/kd',
+        workLabel: 'Leads',
+        workIcon: Target,
+      };
     default:
       return {
         homeHref: '/overview',

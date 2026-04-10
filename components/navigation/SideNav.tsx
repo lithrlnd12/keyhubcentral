@@ -75,7 +75,7 @@ const navItems: NavItem[] = [
   { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work', featureFlag: 'inventory' },
   { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work', featureFlag: 'inventory' },
   { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff, section: 'work', featureFlag: 'contracts' },
-  { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: canManageCampaigns, section: 'work', featureFlag: 'leadEngine' },
+  { label: tenant.entities.kd.label, href: '/kd', icon: Target, permission: (r) => canManageCampaigns(r) || r === 'sales_rep', section: 'work', featureFlag: 'leadEngine' },
   { label: 'Calendar', href: '/calendar', icon: Calendar, permission: isInternalStaff, section: 'work' },
   { label: 'Smart Schedule', href: '/calendar/smart-schedule', icon: Zap, permission: (r) => ['owner', 'admin', 'pm'].includes(r), section: 'work', featureFlag: 'smartScheduling' },
   { label: 'Marketplace', href: '/kts/marketplace', icon: Store, permission: (r) => ['owner', 'admin', 'pm'].includes(r), section: 'work', featureFlag: 'marketplace' },
