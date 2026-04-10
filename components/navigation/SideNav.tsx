@@ -71,7 +71,7 @@ const navItems: NavItem[] = [
 
   // ── WORK ──
   { label: tenant.entities.kts.label, href: '/kts', icon: Wrench, permission: isInternalStaff, section: 'work' },
-  { label: 'Calls', href: '/kts/calls', icon: Phone, permission: isInternalStaff, badgeKey: 'newCalls', section: 'work', featureFlag: 'callCenter' },
+  { label: 'Calls', href: '/kts/calls', icon: Phone, permission: (r) => isInternalStaff(r) && r !== 'sales_rep', badgeKey: 'newCalls', section: 'work', featureFlag: 'callCenter' },
   { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work', featureFlag: 'inventory' },
   { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'work', featureFlag: 'inventory' },
   { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff, section: 'work', featureFlag: 'contracts' },

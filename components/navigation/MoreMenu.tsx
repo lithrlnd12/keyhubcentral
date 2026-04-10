@@ -60,7 +60,7 @@ const canAccessSettings = (role: UserRole) => ['owner', 'admin', 'pm', 'sales_re
 const menuItems: MoreMenuItem[] = [
   // ── SHORTCUTS ──
   // Internal staff shortcuts
-  { label: 'Calls', href: '/kts/calls', icon: Phone, permission: isInternalStaff, section: 'shortcuts', featureFlag: 'callCenter' },
+  { label: 'Calls', href: '/kts/calls', icon: Phone, permission: (r) => isInternalStaff(r) && r !== 'sales_rep', section: 'shortcuts', featureFlag: 'callCenter' },
   { label: 'Inventory', href: '/kts/inventory', icon: Package, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'shortcuts', featureFlag: 'inventory' },
   { label: 'Receipts', href: '/kts/inventory/receipts', icon: Receipt, permission: (r) => isInternalStaff(r) && canViewInventory(r), section: 'shortcuts', featureFlag: 'inventory' },
   { label: tenant.entities.kr.label, href: '/kr', icon: Building2, permission: isInternalStaff, section: 'shortcuts', featureFlag: 'contracts' },

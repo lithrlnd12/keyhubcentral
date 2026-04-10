@@ -94,6 +94,15 @@ A fully automated home services operations platform that runs under any brand. L
 - 🔜 **Auto-call trigger** — when a lead arrives via webhook or form, automatically kick off a Vapi outbound call within 60 seconds (extends OUT-01 to webhook-sourced leads)
 - 🔜 **Campaign ID param on lead capture forms** — add `?campaignId=ID` support to public lead capture URLs so form submissions are attributed correctly
 - 📋 **Direct platform API integrations** — native Google Ads Lead Form API and Meta Lead Ads webhook (eliminates LeadsBridge middleware for high-volume customers)
+- 📋 **Auto-convert qualified inbound calls to leads** — Vapi webhook currently drops new inbound calls into the `inboundCalls` collection only; an admin/PM has to click "Convert to Lead" in the Call Center to push them into `/kd`. For tenants without active call-center triage, qualified calls fall through.
+  - **Where:** `app/api/webhooks/vapi/route.ts` — extend `inboundCallData` write block (line 354–376) so that after the call doc is created, qualifying calls trigger auto-conversion. Reuse the existing mapping logic in `convertInboundCallToLead` (`lib/firebase/inboundCalls.ts:151`) by extracting the lead-creation portion into a server-callable helper.
+  - **Qualification rules (proposed):** auto-convert when ALL of: (a) `analysis.interestLevel` ∈ {`high`, `very_high`} OR `analysis.urgency === 'urgent'`, (b) `caller.phone` is present and valid, (c) `analysis.projectType` is non-null, (d) `isComplaint === false` (complaints stay in the triage queue, not the leads pipeline).
+  - **Tenant safety:** gate the entire feature behind a new tenant feature flag `autoConvertCalls` (default `false`) so existing customers with active call-center triage aren't disrupted. Add to `types/featureFlags.ts` and `lib/config/tenant.ts`.
+  - **Audit trail:** when auto-converted, set `inboundCalls.status = 'converted'`, `linkedLeadId`, `reviewedBy = 'system:auto-convert'`, and stamp a new `autoConvertedAt` field. Lead doc gets `source = 'inbound_call'` and `notes` populated from `analysis.notes || summary`.
+  - **Notifications:** still fire the same "new lead" notification path so admins/PMs see it land in `/kd` without losing visibility.
+  - **Edge cases to handle:** duplicate dedupe (same `caller.phone` within last 24h → update existing lead instead of creating a second), missing address (lead created with empty address — sales rep nearby filter falls back to no-zip = invisible, so flag those for manual review), low-confidence Vapi extractions (skip auto-convert, leave for triage).
+  - **Testing:** Playwright e2e against the Vapi webhook with three fixture payloads (high-urgency new caller, low-interest caller, complaint). Assert lead doc exists / does not exist accordingly.
+  - **Rollout:** ship behind flag → enable for one pilot tenant → monitor false-positive rate (calls that became leads but shouldn't have) for 1 week → broaden.
 
 ### Lead List UX
 - 🔜 **Date range filter** — filter leads by creation date (today, last 7 days, this month, custom range)
